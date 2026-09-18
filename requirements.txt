@@ -1,0 +1,8 @@
+# Base runtime dependency. Everything else in RAGProbe is the Python standard library.
+#
+# Heavy, optional components are NOT listed here on purpose - see pyproject.toml
+# [project.optional-dependencies]:
+#   pip install "ragprobe[anthropic]"   # live Claude provider
+#   pip install "ragprobe[neural]"      # sentence-transformers embeddings (pulls in torch)
+#   pip install "ragprobe[pdf]"         # PDF ingestion
+PyYAML>=6.0

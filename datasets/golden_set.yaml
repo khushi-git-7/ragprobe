@@ -1,0 +1,151 @@
+# RAGProbe golden set.
+#
+# Every non-refusal case must declare `expected_chunks` - the chunk IDs that
+# genuinely contain the answer. Those drive precision@k, recall@k, hit rate and MRR.
+# Chunk IDs are heading anchors (doc_id#slug), so they survive re-tuning chunk size.
+#
+# A note on the two cases tagged `known_failure` in their notes: they FAIL on the
+# shipped configuration, on purpose. They are real defects that this harness found
+# in this pipeline, and they are kept in the suite as documented failures rather
+# than quietly deleted. A golden set that is green on day one is usually a golden
+# set that is not asserting anything.
+
+cases:
+  # ----------------------------------------------------------------- HR policy
+  - id: pto-annual-allowance
+    category: hr-policy
+    question: How many days of paid time off do full-time employees get each year?
+    expected_chunks: [employee_handbook#paid-time-off]
+    required_keywords: ["20 days"]
+    expected_answer: Full-time employees accrue 20 days of paid time off per calendar year.
+    notes: Straightforward single-fact lookup. The control case - if this breaks, something fundamental broke.
+
+  - id: pto-carry-over-limit
+    category: hr-policy
+    question: How many unused PTO days can be carried over into the next calendar year?
+    expected_chunks: [employee_handbook#paid-time-off]
+    required_keywords: ["5"]
+    notes: The answer sits in the same chunk as the allowance, so this tests sentence selection within a chunk, not retrieval.
+
+  - id: remote-onsite-days
+    category: hr-policy
+    question: How many days per week are employees expected to be on site?
+    expected_chunks: [employee_handbook#remote-work]
+    required_keywords: ["2 days"]
+    forbidden_keywords: ["fully remote"]
+    notes: Near-miss distractor - the same chunk also describes fully remote arrangements.
+
+  - id: expense-receipt-threshold
+    category: hr-policy
+    question: Above what amount is a receipt required for an expense claim?
+    expected_chunks: [employee_handbook#expense-reimbursement]
+    required_keywords: ["25 USD"]
+    notes: Numeric extraction where the chunk contains three other currency amounts.
+
+  # -------------------------------------------------------------------- product
+  - id: pricing-growth-tier
+    category: product
+    question: How much does the Growth tier cost per month?
+    expected_chunks: [product_faq#pricing-tiers]
+    required_keywords: ["499"]
+    forbidden_keywords: ["99 USD"]
+    notes: >-
+      known_failure. Retrieval is correct - the right chunk comes back at rank 1 - but
+      that chunk lists Starter, Growth and Enterprise pricing in adjacent sentences,
+      and the generator emits the two highest-scoring sentences. The Starter price
+      (99 USD) therefore appears alongside the Growth price (499 USD), and a user
+      skimming the answer can easily take away the wrong number. This case is the
+      reason retrieval metrics alone are not enough: precision@k, recall@k, hit rate
+      and MRR are all perfect here while the answer is still misleading. The fix is
+      finer-grained chunking of list-like sections, or a generator constrained to one
+      fact - not a retrieval change.
+
+  - id: api-rate-limit-starter
+    category: product
+    question: What is the API rate limit on the Starter tier?
+    expected_chunks: [product_faq#api-rate-limits]
+    required_keywords: ["1000 requests per minute"]
+    notes: High-similarity case; expected to retrieve at rank 1.
+
+  - id: data-export-formats
+    category: product
+    question: Which file formats can telemetry data be exported in?
+    expected_chunks: [product_faq#data-export]
+    required_keywords: ["CSV"]
+    notes: Tests retrieval of a chunk whose vocabulary overlaps heavily with the data-retention chunk.
+
+  # ------------------------------------------------------------------- security
+  - id: telemetry-retention-period
+    category: security
+    question: How long is telemetry data retained before deletion?
+    expected_chunks: [security_policy#data-retention]
+    required_keywords: ["13 months"]
+    forbidden_keywords: ["90 days"]
+    notes: The same chunk also states a 90-day log retention period - a classic wrong-number failure mode.
+
+  - id: breach-notification-window
+    category: security
+    question: How quickly are customers notified after a confirmed data breach?
+    expected_chunks: [security_policy#incident-response]
+    required_keywords: ["72 hours"]
+    notes: Compliance-relevant fact. Worth asserting on exactly because a wrong answer here is expensive.
+
+  - id: production-access-mfa
+    category: security
+    question: What authentication is required for access to production systems?
+    expected_chunks: [security_policy#access-control]
+    required_keywords: ["multi-factor authentication"]
+    notes: Phrase-level rather than numeric extraction.
+
+  # -------------------------------------------------------------------- support
+  - id: sev1-premium-response-time
+    category: support
+    question: What is the first response time for a Severity 1 incident on Premium support?
+    expected_chunks: [support_sla#response-times]
+    required_keywords: ["1 hour"]
+    notes: The chunk contains four different response times across two tiers.
+
+  - id: enterprise-uptime-commitment
+    category: support
+    question: What uptime does the Enterprise tier commit to?
+    expected_chunks: [support_sla#uptime-commitment]
+    required_keywords: ["99.95"]
+    notes: Decimal figures must survive tokenisation intact - 99.95 must not be read as 99 and 95.
+
+  # -------------------------------------------------------------------- billing
+  - id: free-trial-terms
+    category: billing
+    question: How long is the free trial and which tier does it run on?
+    expected_chunks: [refund_policy#free-trial]
+    required_keywords: ["14 day", "Growth"]
+    notes: Two facts must appear in one answer, which the single-fact generator can fail.
+
+  - id: annual-refund-window
+    category: billing
+    question: Can an annual prepaid subscription be refunded, and within what period?
+    expected_chunks: [refund_policy#refund-eligibility]
+    required_keywords: ["60 days"]
+    notes: Tests that the pro-rata refund rule is preferred over the monthly no-refund rule.
+
+  # -------------------------------------------------------------------- refusal
+  - id: refusal-out-of-domain
+    category: refusal
+    question: What is the capital of France?
+    should_refuse: true
+    notes: >-
+      Wholly out of domain. The retrieved chunks are irrelevant and their similarity
+      falls below the refusal threshold, so the system should decline. Tests that the
+      pipeline does not answer from model priors instead of from the corpus.
+
+  - id: refusal-in-domain-but-absent
+    category: refusal
+    question: What is the chief executive of Northwind Robotics paid?
+    should_refuse: true
+    notes: >-
+      known_failure. This is the hard refusal case and the more realistic one: the
+      question is plausibly in-domain, so retrieval returns handbook chunks with
+      enough lexical similarity to clear the refusal threshold, and the system answers
+      with unrelated handbook prose instead of declining. Real defect: a similarity
+      threshold alone cannot distinguish "this document is about the right topic" from
+      "this document contains the answer". Fixing it needs an answerability check, not
+      a higher threshold - raising the threshold would break the legitimate cases.

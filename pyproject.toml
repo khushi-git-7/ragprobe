@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragprobe"
+version = "0.1.0"
+description = "Evaluation and regression-testing harness for RAG pipelines and LLM features. Runs offline by default."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+keywords = ["rag", "llm", "evaluation", "testing", "regression", "qa", "retrieval"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+# The base install is deliberately tiny. Everything heavy is an optional extra.
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+]
+# Live provider: Claude via the official SDK. Activated with RAGPROBE_PROVIDER=anthropic.
+anthropic = [
+    "anthropic>=0.40",
+]
+# Neural embeddings. Multi-gigabyte install (pulls in torch); opt in deliberately.
+neural = [
+    "sentence-transformers>=2.2",
+]
+# PDF ingestion for the corpus loader.
+pdf = [
+    "pypdf>=3.0",
+]
+
+[project.scripts]
+ragprobe = "ragprobe.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/khushi-git-7/ragprobe"
+Issues = "https://github.com/khushi-git-7/ragprobe/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = ["error::DeprecationWarning:ragprobe.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
