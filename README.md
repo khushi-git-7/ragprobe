@@ -1,6 +1,14 @@
 # RAGProbe
 
+[![CI](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml/badge.svg)](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml)
+[![Live dashboard](https://img.shields.io/badge/live-dashboard-2a5bd7)](https://khushi-git-7.github.io/ragprobe/)
+
 **An evaluation and regression-testing harness for RAG pipelines and LLM features.**
+
+**Live dashboard:** <https://khushi-git-7.github.io/ragprobe/> - the landing page, with
+the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html) and the latest
+[regression report](https://khushi-git-7.github.io/ragprobe/report.html) rebuilt from
+the run history on every push to `main`.
 
 RAGProbe treats a prompt change the way a good engineering team treats a code change:
 it runs a golden test set against a known-good baseline, produces a diff of exactly

@@ -1,13 +1,16 @@
 name: CI
 
-# Two jobs, on purpose:
+# Three jobs, on purpose:
 #
 #   unit-tests  - pytest over the harness itself (metrics, chunking, evaluators, diff).
 #   regression  - the eval harness run in stub mode against the golden set, diffed
 #                 against the committed baseline. Any case that goes from passing to
 #                 failing turns this job red. A prompt change is a code change.
+#   pages       - on main only: appends this run to the history kept on the gh-pages
+#                 branch, rebuilds the dashboard and the landing page from it, and
+#                 publishes the result to GitHub Pages.
 #
-# Both run fully offline. No API key is configured or required.
+# All of them run fully offline. No API key is configured or required.
 
 on:
   push:
@@ -99,3 +102,131 @@ jobs:
             reports/diff.json
           if-no-files-found: warn
           retention-days: 30
+
+  pages:
+    name: Publish dashboard and site (GitHub Pages)
+    # The gh-pages branch is the run store: history/*.json accumulates one file
+    # per CI run of main. This job restores that store, appends the run the
+    # regression job just made, renders the dashboard and the landing page from
+    # it, and publishes everything. It runs even when the gate failed - a red
+    # run is exactly what the dashboard is for - but only for main, so a manual
+    # run of a feature branch can never rewrite the live page.
+    needs: [unit-tests, regression]
+    if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: gh-pages-${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      RAGPROBE_PROVIDER: stub
+      NO_COLOR: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Restore the published history
+        # `git archive | tar` rather than `git checkout --work-tree`: it never
+        # touches the index of the checkout we are about to build from. Only
+        # history/ is carried over; the pages themselves are rebuilt from it.
+        # On the very first run the branch does not exist yet.
+        run: |
+          mkdir -p reports/history restore
+          if git fetch --depth=1 origin gh-pages 2>/dev/null; then
+            if git archive --format=tar FETCH_HEAD history 2>/dev/null | tar -x -C restore 2>/dev/null; then
+              cp restore/history/*.json reports/history/ 2>/dev/null || true
+            else
+              echo "gh-pages exists but holds no history yet"
+            fi
+          else
+            echo "no gh-pages branch yet: starting a fresh history"
+          fi
+          echo "restored $(ls reports/history | wc -l) history file(s)"
+
+      - name: Download this run's artifacts
+        # No `name`, so nothing fails when the regression job did not run (a
+        # failed unit-test job skips it); the site is then rebuilt from the
+        # restored history alone.
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Append this run to the history
+        # The regression job uploads `ragprobe-report` with reports/ flattened,
+        # so its results land at artifacts/ragprobe-report/results.json. Each
+        # shard goes through the same store API `ragprobe run` uses, which gives
+        # it the next sequence number in the accumulated history - a file name
+        # sort is then a time sort - and a shard already in the store (a re-run
+        # of this job on the same artifact) is skipped rather than duplicated.
+        run: |
+          python - <<'EOF'
+          import json
+          from pathlib import Path
+
+          from ragprobe.history import append_run, is_valid_run, load_history
+
+          store = Path("reports/history")
+          shards = sorted(
+              set(Path("artifacts").glob("**/results.json"))
+              | set(Path("artifacts").glob("**/history/*.json"))
+          )
+          known = [entry.run for entry in load_history(store).entries]
+          for shard in shards:
+              try:
+                  run = json.loads(shard.read_text(encoding="utf-8"))
+              except ValueError as exc:
+                  print(f"skipping {shard}: {exc}")
+                  continue
+              if not is_valid_run(run):
+                  print(f"skipping {shard}: not a RAGProbe results document")
+                  continue
+              if run in known:
+                  print(f"skipping {shard}: already in the history")
+                  continue
+              print(f"{shard} -> {append_run(store, run)}")
+              known.append(run)
+          print(f"history now holds {len(load_history(store))} run(s)")
+          EOF
+
+      - name: Build the dashboard and the landing page
+        # The dashboard needs at least one run; the landing page does not, and
+        # it only links to the dashboard when the file is really there.
+        run: |
+          mkdir -p site/history artifacts
+          if ls reports/history/*.json >/dev/null 2>&1; then
+            ragprobe dashboard --history-dir reports/history --out site/dashboard.html
+          else
+            echo "no runs yet: skipping the dashboard"
+          fi
+          report=$(find artifacts -name report.html | head -n 1)
+          if [ -n "$report" ]; then cp "$report" site/report.html; fi
+          python scripts/build_site.py --history-dir reports/history --out site/index.html
+          # Keep the store bounded: the newest 200 runs. File names start with
+          # the sequence number, so a name sort is a time sort; mtimes here are
+          # all "now".
+          if ls reports/history/*.json >/dev/null 2>&1; then
+            ls reports/history/*.json | sort -r | head -n 200 | xargs -I{} cp {} site/history/
+          fi
+          touch site/.nojekyll
+          echo "publishing $(ls site/history | wc -l) history file(s)"
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
+          commit_message: "Publish dashboard and site for ${{ github.sha }}"
+          user_name: "github-actions[bot]"
+          user_email: "41898282+github-actions[bot]@users.noreply.github.com"
