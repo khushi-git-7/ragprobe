@@ -299,6 +299,14 @@ class TestRunHistory:
         _run(workspace, tmp_path / "a.json", "--history-dir", str(history))
         assert len(list(history.glob("run-*.json"))) == 1
 
+    def test_history_dir_is_relative_to_the_working_directory_without_root(self, workspace, tmp_path, monkeypatch, capsys):
+        """Without --root the path is used as given, so the printed location matches --out's style."""
+        monkeypatch.chdir(workspace)
+        main(["run", "--config", "ragprobe.yaml", "--out", "reports/results.json", "--quiet"])
+        assert (workspace / "reports" / "history").is_dir()
+        history_line = next(line for line in capsys.readouterr().out.splitlines() if "history ->" in line)
+        assert str(workspace) not in history_line
+
     def test_results_carry_the_golden_assertions(self, workspace, tmp_path):
         out = tmp_path / "results.json"
         _run(workspace, out)
@@ -360,6 +368,24 @@ class TestDashboardCommand:
         out = tmp_path / "dash.html"
         main(["dashboard", "--history-dir", str(history), "--limit", "2", "--out", str(out)])
         assert "2 stored run(s)" in out.read_text(encoding="utf-8")
+
+    def test_limit_counts_the_results_file_too(self, workspace, tmp_path):
+        """``--limit N`` means N runs on the page, whether or not one came from --results."""
+        history = self._history(workspace, tmp_path)
+        extra = tmp_path / "extra.json"
+        _run(workspace, extra, "--top-k", "5", "--no-history")
+        out = tmp_path / "dash.html"
+        main(["dashboard", "--history-dir", str(history), "--results", str(extra), "--limit", "2", "--out", str(out)])
+        content = out.read_text(encoding="utf-8")
+        assert "2 stored run(s)" in content
+        assert "precision@5" in content  # the --results run is the latest of the two
+
+    @pytest.mark.parametrize("value", ["0", "-1", "two"])
+    def test_limit_must_be_a_positive_integer(self, tmp_path, value):
+        """Zero used to mean "no limit", silently; it is a usage error like any other bad flag."""
+        with pytest.raises(SystemExit) as excinfo:
+            main(["dashboard", "--history-dir", str(tmp_path), "--limit", value])
+        assert excinfo.value.code == EXIT_USAGE
 
     def test_empty_history_is_a_usage_error(self, tmp_path):
         code = main(["dashboard", "--history-dir", str(tmp_path / "nothing"), "--out", str(tmp_path / "d.html")])

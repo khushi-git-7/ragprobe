@@ -49,6 +49,17 @@ DEFAULT_DASHBOARD = "reports/dashboard.html"
 # --------------------------------------------------------------------- helpers
 
 
+def _positive_int(text: str) -> int:
+    """argparse type for counts where zero would silently mean "no limit"."""
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected a positive integer, got {text!r}") from None
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"expected a positive integer, got {value}")
+    return value
+
+
 def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,9 +116,10 @@ def _history_dir(args: argparse.Namespace) -> Optional[Path]:
     """
     if getattr(args, "no_history", False):
         return None
-    raw = getattr(args, "history_dir", None) or DEFAULT_HISTORY_DIR
-    path = Path(raw)
-    return path if path.is_absolute() else _base_dir(args) / path
+    path = Path(getattr(args, "history_dir", None) or DEFAULT_HISTORY_DIR)
+    if path.is_absolute() or not getattr(args, "root", None):
+        return path
+    return Path(args.root) / path
 
 
 def _record_history(args: argparse.Namespace, payload: Mapping[str, Any]) -> Optional[Path]:
@@ -267,10 +279,13 @@ def cmd_report(args: argparse.Namespace) -> int:
 def cmd_dashboard(args: argparse.Namespace) -> int:
     """Render the analytics dashboard from the run history (plus an optional baseline)."""
     history_dir = _history_dir(args) or Path(DEFAULT_HISTORY_DIR)
-    history = load_history(history_dir, limit=args.limit)
+    history = load_history(history_dir)
     if args.results:
         current = _read_json(Path(args.results), "results file")
         merge_current(history, current, Path(args.results))
+    if args.limit is not None:
+        # After the merge, so "the most recent N" counts the --results file too.
+        history.entries = history.entries[-args.limit:]
     if not history.entries:
         raise FileNotFoundError(
             f"no runs found in {history_dir}\n"
@@ -456,7 +471,7 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_parser.add_argument("--out", default=DEFAULT_DASHBOARD, help="HTML output path")
     dashboard_parser.add_argument("--title", default="RAGProbe Dashboard", help="page title")
     dashboard_parser.add_argument(
-        "--limit", type=int, metavar="N", help="only use the most recent N runs"
+        "--limit", type=_positive_int, metavar="N", help="only use the most recent N runs"
     )
     dashboard_parser.add_argument(
         "--epsilon", type=float, default=DEFAULT_EPSILON,
