@@ -109,6 +109,10 @@ def _build_config(args: argparse.Namespace) -> ProbeConfig:
         overrides["retrieval.top_k"] = args.top_k
     if getattr(args, "provider", None):
         overrides["generation.provider"] = args.provider
+    if getattr(args, "model", None):
+        overrides["generation.model"] = args.model
+    if getattr(args, "base_url", None):
+        overrides["generation.base_url"] = args.base_url
     if getattr(args, "prompt_version", None):
         overrides["generation.prompt_version"] = args.prompt_version
     if getattr(args, "max_sentences", None) is not None:
@@ -363,9 +367,12 @@ def _add_pipeline_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--top-k", type=int, help="override retrieval.top_k")
     parser.add_argument(
         "--provider",
-        choices=["stub", "anthropic"],
-        help="override generation.provider (default: stub, no API key required)",
+        choices=["stub", "anthropic", "openai"],
+        help="override generation.provider (default: stub, no API key required; "
+        "'openai' is any OpenAI-compatible endpoint, e.g. Gemini, Groq, Ollama)",
     )
+    parser.add_argument("--model", help="override generation.model")
+    parser.add_argument("--base-url", help="override generation.base_url (openai provider)")
     parser.add_argument("--prompt-version", help="override generation.prompt_version")
     parser.add_argument(
         "--max-sentences", type=int, help="override generation.max_sentences"

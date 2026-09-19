@@ -600,18 +600,35 @@ failure does.
 
 ## Live mode
 
-To evaluate answer quality with a real model:
+To evaluate answer quality with a real model, pick either provider:
 
 ```bash
+# Any OpenAI-compatible endpoint - no SDK, standard library only. This includes the
+# free tiers of Google AI Studio (Gemini) and Groq, and a local Ollama.
+export GEMINI_API_KEY=...
+ragprobe run --provider openai --model gemini-2.5-flash   --base-url https://generativelanguage.googleapis.com/v1beta/openai --html
+
+# Claude via the official SDK
 pip install "ragprobe[anthropic]"
-export ANTHROPIC_API_KEY=...        # or authenticate however your environment does
+export ANTHROPIC_API_KEY=...
 RAGPROBE_PROVIDER=anthropic ragprobe run --html
 ```
 
-The environment variable overrides `generation.provider` in the config, so the same
-config file and golden set run in stub mode on CI and live mode locally with no file
-edits and no chance of committing a live-mode default. `RAGPROBE_MODEL` overrides the
-model ID (default `claude-opus-5`).
+| `--base-url` | key variable |
+|---|---|
+| `https://generativelanguage.googleapis.com/v1beta/openai` (Gemini, free tier) | `GEMINI_API_KEY` |
+| `https://api.groq.com/openai/v1` (Groq, free tier) | `GROQ_API_KEY` |
+| `https://api.openai.com/v1` | `OPENAI_API_KEY` |
+| `http://localhost:11434/v1` (Ollama) | none |
+
+`RAGPROBE_API_KEY` overrides all of them. Free tiers rate-limit per minute; the
+adapter retries with backoff and honours `Retry-After`, so a 60-case suite on a
+10-requests-per-minute tier takes minutes rather than failing.
+
+`RAGPROBE_PROVIDER` overrides `generation.provider` in the config, so the same config
+file and golden set run in stub mode on CI and live mode locally with no file edits
+and no chance of committing a live-mode default. `RAGPROBE_MODEL` and
+`RAGPROBE_BASE_URL` override the model ID and endpoint the same way.
 
 In live mode:
 
@@ -620,10 +637,12 @@ In live mode:
 - The judge is a genuine second opinion, and the HTML report shows where it disagrees
   with the heuristic.
 
-The neural embedder (`pip install "ragprobe[neural]"`, then `retrieval.embedder:
-sentence-transformers`) is a multi-gigabyte install and is separately opt-in. Its
-cosine similarities sit in a different range from TF-IDF, so `refusal_threshold` and
-`min_score` need re-calibrating and you must re-baseline.
+Neural embeddings are separately opt-in. `pip install "ragprobe[fastembed]"` then
+`retrieval.embedder: fastembed` runs `BAAI/bge-small-en-v1.5` through ONNX Runtime -
+no torch, a ~130 MB model, fast on CPU. (`ragprobe[neural]` with
+`sentence-transformers` also works but pulls in torch.) Neural cosine similarities
+sit in a different range from TF-IDF, so `refusal_threshold` and `min_score` need
+re-calibrating and you must re-baseline.
 
 ## CLI reference
 
@@ -808,6 +827,8 @@ ragprobe/
 │   ├── providers/              The pluggable LLM layer
 │   │   ├── base.py             LLMProvider interface and request/response types
 │   │   ├── stub.py             Deterministic extractive provider (default)
+│   │   ├── chat_prompts.py     Prompts and judge parsing shared by live providers
+│   │   ├── openai_compat.py    Any OpenAI-compatible endpoint: Gemini, Groq, Ollama, OpenAI
 │   │   └── anthropic_provider.py  Claude via the official SDK (opt-in)
 │   ├── evaluation/             The test harness
 │   │   ├── dataset.py          Golden set schema, loading, strict validation
