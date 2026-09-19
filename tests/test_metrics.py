@@ -232,3 +232,22 @@ class TestAggregation:
 
     def test_all_undefined_aggregates_to_none(self):
         assert aggregate_metrics([{"precision@1": None}])["precision@1"] is None
+
+
+class TestSplitSectionsCountAsHits:
+    """A golden set names sections. A section the chunker split into ``~2``, ``~3``
+    parts is still that section, so any part retrieved is a hit."""
+
+    def test_split_part_satisfies_the_section(self):
+        assert hit_rate_at_k(["doc#a~2"], ["doc#a"], 3) == 1.0
+        assert reciprocal_rank(["x#y", "doc#a~3"], ["doc#a"]) == 0.5
+        assert precision_at_k(["doc#a~2", "doc#a", "z#z"], ["doc#a"], 3) == pytest.approx(2 / 3)
+
+    def test_recall_counts_a_section_once(self):
+        # Two parts of the same section must not give recall 2/1.
+        assert recall_at_k(["doc#a", "doc#a~2"], ["doc#a"], 3) == 1.0
+        assert recall_at_k(["doc#a~2", "doc#b"], ["doc#a", "doc#b", "doc#c"], 3) == pytest.approx(2 / 3)
+
+    def test_an_explicit_part_in_the_golden_set_is_exact(self):
+        assert hit_rate_at_k(["doc#a"], ["doc#a~2"], 3) == 0.0
+        assert hit_rate_at_k(["doc#a~2"], ["doc#a~2"], 3) == 1.0

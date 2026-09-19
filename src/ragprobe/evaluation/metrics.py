@@ -48,6 +48,37 @@ def _prepare(retrieved: Sequence[str], relevant: Iterable[str], k: int):
     return top_k, relevant_set
 
 
+def _section(chunk_id: str) -> str:
+    """``doc#anchor~2`` -> ``doc#anchor``. The part before ``~`` names the section."""
+    return chunk_id.split("~", 1)[0]
+
+
+def _matched(chunk_id: str, relevant_set: Set[str]) -> Optional[str]:
+    """The relevant id that ``chunk_id`` satisfies, or ``None``.
+
+    A golden set names *sections* (``doc#anchor``). When the chunker splits a long
+    section into ``doc#anchor``, ``doc#anchor~2``, ... every part is that section,
+    so retrieving any of them is a hit. An expected id that itself carries a ``~``
+    suffix is matched exactly, for the rare case where only one part will do.
+    """
+    if chunk_id in relevant_set:
+        return chunk_id
+    section = _section(chunk_id)
+    if section in relevant_set:
+        return section
+    return None
+
+
+def _hit_sections(top_k: Sequence[str], relevant_set: Set[str]) -> Set[str]:
+    """Distinct relevant ids satisfied by the retrieved list."""
+    hits: Set[str] = set()
+    for chunk_id in top_k:
+        match = _matched(chunk_id, relevant_set)
+        if match is not None:
+            hits.add(match)
+    return hits
+
+
 def precision_at_k(retrieved: Sequence[str], relevant: Iterable[str], k: int) -> Optional[float]:
     """Fraction of the top-k slots filled by a relevant chunk.
 
@@ -56,7 +87,7 @@ def precision_at_k(retrieved: Sequence[str], relevant: Iterable[str], k: int) ->
     top_k, relevant_set = _prepare(retrieved, relevant, k)
     if not relevant_set:
         return None
-    hits = sum(1 for chunk_id in top_k if chunk_id in relevant_set)
+    hits = sum(1 for chunk_id in top_k if _matched(chunk_id, relevant_set) is not None)
     return hits / k
 
 
@@ -68,8 +99,7 @@ def recall_at_k(retrieved: Sequence[str], relevant: Iterable[str], k: int) -> Op
     top_k, relevant_set = _prepare(retrieved, relevant, k)
     if not relevant_set:
         return None
-    hits = sum(1 for chunk_id in top_k if chunk_id in relevant_set)
-    return hits / len(relevant_set)
+    return len(_hit_sections(top_k, relevant_set)) / len(relevant_set)
 
 
 def hit_rate_at_k(retrieved: Sequence[str], relevant: Iterable[str], k: int) -> Optional[float]:
@@ -81,7 +111,7 @@ def hit_rate_at_k(retrieved: Sequence[str], relevant: Iterable[str], k: int) -> 
     top_k, relevant_set = _prepare(retrieved, relevant, k)
     if not relevant_set:
         return None
-    return 1.0 if any(chunk_id in relevant_set for chunk_id in top_k) else 0.0
+    return 1.0 if _hit_sections(top_k, relevant_set) else 0.0
 
 
 def reciprocal_rank(
@@ -100,7 +130,7 @@ def reciprocal_rank(
             raise ValueError("k must be a positive integer")
         ranked = ranked[:k]
     for index, chunk_id in enumerate(ranked, start=1):
-        if chunk_id in relevant_set:
+        if _matched(chunk_id, relevant_set) is not None:
             return 1.0 / index
     return 0.0
 
