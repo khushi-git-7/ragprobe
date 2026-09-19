@@ -793,16 +793,33 @@ def _changelog_body(changelog: List[str], repo_url: str) -> str:
     return body + '<p style="margin-top:14px"><a href="' + esc(repo_url + "/commits/main") + '">Full history on GitHub &rarr;</a></p>'
 
 
-def _casestudy_body() -> str:
+def _casestudy_body(repo_url: str = REPO_URL) -> str:
+    """The Playwright docs case study: real corpus, real questions, real model."""
+    rows = (
+        ("TF-IDF + stub, first run", "40.3%", "0.603", "0.537", "0 / 4"),
+        ("TF-IDF + stub, citation extractor fixed", "61.3%", "0.603", "0.537", "0 / 4"),
+        ("bge-small + stub", "59.7%", "0.707", "0.592", "0 / 4"),
+        ("bge-small + gemini-3.5-flash-lite", "48.4% &rarr; 53.2%", "0.707", "0.592", "4 / 4"),
+    )
+    table = "".join(
+        "<tr><td>" + name + '</td><td class="n">' + pr + '</td><td class="n">' + hit
+        + '</td><td class="n">' + mrr + '</td><td class="n">' + ref + "</td></tr>"
+        for name, pr, hit, mrr, ref in rows
+    )
     return (
-        "<p>A documentation assistant over the Playwright guides, evaluated with the same golden set before and after swapping the retriever "
-        "from TF-IDF to the bge-small embedding model.</p>"
-        '<p class="muted">Numbers land here once the live run finishes.</p>'
-        '<div class="tscroll"><table class="plain"><thead><tr><th>Metric</th><th>TF-IDF</th><th>bge-small</th><th>Change</th></tr></thead><tbody>'
-        '<tr><td>hit rate@3</td><td class="n">0.603</td><td class="n">0.707</td><td class="n up">+0.104</td></tr>'
-        '<tr><td>MRR</td><td class="n">0.537</td><td class="n">0.592</td><td class="n up">+0.055</td></tr>'
-        '<tr><td>recall@3</td><td class="n">0.586</td><td class="n">0.655</td><td class="n up">+0.069</td></tr>'
-        "</tbody></table></div>"
+        "<p>59 real Playwright guide pages (841 chunks), 62 questions written the way QA engineers ask them, "
+        "four of them unanswerable. Same golden set through four configurations:</p>"
+        '<div class="tscroll"><table class="plain"><thead><tr><th>Configuration</th><th>pass rate</th>'
+        "<th>hit rate@3</th><th>MRR</th><th>out-of-scope refused</th></tr></thead><tbody>" + table
+        + "</tbody></table></div>"
+        "<p><b>Three findings.</b> The first real run found a bug in the citation evaluator, not the pipeline "
+        "(markdown links read as fabricated citations; 40.3% &rarr; 61.3% with retrieval untouched). "
+        "A neural embedder improved every retrieval metric and did nothing for the pass rate, and the gate refused it: "
+        "8 cases regressed, 15 improved. A real model refused all four out-of-scope questions, exposed a second citation "
+        "bug and a grounding heuristic calibrated on the wrong kind of answer (72.6% with it advisory), and left 17 failures "
+        "the harness attributes as 13 retrieval, 4 generation.</p>"
+        '<p style="margin-top:14px"><a href="' + esc(repo_url + "/blob/main/docs/case-study.md")
+        + '">Read the full case study &rarr;</a> &middot; <a href="case-study/dashboard.html">Live dashboard of the three runs &rarr;</a></p>'
     )
 
 
@@ -863,7 +880,7 @@ def render(
         "author": ("Talk to the author", _author_body(repo_url)),
         "about": ("About RAGProbe", _about_body()),
         "changelog": ("Changelog", _changelog_body(changelog, repo_url)),
-        "casestudy": ("Case study: a docs assistant over the Playwright guides", _casestudy_body()),
+        "casestudy": ("Case study: a docs assistant over the Playwright guides", _casestudy_body(repo_url)),
         "examples": ("Examples", _examples_body(repo_url)),
         "hire": ("Hire me", _hire_body(repo_url)),
         "trash": ("Trash", _trash_body()),
