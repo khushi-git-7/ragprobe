@@ -57,6 +57,7 @@ before merge, not after.*
 - [Live mode](#live-mode)
 - [CLI reference](#cli-reference)
 - [Reports](#reports)
+- [Dashboard](#dashboard)
 - [Testing the harness itself](#testing-the-harness-itself)
 - [Continuous integration](#continuous-integration)
 - [Project layout](#project-layout)
@@ -304,7 +305,7 @@ ignored or disabled - which costs you the checks that did work.
 
 ### Exit codes distinguish "it broke" from "it could not run"
 
-`0` success, `1` a gate failed, `2` usage error or missing file. Collapsing 1 and 2
+`0` success, `1` a gate failed, `2` usage error, bad config or an unusable file. Collapsing 1 and 2
 into "non-zero" makes a broken config look like a regression.
 
 ## Retrieval metrics
@@ -564,6 +565,7 @@ cosine similarities sit in a different range from TF-IDF, so `refusal_threshold`
 ```
 ragprobe run       Run the golden set, write results JSON, optionally HTML.
                    --fail-under RATE / --fail-under-score S  set absolute thresholds.
+                   --history-dir DIR / --no-history  control the run history.
 ragprobe baseline  Record the current behaviour as baselines/baseline.json.
                    --from-results FILE promotes an existing results file.
 ragprobe diff      Compare a run against the baseline and apply the gate.
@@ -571,13 +573,16 @@ ragprobe diff      Compare a run against the baseline and apply the gate.
                    --min-pass-rate R, --max-score-drop D, --epsilon E,
                    --allow-removed, --json, --html, --save-current.
 ragprobe report    Render HTML from stored JSON without re-running.
+ragprobe dashboard Render the analytics dashboard from reports/history/.
+                   --history-dir DIR, --results FILE, --baseline FILE,
+                   --limit N, --epsilon E, --out FILE.
 ```
 
 All run-style commands accept overrides: `--config`, `--root`, `--corpus`,
 `--dataset`, `--top-k`, `--provider`, `--prompt-version`, `--max-sentences`,
 `--no-judge`, `--quiet`. `ragprobe <command> --help` lists everything.
 
-Exit codes: `0` success, `1` a gate failed, `2` usage error, bad config or missing file.
+Exit codes: `0` success, `1` a gate failed, `2` usage error, bad config or a missing or unusable file.
 
 Configuration lives in `ragprobe.yaml`. Every value is hashed into the run's config
 fingerprint; unknown keys are rejected at load time.
@@ -600,6 +605,43 @@ The screenshots below are from a real run of the shipped golden set:
 `results.json` is the machine-readable form and the input to `diff`. It carries
 enough provenance (config fingerprint, dataset fingerprint, provider, determinism
 flag, harness version) for the diff to tell you when a comparison is invalid.
+
+## Dashboard
+
+`ragprobe run` appends every run to `reports/history/` (so does `ragprobe diff` when it
+runs the suite itself). `ragprobe dashboard` reads that history (plus the baseline, if
+there is one) and renders a single self-contained analytics page - the view you would
+want on a team wallboard rather than a per-run report.
+
+```bash
+ragprobe run --max-sentences 1     # a few runs with different settings ...
+ragprobe run --prompt-version v2
+ragprobe run
+ragprobe dashboard                 # -> reports/dashboard.html
+```
+
+![Dashboard overview: KPI tiles with deltas and sparklines, top findings and the run log](docs/dashboard-overview.png)
+
+| Panel | What it shows |
+|---|---|
+| **Overview** | Pass rate, mean score, hit rate, MRR, precision and recall for the latest run, each with its delta against the previous run and a sparkline across history. The run log names the exact config keys that changed between consecutive runs, so a score movement can be attributed to the edit that caused it. |
+| **Trends** | Pass rate, mean score and each retrieval metric over the run history, with markers where the config or dataset fingerprint changed. |
+| **Breakdown** | Pass rate per category, which checks fail most often, and the score distribution. |
+| **Cases** | Every case with search, status and category filters, sortable columns, and an expandable view of the question, expected and actual answers, retrieved chunks, check-by-check results, and a per-case score history so a flaky case is visible at a glance. |
+| **Regression** | The diff against the baseline - regressed, degraded, improved, flat, new and removed - with before/after answers for anything that changed. |
+| **Insights** | Plain-English findings computed from the data: the weakest category, the most common failing check, cases that flip between passing and failing across runs, the largest score drops since the baseline, and a retrieval-versus-generation attribution for each failure (retrieval found every expected chunk, so the defect is in generation - or it did not, so it is in retrieval). Every insight states the rule it was derived from. |
+
+Design constraints, all deliberate: one HTML file, no external scripts, styles or
+fonts, charts as inline SVG generated in Python, light and dark themes, no runtime
+dependency beyond PyYAML. It opens from a CI artifact, an email attachment or a USB
+stick and looks the same everywhere.
+
+`--limit N` restricts the view to the most recent N runs; `--epsilon` sets the score
+change treated as noise (default 0.01); `--results FILE` adds a results file that is not
+in the history (CI uses this to include the run it just made). `ragprobe run --no-history`
+skips recording a run, for throwaway experiments. A file in the history directory that
+is not a results document, or is a copy of one already there, is skipped with a warning
+rather than taking the page down.
 
 ## Testing the harness itself
 
@@ -627,7 +669,13 @@ The suite runs offline in a few seconds. It is organised around the question
 - **`test_providers.py`** tests the live-provider adapter with an injected fake
   client, including the judge's JSON parsing. No network, no key.
 - **`test_cli.py`** runs the whole workflow end to end: run, baseline, change, diff,
-  and asserts that two runs of the same commit are byte-identical.
+  dashboard, and asserts that two runs of the same commit are byte-identical.
+- **`test_history.py`** pins the run store's ordering: runs in the same second keep
+  their order, corrupt or copied files are skipped and reported, never silently dropped.
+- **`test_dashboard.py`** pins every number on the dashboard to hand-computed values
+  from small synthetic histories - KPI deltas, flip counts, failure attribution, the
+  wording of each insight - and checks the page is well-formed, self-contained and
+  escapes hostile strings.
 
 ## Continuous integration
 
@@ -636,8 +684,9 @@ The suite runs offline in a few seconds. It is organised around the question
 1. **`unit-tests`** - the pytest suite, on two Python versions.
 2. **`regression`** - `ragprobe diff` against the committed `baselines/baseline.json`
    with `--max-regressions 0`. A case that passed on the baseline and fails now turns
-   the job red. The HTML report is uploaded as a build artifact whether or not the
-   gate passed, because it is most useful precisely when it failed.
+   the job red. The HTML report and the dashboard are uploaded as build artifacts
+   whether or not the gate passed, because they are most useful precisely when it
+   failed.
 
 `RAGPROBE_PROVIDER=stub` is pinned in the job environment so that CI can never make a
 network call regardless of what the config says.
@@ -673,6 +722,8 @@ ragprobe/
 │   │   └── runner.py           Runs the suite, builds results.json
 │   ├── regression/diff.py      Baseline comparison and the CI gate
 │   ├── reporting/              Terminal summary and self-contained HTML
+│   ├── dashboard/              Run-history analytics: metrics, insights, inline SVG, HTML
+│   ├── history.py              Append/load runs in reports/history/
 │   └── cli.py                  argparse entrypoint, exit-code contract
 ├── datasets/
 │   ├── docs/                   Five fictional sample documents

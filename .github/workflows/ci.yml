@@ -75,14 +75,26 @@ jobs:
             --json reports/diff.json \
             --html reports/report.html
 
-      - name: Upload HTML report
-        # always(): the report is most useful precisely when the gate failed.
+      - name: Render the dashboard
+        # The diff step above appended its run to reports/history/, so the
+        # dashboard has one run plus the baseline: KPIs, breakdown, cases,
+        # regression and insights for this commit. Runs even when the gate failed.
+        if: always()
+        run: |
+          ragprobe dashboard \
+            --results reports/results.json \
+            --baseline baselines/baseline.json \
+            --out reports/dashboard.html
+
+      - name: Upload reports
+        # always(): the reports are most useful precisely when the gate failed.
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ragprobe-report
           path: |
             reports/report.html
+            reports/dashboard.html
             reports/results.json
             reports/diff.json
           if-no-files-found: warn
