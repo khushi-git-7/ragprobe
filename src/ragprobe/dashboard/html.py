@@ -629,12 +629,13 @@ def _run_log(model: DashboardModel) -> str:
         changes = "; ".join(point.changes[:2]) + (" ..." if len(point.changes) > 2 else "")
         if point.dataset_changed:
             changes = ("dataset changed; " + changes) if changes else "dataset changed"
+        nondeterministic = "" if point.deterministic else ' <span class="pill warn plain">nondeterministic</span>'
         rows.append(
             "<tr>"
             f'<td class="mono">{_esc(point.label)}</td>'
             f'<td class="mono">{_esc(point.started_at)}</td>'
             f'<td class="mono">{_esc(point.config_fingerprint)}</td>'
-            f"<td>{_esc(point.provider)}{'' if point.deterministic else ' <span class=\"pill warn plain\">nondeterministic</span>'}</td>"
+            f"<td>{_esc(point.provider)}{nondeterministic}</td>"
             f'<td class="num">{_esc(_pct(point.pass_rate))}</td>'
             f'<td class="num">{_esc(_fmt(point.mean_score))}</td>'
             f'<td class="num">{point.passed}/{point.total}</td>'
