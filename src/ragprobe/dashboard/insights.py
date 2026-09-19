@@ -49,16 +49,6 @@ class Insight:
     rule: str
     cases: List[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, object]:
-        return {
-            "kind": self.kind,
-            "severity": self.severity,
-            "title": self.title,
-            "body": self.body,
-            "rule": self.rule,
-            "cases": list(self.cases),
-        }
-
 
 def _pct(value: Optional[float]) -> str:
     return "n/a" if value is None else f"{value * 100:.1f}%"

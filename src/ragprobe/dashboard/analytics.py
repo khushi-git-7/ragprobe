@@ -322,10 +322,6 @@ class HistogramBin:
     count: int
     cases: List[str] = field(default_factory=list)
 
-    @property
-    def label(self) -> str:
-        return f"{self.low:.1f}-{self.high:.1f}"
-
 
 def score_histogram(run: Mapping[str, Any], bins: int = 10) -> List[HistogramBin]:
     """Case scores bucketed into equal-width bins on [0, 1]; 1.0 lands in the top bin."""
