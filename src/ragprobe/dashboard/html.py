@@ -12,17 +12,12 @@ Everything visible is computed by :mod:`ragprobe.dashboard.analytics` and
 
 from __future__ import annotations
 
-import html
-import json
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Sequence
 
 from ragprobe import __version__
 from ragprobe.dashboard.analytics import (
     ATTRIBUTION_ERROR,
-    ATTRIBUTION_GENERATION,
-    ATTRIBUTION_MIXED,
-    ATTRIBUTION_REFUSAL,
     ATTRIBUTION_RETRIEVAL,
     RETRIEVAL_FAMILIES,
     CaseRow,
@@ -47,6 +42,7 @@ from ragprobe.regression.diff import (
     STATUS_REGRESSED,
     STATUS_REMOVED,
 )
+from ragprobe.reporting.fragments import checks_table, chunk_list, esc, fmt_pct, fmt_score
 
 SECTIONS = (
     ("overview", "Overview"),
@@ -551,23 +547,11 @@ _JS = """
 # ------------------------------------------------------------------ helpers
 
 
-def _esc(value: Any) -> str:
-    return html.escape(str(value if value is not None else ""), quote=True)
-
-
 def _short_time(started_at: str) -> str:
     """``2026-09-18T17:30:23Z`` -> ``09-18 17:30``; anything else passes through."""
     if len(started_at) >= 16 and started_at[4] == "-" and started_at[10] == "T":
         return f"{started_at[5:10]} {started_at[11:16]}"
     return started_at
-
-
-def _fmt(value: Optional[float], digits: int = 3) -> str:
-    return "n/a" if value is None else f"{value:.{digits}f}"
-
-
-def _pct(value: Optional[float]) -> str:
-    return "n/a" if value is None else f"{value * 100:.1f}%"
 
 
 def _run_label(model: DashboardModel, index: int) -> str:
@@ -610,13 +594,13 @@ def _kpi_tile(kpi: Kpi, model: DashboardModel) -> str:
     else:
         delta_html = (
             f'<span class="delta {kpi.sentiment}"><span class="arrow">{arrow}</span>'
-            f"{_esc(fmt_delta(kpi.delta, kpi.fmt))} <span class=\"vs\">vs prev</span></span>"
+            f"{esc(fmt_delta(kpi.delta, kpi.fmt))} <span class=\"vs\">vs prev</span></span>"
         )
-    note = f'<span class="note">{_esc(kpi.note)}</span>' if kpi.note else ""
+    note = f'<span class="note">{esc(kpi.note)}</span>' if kpi.note else ""
     return (
-        f'<div class="card kpi" data-kpi="{_esc(kpi.key)}">'
-        f'<span class="label">{_esc(kpi.label)}</span>'
-        f'<span class="value">{_esc(fmt_value(kpi.value, kpi.fmt))}</span>'
+        f'<div class="card kpi" data-kpi="{esc(kpi.key)}">'
+        f'<span class="label">{esc(kpi.label)}</span>'
+        f'<span class="value">{esc(fmt_value(kpi.value, kpi.fmt))}</span>'
         f"{delta_html}{note}"
         f'{sparkline(kpi.series, width=140, height=32, sentiment=kpi.sentiment, label=f"{kpi.label} over {len(kpi.series)} runs")}'
         "</div>"
@@ -632,14 +616,14 @@ def _run_log(model: DashboardModel) -> str:
         nondeterministic = "" if point.deterministic else ' <span class="pill warn plain">nondeterministic</span>'
         rows.append(
             "<tr>"
-            f'<td class="mono">{_esc(point.label)}</td>'
-            f'<td class="mono">{_esc(point.started_at)}</td>'
-            f'<td class="mono">{_esc(point.config_fingerprint)}</td>'
-            f"<td>{_esc(point.provider)}{nondeterministic}</td>"
-            f'<td class="num">{_esc(_pct(point.pass_rate))}</td>'
-            f'<td class="num">{_esc(_fmt(point.mean_score))}</td>'
+            f'<td class="mono">{esc(point.label)}</td>'
+            f'<td class="mono">{esc(point.started_at)}</td>'
+            f'<td class="mono">{esc(point.config_fingerprint)}</td>'
+            f"<td>{esc(point.provider)}{nondeterministic}</td>"
+            f'<td class="num">{esc(fmt_pct(point.pass_rate))}</td>'
+            f'<td class="num">{esc(fmt_score(point.mean_score))}</td>'
             f'<td class="num">{point.passed}/{point.total}</td>'
-            f'<td class="small muted">{_esc(changes) or "-"}</td>'
+            f'<td class="small muted">{esc(changes) or "-"}</td>'
             "</tr>"
         )
     return (
@@ -653,15 +637,15 @@ def _run_log(model: DashboardModel) -> str:
 def _overview(model: DashboardModel, insights: Sequence[Insight]) -> str:
     banners = []
     if model.gate is not None and not model.gate.ok:
-        items = "".join(f"<li>{_esc(r)}</li>" for r in model.gate.reasons)
+        items = "".join(f"<li>{esc(r)}</li>" for r in model.gate.reasons)
         banners.append(f'<div class="banner fail"><strong>Regression gate failed</strong><ul>{items}</ul></div>')
     for warning in model.warnings:
-        banners.append(f'<div class="banner warn">{_esc(warning)}</div>')
+        banners.append(f'<div class="banner warn">{esc(warning)}</div>')
     tiles = "".join(_kpi_tile(kpi, model) for kpi in model.kpis)
     top = [i for i in insights if i.severity in ("bad", "warn")][:3] or list(insights)[:3]
     findings = "".join(
-        f'<li><span class="pill {_esc(i.severity)}">{_esc(i.severity)}</span> <strong>{_esc(i.title)}</strong>'
-        f'<div class="small muted">{_esc(i.body)}</div></li>'
+        f'<li><span class="pill {esc(i.severity)}">{esc(i.severity)}</span> <strong>{esc(i.title)}</strong>'
+        f'<div class="small muted">{esc(i.body)}</div></li>'
         for i in top
     )
     return (
@@ -696,8 +680,8 @@ def _trends(model: DashboardModel) -> str:
             chart_id=f"trend-{key}", tick_labels=labels,
         )
         cards.append(
-            f'<div class="card"><div class="card-head"><h2>{_esc(label)}</h2>'
-            f'<span class="value">{_esc(fmt_value(latest, fmt))}</span></div>'
+            f'<div class="card"><div class="card-head"><h2>{esc(label)}</h2>'
+            f'<span class="value">{esc(fmt_value(latest, fmt))}</span></div>'
             f'<div class="card-body chart-wrap">{chart}</div></div>'
         )
     legend = (
@@ -720,8 +704,8 @@ def _breakdown(model: DashboardModel) -> str:
     cat_rows = [
         {
             "label": c.name, "value": c.pass_rate,
-            "tip": f"{c.name}\n{c.passed}/{c.total} passing ({_pct(c.pass_rate)})\nmean score {c.mean_score:.3f}"
-            + (f"\nprevious run: {_pct(c.previous_pass_rate)}" if c.previous_pass_rate is not None else ""),
+            "tip": f"{c.name}\n{c.passed}/{c.total} passing ({fmt_pct(c.pass_rate)})\nmean score {c.mean_score:.3f}"
+            + (f"\nprevious run: {fmt_pct(c.previous_pass_rate)}" if c.previous_pass_rate is not None else ""),
             "cls": "" if c.pass_rate >= 1.0 else ("fail" if c.pass_rate < 0.5 else "warn"),
         }
         for c in model.categories
@@ -763,8 +747,8 @@ def _breakdown(model: DashboardModel) -> str:
         '<div class="table-scroll"><table><thead><tr><th>Category</th><th class="num">Passed</th>'
         '<th class="num">Pass rate</th><th class="num">Prev</th><th class="num">Mean score</th></tr></thead><tbody>'
         + "".join(
-            f"<tr><td>{_esc(c.name)}</td><td class='num'>{c.passed}/{c.total}</td>"
-            f"<td class='num'>{_esc(_pct(c.pass_rate))}</td><td class='num muted'>{_esc(_pct(c.previous_pass_rate))}</td>"
+            f"<tr><td>{esc(c.name)}</td><td class='num'>{c.passed}/{c.total}</td>"
+            f"<td class='num'>{esc(fmt_pct(c.pass_rate))}</td><td class='num muted'>{esc(fmt_pct(c.previous_pass_rate))}</td>"
             f"<td class='num'>{c.mean_score:.3f}</td></tr>"
             for c in model.categories
         )
@@ -775,86 +759,41 @@ def _breakdown(model: DashboardModel) -> str:
 # ------------------------------------------------------------------ cases
 
 
-def _check_pill(check: Mapping[str, Any]) -> str:
-    if not check.get("applicable", True):
-        return '<span class="pill skip">skip</span>'
-    return '<span class="pill pass">pass</span>' if check.get("passed") else '<span class="pill fail">fail</span>'
-
-
-def _checks_table(checks: Sequence[Mapping[str, Any]]) -> str:
-    if not checks:
-        return '<p class="muted">No checks were recorded (the case errored before evaluation).</p>'
-    rows = []
-    for check in checks:
-        advisory = (check.get("metadata") or {}).get("advisory")
-        name = _esc(check.get("name")) + (' <span class="tag">advisory</span>' if advisory else "")
-        rows.append(
-            f"<tr><td>{_check_pill(check)}</td><td>{name}</td>"
-            f'<td class="num">{_fmt(check.get("score"), 2)}</td><td class="muted">{_esc(check.get("detail"))}</td></tr>'
-        )
-    return (
-        '<table><thead><tr><th></th><th>Check</th><th class="num">Score</th><th>Detail</th></tr></thead>'
-        f"<tbody>{''.join(rows)}</tbody></table>"
-    )
-
-
-def _chunks(retrieved: Sequence[Mapping[str, Any]], expected: Sequence[str]) -> str:
-    if not retrieved:
-        return '<p class="muted">Nothing was retrieved for this question.</p>'
-    expected_anchors = {str(c).split("~", 1)[0] for c in expected}
-    blocks = []
-    for chunk in retrieved:
-        chunk_id = str(chunk.get("chunk_id", ""))
-        is_expected = chunk_id.split("~", 1)[0] in expected_anchors
-        label = '<span class="pill pass">expected</span>' if is_expected else '<span class="pill skip">not in golden set</span>'
-        blocks.append(
-            f'<div class="chunk {"expected" if is_expected else ""}"><div class="chead">'
-            f'<span class="cid">{_esc(chunk_id)}</span><span class="muted">rank {_esc(chunk.get("rank"))} &middot; '
-            f'score {_fmt(chunk.get("score"))}</span>{label}</div>'
-            f'<div class="ctext">{_esc(chunk.get("text"))}</div></div>'
-        )
-    retrieved_anchors = {str(c.get("chunk_id", "")).split("~", 1)[0] for c in retrieved}
-    missing = sorted(a for a in expected_anchors if a not in retrieved_anchors)
-    if missing:
-        blocks.append('<p class="muted small">Expected but not retrieved: ' + ", ".join(f"<code>{_esc(m)}</code>" for m in missing) + "</p>")
-    return "".join(blocks)
-
-
 def _case_detail(row: CaseRow, model: DashboardModel) -> str:
     case = row.case
     golden = case.get("golden") or {}
     expected_answer = golden.get("expected_answer")
     keywords = []
     if golden.get("required_keywords"):
-        keywords.append("required: " + ", ".join(f"<code>{_esc(k)}</code>" for k in golden["required_keywords"]))
+        keywords.append("required: " + ", ".join(f"<code>{esc(k)}</code>" for k in golden["required_keywords"]))
     if golden.get("forbidden_keywords"):
-        keywords.append("forbidden: " + ", ".join(f"<code>{_esc(k)}</code>" for k in golden["forbidden_keywords"]))
+        keywords.append("forbidden: " + ", ".join(f"<code>{esc(k)}</code>" for k in golden["forbidden_keywords"]))
     if golden.get("should_refuse"):
         keywords.append("must refuse")
     if not golden:
         expected_html = '<p class="muted small">Golden-set assertions were not recorded in this results file (older schema).</p>'
     else:
         expected_html = (
-            f'<div class="answer expected">{_esc(expected_answer) if expected_answer else "<em class=muted>No reference answer in the golden set; the case asserts on keywords, refusal and grounding.</em>"}</div>'
+            f'<div class="answer expected">{esc(expected_answer) if expected_answer else "<em class=muted>No reference answer in the golden set; the case asserts on keywords, refusal and grounding.</em>"}</div>'
             + (f'<p class="small muted" style="margin-top:6px">{" &middot; ".join(keywords)}</p>' if keywords else "")
-            + (f'<p class="small muted" style="margin-top:6px"><strong>Notes:</strong> {_esc(golden["notes"])}</p>' if golden.get("notes") else "")
+            + (f'<p class="small muted" style="margin-top:6px"><strong>Notes:</strong> {esc(golden["notes"])}</p>' if golden.get("notes") else "")
         )
     attrib_html = ""
     if row.attribution is not None:
         attrib_html = (
             f'<div class="full"><div class="kv-label">Attribution</div><div class="attrib">'
-            f'<span class="pill {"fail" if row.attribution.kind in (ATTRIBUTION_RETRIEVAL, ATTRIBUTION_ERROR) else "warn"} plain">{_esc(row.attribution.kind)}</span>'
-            f"<span>{_esc(row.attribution.reason)}.</span></div></div>"
+            f'<span class="pill {"fail" if row.attribution.kind in (ATTRIBUTION_RETRIEVAL, ATTRIBUTION_ERROR) else "warn"} plain">{esc(row.attribution.kind)}</span>'
+            f"<span>{esc(row.attribution.reason)}.</span></div></div>"
         )
-    error_html = f'<div class="full banner fail">This case raised an exception: <code>{_esc(case["error"])}</code></div>' if case.get("error") else ""
+    error_html = f'<div class="full banner fail">This case raised an exception: <code>{esc(case["error"])}</code></div>' if case.get("error") else ""
     metrics = "".join(
-        f'<span class="chip">{_esc(name)} <b>{_fmt(value)}</b></span>'
+        f'<span class="chip">{esc(name)} <b>{fmt_score(value)}</b></span>'
         for name, value in sorted((case.get("retrieval") or {}).items())
     )
     hist = row.history
     hist_tags = "".join(
-        f'<span class="tag {"" if snap.passed else "fail"}" title="{_esc(_run_label(model, i))}">{_esc(model.points[i].label)} {snap.score:.2f}</span>'
-        if snap else f'<span class="tag muted" title="{_esc(_run_label(model, i))}">{_esc(model.points[i].label)} absent</span>'
+        f'<span class="tag {"" if snap.passed else "fail"}" title="{esc(_run_label(model, i))}">{esc(model.points[i].label)} {snap.score:.2f}</span>'
+        if snap else f'<span class="tag muted" title="{esc(_run_label(model, i))}">{esc(model.points[i].label)} absent</span>'
         for i, snap in enumerate(hist.snapshots)
     )
     flake_note = (
@@ -864,16 +803,16 @@ def _case_detail(row: CaseRow, model: DashboardModel) -> str:
     return (
         '<div class="detail-grid">'
         f"{error_html}"
-        f'<div class="full"><div class="kv-label">Question</div><p>{_esc(case.get("question"))}</p></div>'
+        f'<div class="full"><div class="kv-label">Question</div><p>{esc(case.get("question"))}</p></div>'
         f'<div><div class="kv-label">Expected</div>{expected_html}</div>'
-        f'<div><div class="kv-label">Actual answer</div><div class="answer">{_esc(case.get("answer")) or "<em class=muted>(empty)</em>"}</div></div>'
+        f'<div><div class="kv-label">Actual answer</div><div class="answer">{esc(case.get("answer")) or "<em class=muted>(empty)</em>"}</div></div>'
         f"{attrib_html}"
-        f'<div class="full"><div class="kv-label">Checks</div>{_checks_table(case.get("checks") or [])}</div>'
+        f'<div class="full"><div class="kv-label">Checks</div>{checks_table(case.get("checks") or [])}</div>'
         f'<div class="full"><div class="kv-label">Retrieval metrics</div><div class="metric-chips">{metrics or "<span class=muted>none</span>"}</div></div>'
-        f'<div class="full"><div class="kv-label">Retrieved chunks</div>{_chunks(case.get("retrieved") or [], case.get("expected_chunks") or [])}</div>'
+        f'<div class="full"><div class="kv-label">Retrieved chunks</div>{chunk_list(case.get("retrieved") or [], case.get("expected_chunks") or [])}</div>'
         f'<div class="full"><div class="kv-label">Score across history</div><div class="history-row">'
         f'{sparkline(hist.scores, width=240, height=48, label=f"{row.id} score over {len(hist.scores)} runs")}'
-        f'<div><div class="small muted">{_esc(flake_note)}</div><div class="history-list" style="margin-top:6px">{hist_tags}</div></div>'
+        f'<div><div class="small muted">{esc(flake_note)}</div><div class="history-list" style="margin-top:6px">{hist_tags}</div></div>'
         "</div></div></div>"
     )
 
@@ -885,7 +824,7 @@ def _case_group(row: CaseRow, model: DashboardModel) -> str:
     if row.change_status:
         tokens.append(row.change_status)
     failing = case.get("failed_checks") or []
-    fails_html = "".join(f'<span class="tag">{_esc(n)}</span>' for n in failing) or '<span class="muted">-</span>'
+    fails_html = "".join(f'<span class="tag">{esc(n)}</span>' for n in failing) or '<span class="muted">-</span>'
     hit = next((v for k, v in (case.get("retrieval") or {}).items() if str(k).startswith("hit_rate@")), None)
     delta = row.score_delta_prev
     delta_cls = "neutral" if delta is None or abs(delta) < model.epsilon else ("good" if delta > 0 else "bad")
@@ -893,21 +832,21 @@ def _case_group(row: CaseRow, model: DashboardModel) -> str:
     search_blob = " ".join(
         str(x) for x in (case.get("id"), case.get("question"), case.get("category"), case.get("answer"), " ".join(failing))
     ).lower()
-    change_pill = f' <span class="pill {_esc(row.change_status)}">{_esc(row.change_status)}</span>' if row.change_status and row.change_status != STATUS_FLAT else ""
+    change_pill = f' <span class="pill {esc(row.change_status)}">{esc(row.change_status)}</span>' if row.change_status and row.change_status != STATUS_FLAT else ""
     return (
-        f'<tbody class="case-group" data-id="{_esc(row.id)}" data-status="{" ".join(tokens)}" '
-        f'data-category="{_esc(case.get("category", "general"))}" data-score="{_esc(case.get("score"))}" '
-        f'data-delta="{_esc(delta if delta is not None else "")}" data-fails="{len(failing)}" '
-        f'data-hit="{_esc(hit if hit is not None else "")}" data-flips="{row.history.flips}" '
-        f'data-search="{_esc(search_blob)}">'
-        f'<tr class="case-row" tabindex="0" aria-label="{_esc(row.id)}">'
+        f'<tbody class="case-group" data-id="{esc(row.id)}" data-status="{" ".join(tokens)}" '
+        f'data-category="{esc(case.get("category", "general"))}" data-score="{esc(case.get("score"))}" '
+        f'data-delta="{esc(delta if delta is not None else "")}" data-fails="{len(failing)}" '
+        f'data-hit="{esc(hit if hit is not None else "")}" data-flips="{row.history.flips}" '
+        f'data-search="{esc(search_blob)}">'
+        f'<tr class="case-row" tabindex="0" aria-label="{esc(row.id)}">'
         f'<td><span class="caret">&#9654;</span><span class="pill {status}">{status}</span>{change_pill}</td>'
-        f'<td><span class="case-id">{_esc(row.id)}</span><span class="case-q">{_esc(case.get("question"))}</span></td>'
-        f'<td><span class="tag">{_esc(case.get("category", "general"))}</span></td>'
-        f'<td class="num">{_fmt(case.get("score"), 3)}</td>'
-        f'<td class="num delta-cell {delta_cls}">{_esc(delta_text)}</td>'
+        f'<td><span class="case-id">{esc(row.id)}</span><span class="case-q">{esc(case.get("question"))}</span></td>'
+        f'<td><span class="tag">{esc(case.get("category", "general"))}</span></td>'
+        f'<td class="num">{fmt_score(case.get("score"), 3)}</td>'
+        f'<td class="num delta-cell {delta_cls}">{esc(delta_text)}</td>'
         f'<td><div class="fails">{fails_html}</div></td>'
-        f'<td class="num">{_fmt(hit, 1) if hit is not None else "n/a"}</td>'
+        f'<td class="num">{fmt_score(hit, 1) if hit is not None else "n/a"}</td>'
         f'<td>{sparkline(row.history.scores, width=100, height=26, label=f"{row.id} score history")}</td>'
         "</tr>"
         f'<tr class="case-detail"><td colspan="8">{_case_detail(row, model)}</td></tr>'
@@ -932,12 +871,12 @@ def _cases(model: DashboardModel) -> str:
     chips = []
     for key, label in (("all", "All"), ("pass", "Pass"), ("fail", "Fail"), (STATUS_REGRESSED, "Regressed"), (STATUS_IMPROVED, "Improved")):
         pressed = "true" if key == "all" else "false"
-        title = f' title="{_esc(label + compare)}"' if key in (STATUS_REGRESSED, STATUS_IMPROVED) else ""
+        title = f' title="{esc(label + compare)}"' if key in (STATUS_REGRESSED, STATUS_IMPROVED) else ""
         chips.append(
             f'<button class="fbtn" data-filter="{key}" aria-pressed="{pressed}"{title}>'
             f'{label}<span class="n">{counts[key]}</span></button>'
         )
-    options = '<option value="all">All categories</option>' + "".join(f'<option value="{_esc(c)}">{_esc(c)}</option>' for c in categories)
+    options = '<option value="all">All categories</option>' + "".join(f'<option value="{esc(c)}">{esc(c)}</option>' for c in categories)
     head = (
         "<thead><tr>"
         '<th data-sort="status" data-type="str">Status<span class="dir">&#9662;</span></th>'
@@ -952,7 +891,7 @@ def _cases(model: DashboardModel) -> str:
     )
     return (
         '<div class="section-head"><h2>Cases in the latest run</h2>'
-        f'<span class="small muted">regressed / improved chips compare with the {_esc(model.comparison_label or "previous run")}</span></div>'
+        f'<span class="small muted">regressed / improved chips compare with the {esc(model.comparison_label or "previous run")}</span></div>'
         '<div class="toolbar">'
         '<input type="search" id="case-search" placeholder="Search id, question, answer, check" aria-label="Search cases">'
         f'<div class="fgroup" id="case-status" role="group" aria-label="Status filter">{"".join(chips)}</div>'
@@ -981,33 +920,33 @@ def _regression(model: DashboardModel) -> str:
         if model.gate.ok:
             parts.append('<div class="banner pass">Gate passed: no blocking regressions against the baseline.</div>')
         else:
-            items = "".join(f"<li>{_esc(r)}</li>" for r in model.gate.reasons)
+            items = "".join(f"<li>{esc(r)}</li>" for r in model.gate.reasons)
             parts.append(f'<div class="banner fail"><strong>Gate failed</strong><ul>{items}</ul></div>')
     for warning in diff.warnings:
-        parts.append(f'<div class="banner warn">{_esc(warning)}</div>')
+        parts.append(f'<div class="banner warn">{esc(warning)}</div>')
     tile_kind = {STATUS_REGRESSED: "bad", STATUS_DEGRADED: "warn", STATUS_IMPROVED: "good", STATUS_FLAT: "neutral", STATUS_NEW: "neutral", STATUS_REMOVED: "warn"}
     tiles = "".join(
-        f'<div class="card kpi"><span class="label">{_esc(status.capitalize())}</span>'
+        f'<div class="card kpi"><span class="label">{esc(status.capitalize())}</span>'
         f'<span class="value" style="color:var(--{ {"bad": "fail", "warn": "warn", "good": "pass", "neutral": "text"}[tile_kind[status]] if counts[status] else "text-3"})">{counts[status]}</span></div>'
         for status in (STATUS_REGRESSED, STATUS_DEGRADED, STATUS_IMPROVED, STATUS_FLAT, STATUS_NEW, STATUS_REMOVED)
     )
     parts.append(f'<div class="grid-kpi">{tiles}</div>')
     base, curr = diff.baseline_summary, diff.current_summary
     summary_rows = []
-    for label, key, formatter in (("Pass rate", "pass_rate", _pct), ("Mean score", "mean_score", _fmt), ("Passed", "passed", lambda v: "n/a" if v is None else str(int(v))), ("Failed", "failed", lambda v: "n/a" if v is None else str(int(v)))):
+    for label, key, formatter in (("Pass rate", "pass_rate", fmt_pct), ("Mean score", "mean_score", fmt_score), ("Passed", "passed", lambda v: "n/a" if v is None else str(int(v))), ("Failed", "failed", lambda v: "n/a" if v is None else str(int(v)))):
         before, after = base.get(key), curr.get(key)
         try:
             delta_text = f"{float(after) - float(before):+.3f}"
         except (TypeError, ValueError):
             delta_text = "n/a"
-        summary_rows.append(f"<tr><td>{label}</td><td class='num'>{_esc(formatter(before))}</td><td class='num'>{_esc(formatter(after))}</td><td class='num'>{delta_text}</td></tr>")
+        summary_rows.append(f"<tr><td>{label}</td><td class='num'>{esc(formatter(before))}</td><td class='num'>{esc(formatter(after))}</td><td class='num'>{delta_text}</td></tr>")
     meta = diff.baseline_meta
     parts.append(
         '<div class="grid-2" style="margin-top:16px"><div class="card table-card"><table><thead><tr><th>Measure</th><th class="num">Baseline</th><th class="num">Current</th><th class="num">Delta</th></tr></thead>'
         f"<tbody>{''.join(summary_rows)}</tbody></table></div>"
         '<div class="card"><div class="card-head"><h2>Comparison</h2></div><div class="card-body small">'
-        f'<div class="sidebar-foot" style="border:0;padding:0"><div class="kv"><b>Baseline</b><span class="mono">{_esc(meta.get("started_at"))} config {_esc(meta.get("config_fingerprint"))}</span>'
-        f'<b>Current</b><span class="mono">{_esc(diff.current_meta.get("started_at"))} config {_esc(diff.current_meta.get("config_fingerprint"))}</span>'
+        f'<div class="sidebar-foot" style="border:0;padding:0"><div class="kv"><b>Baseline</b><span class="mono">{esc(meta.get("started_at"))} config {esc(meta.get("config_fingerprint"))}</span>'
+        f'<b>Current</b><span class="mono">{esc(diff.current_meta.get("started_at"))} config {esc(diff.current_meta.get("config_fingerprint"))}</span>'
         f'<b>Epsilon</b><span>{model.epsilon} (score moves smaller than this are flat)</span></div></div></div></div></div>'
     )
     chips = '<button class="fbtn" data-filter="all" aria-pressed="true">All</button>' + "".join(
@@ -1022,16 +961,16 @@ def _regression(model: DashboardModel) -> str:
         delta = d.get("score_delta")
         transitions = ""
         if d.get("newly_failing"):
-            transitions += '<p class="small muted">Now failing: ' + ", ".join(f"<code>{_esc(n)}</code>" for n in d["newly_failing"]) + "</p>"
+            transitions += '<p class="small muted">Now failing: ' + ", ".join(f"<code>{esc(n)}</code>" for n in d["newly_failing"]) + "</p>"
         if d.get("newly_passing"):
-            transitions += '<p class="small muted">Now passing: ' + ", ".join(f"<code>{_esc(n)}</code>" for n in d["newly_passing"]) + "</p>"
+            transitions += '<p class="small muted">Now passing: ' + ", ".join(f"<code>{esc(n)}</code>" for n in d["newly_passing"]) + "</p>"
         items.append(
-            f'<details class="diffcase" data-status="{_esc(status)}"{" open" if status == STATUS_REGRESSED else ""}>'
-            f'<summary><span class="pill {_esc(status)}">{_esc(status)}</span><span class="case-id">{_esc(d.get("id"))}</span>'
-            f'<span class="qtext">{_esc(d.get("question"))}</span><span class="mono">{"" if delta is None else f"{delta:+.3f}"}</span></summary>'
-            f'<div class="dbody"><p class="small muted">{_esc(d.get("reason"))}</p>{transitions}<div class="diffcols">'
-            f'<div><div class="kv-label">Baseline answer</div><div class="answer">{_esc(d.get("baseline_answer")) or "<em class=muted>(none)</em>"}</div></div>'
-            f'<div><div class="kv-label">Current answer</div><div class="answer">{_esc(d.get("current_answer")) or "<em class=muted>(none)</em>"}</div></div>'
+            f'<details class="diffcase" data-status="{esc(status)}"{" open" if status == STATUS_REGRESSED else ""}>'
+            f'<summary><span class="pill {esc(status)}">{esc(status)}</span><span class="case-id">{esc(d.get("id"))}</span>'
+            f'<span class="qtext">{esc(d.get("question"))}</span><span class="mono">{"" if delta is None else f"{delta:+.3f}"}</span></summary>'
+            f'<div class="dbody"><p class="small muted">{esc(d.get("reason"))}</p>{transitions}<div class="diffcols">'
+            f'<div><div class="kv-label">Baseline answer</div><div class="answer">{esc(d.get("baseline_answer")) or "<em class=muted>(none)</em>"}</div></div>'
+            f'<div><div class="kv-label">Current answer</div><div class="answer">{esc(d.get("current_answer")) or "<em class=muted>(none)</em>"}</div></div>'
             "</div></div></details>"
         )
     parts.append(f'<div class="card">{"".join(items)}</div>')
@@ -1044,14 +983,14 @@ def _regression(model: DashboardModel) -> str:
 def _insights(insights: Sequence[Insight]) -> str:
     cards = []
     for insight in insights:
-        cases = "".join(f'<button class="case-link" data-case="{_esc(c)}" type="button">{_esc(c)}</button>' for c in insight.cases[:8])
+        cases = "".join(f'<button class="case-link" data-case="{esc(c)}" type="button">{esc(c)}</button>' for c in insight.cases[:8])
         more = f'<span class="small muted">+{len(insight.cases) - 8} more</span>' if len(insight.cases) > 8 else ""
         cards.append(
-            f'<div class="card insight {_esc(insight.severity)}" data-kind="{_esc(insight.kind)}"><div class="stripe"></div><div class="body">'
-            f'<div class="head"><span class="pill {_esc(insight.severity)}">{_esc(insight.severity)}</span><h2>{_esc(insight.title)}</h2></div>'
-            f'<p class="text">{_esc(insight.body)}</p>'
-            f'<div class="foot"><button class="rule-btn" type="button" aria-expanded="false" title="{_esc(insight.rule)}">How was this computed?</button>{cases}{more}</div>'
-            f'<div class="rule">{_esc(insight.rule)}</div>'
+            f'<div class="card insight {esc(insight.severity)}" data-kind="{esc(insight.kind)}"><div class="stripe"></div><div class="body">'
+            f'<div class="head"><span class="pill {esc(insight.severity)}">{esc(insight.severity)}</span><h2>{esc(insight.title)}</h2></div>'
+            f'<p class="text">{esc(insight.body)}</p>'
+            f'<div class="foot"><button class="rule-btn" type="button" aria-expanded="false" title="{esc(insight.rule)}">How was this computed?</button>{cases}{more}</div>'
+            f'<div class="rule">{esc(insight.rule)}</div>'
             "</div></div>"
         )
     return (
@@ -1095,11 +1034,11 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
         for key, label in SECTIONS
     )
     chips = (
-        f'<span class="chip">Latest <code>{_esc(latest_point.started_at)}</code></span>'
-        f'<span class="chip">Provider <code>{_esc(latest_point.provider)}</code></span>'
-        f'<span class="chip">Config <code>{_esc(latest_point.config_fingerprint)}</code></span>'
-        f'<span class="chip">Dataset <code>{_esc(latest_point.dataset_fingerprint)}</code></span>'
-        f'<span class="chip">Corpus <code>{_esc(pipeline.get("documents"))} docs / {_esc(pipeline.get("chunks"))} chunks</code></span>'
+        f'<span class="chip">Latest <code>{esc(latest_point.started_at)}</code></span>'
+        f'<span class="chip">Provider <code>{esc(latest_point.provider)}</code></span>'
+        f'<span class="chip">Config <code>{esc(latest_point.config_fingerprint)}</code></span>'
+        f'<span class="chip">Dataset <code>{esc(latest_point.dataset_fingerprint)}</code></span>'
+        f'<span class="chip">Corpus <code>{esc(pipeline.get("documents"))} docs / {esc(pipeline.get("chunks"))} chunks</code></span>'
     )
     logo = (
         '<span class="mark"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 10 L5.5 6 L8 8.5 L12 3" fill="none" '
@@ -1110,7 +1049,7 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{_esc(title)}</title>
+<title>{esc(title)}</title>
 <meta name="description" content="Evaluation history, trends, breakdowns and regression analysis for a RAG pipeline.">
 <script>{_THEME_BOOT}</script>
 <style>{_CSS}</style>
@@ -1122,16 +1061,16 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
   <nav class="nav" aria-label="Sections">{nav}</nav>
   <div class="sidebar-foot">
     <button class="theme-btn" id="theme-toggle" type="button" aria-label="Cycle colour theme"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 1.5 A5.5 5.5 0 0 1 7 12.5 z" fill="currentColor"/></svg><span>Theme: auto</span></button>
-    <div class="kv"><b>Runs</b><span>{len(model.points)}</span><b>Latest</b><span class="mono">{_esc(_short_time(latest_point.started_at))}</span><b>Version</b><span class="mono">{_esc(latest.get('ragprobe_version') or __version__)}</span></div>
+    <div class="kv"><b>Runs</b><span>{len(model.points)}</span><b>Latest</b><span class="mono">{esc(_short_time(latest_point.started_at))}</span><b>Version</b><span class="mono">{esc(latest.get('ragprobe_version') or __version__)}</span></div>
   </div>
 </aside>
 <main class="main">
   <header class="topbar">
-    <div class="title"><h1 id="section-title">Overview</h1><span class="muted">{_esc(title)} &middot; {len(model.points)} stored run(s)</span></div>
+    <div class="title"><h1 id="section-title">Overview</h1><span class="muted">{esc(title)} &middot; {len(model.points)} stored run(s)</span></div>
     <div class="chips">{chips}</div>
   </header>
   {sections}
-  <footer class="footer">Generated by RAGProbe {_esc(__version__)}. Self-contained: no external scripts, styles or fonts are loaded; charts are inline SVG.</footer>
+  <footer class="footer">Generated by RAGProbe {esc(__version__)}. Self-contained: no external scripts, styles or fonts are loaded; charts are inline SVG.</footer>
 </main>
 </div>
 <div class="tooltip" id="tooltip" role="tooltip"></div>

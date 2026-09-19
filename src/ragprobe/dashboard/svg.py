@@ -17,15 +17,12 @@ small vanilla-JS layer in the page reads those to draw crosshairs and tooltips.
 
 from __future__ import annotations
 
-import html
 import json
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, List, Mapping, Optional, Sequence, Tuple
+
+from ragprobe.reporting.fragments import esc
 
 Number = Optional[float]
-
-
-def _esc(value: Any) -> str:
-    return html.escape(str(value if value is not None else ""), quote=True)
 
 
 def _f(value: float) -> str:
@@ -130,7 +127,7 @@ def sparkline(
     if n == 0 or not defined:
         return (
             f'<svg class="spark" viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
-            f'role="img" aria-label="{_esc(label or "no data")}"></svg>'
+            f'role="img" aria-label="{esc(label or "no data")}"></svg>'
         )
     lo, hi = min(defined), max(defined)
     if hi - lo < 1e-9:
@@ -159,10 +156,10 @@ def sparkline(
     path = " ".join(segments)
     dot = ""
     if last_xy is not None:
-        dot = f'<circle class="spark-dot {_esc(sentiment)}" cx="{_f(last_xy[0])}" cy="{_f(last_xy[1])}" r="3"/>'
+        dot = f'<circle class="spark-dot {esc(sentiment)}" cx="{_f(last_xy[0])}" cy="{_f(last_xy[1])}" r="3"/>'
     return (
         f'<svg class="spark" viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
-        f'role="img" aria-label="{_esc(label)}">'
+        f'role="img" aria-label="{esc(label)}">'
         f'<path class="spark-line" d="{path}"/>{dot}</svg>'
     )
 
@@ -212,7 +209,7 @@ def line_chart(
         parts.append(f'<line class="c-grid" x1="{_f(left)}" x2="{_f(left + plot_w)}" y1="{_f(y)}" y2="{_f(y)}"/>')
         parts.append(
             f'<text class="c-axis" x="{_f(left - 8)}" y="{_f(y + 4)}" text-anchor="end">'
-            f"{_esc(_tick_text(tick, fmt))}</text>"
+            f"{esc(_tick_text(tick, fmt))}</text>"
         )
     # X labels: first, last and a few in between, never overlapping.
     max_labels = max(2, min(n, int(plot_w // 70)))
@@ -221,7 +218,7 @@ def line_chart(
         if i % label_every == 0 or i == n - 1:
             parts.append(
                 f'<text class="c-axis" x="{_f(x_at(i))}" y="{_f(height - 12)}" text-anchor="middle">'
-                f"{_esc(ticks[i] if i < len(ticks) else i + 1)}</text>"
+                f"{esc(ticks[i] if i < len(ticks) else i + 1)}</text>"
             )
     # Annotations: a vertical hairline plus a marker at the top of the plot.
     xs: List[float] = [x_at(i) for i in range(n)]
@@ -231,10 +228,10 @@ def line_chart(
             continue
         kind = str(ann.get("kind", "config"))
         x = xs[i]
-        parts.append(f'<line class="c-annot {_esc(kind)}" x1="{_f(x)}" x2="{_f(x)}" y1="{_f(top)}" y2="{_f(top + plot_h)}"/>')
+        parts.append(f'<line class="c-annot {esc(kind)}" x1="{_f(x)}" x2="{_f(x)}" y1="{_f(top)}" y2="{_f(top + plot_h)}"/>')
         parts.append(
-            f'<path class="c-annot-mark {_esc(kind)}" d="M{_f(x)},{_f(top - 10)} l5,5 l-5,5 l-5,-5 z">'
-            f"<title>{_esc(ann.get('text', ''))}</title></path>"
+            f'<path class="c-annot-mark {esc(kind)}" d="M{_f(x)},{_f(top - 10)} l5,5 l-5,5 l-5,-5 z">'
+            f"<title>{esc(ann.get('text', ''))}</title></path>"
         )
     # Area wash and line, broken at gaps.
     segments: List[List[Tuple[float, float]]] = []
@@ -267,7 +264,7 @@ def line_chart(
     if last_defined is not None:
         parts.append(
             f'<text class="c-end" x="{_f(xs[last_defined] - 8)}" y="{_f(y_at(float(values[last_defined])) - 10)}" '
-            f'text-anchor="end">{_esc(fmt_value(values[last_defined], fmt))}</text>'
+            f'text-anchor="end">{esc(fmt_value(values[last_defined], fmt))}</text>'
         )
     # Hover layer: crosshair, focus ring, hit area.
     parts.append(f'<line class="c-cross" x1="0" x2="0" y1="{_f(top)}" y2="{_f(baseline_y)}" style="display:none"/>')
@@ -287,10 +284,10 @@ def line_chart(
         i = int(ann.get("index", -1))
         if 0 <= i < n:
             payload["notes"][i] = (payload["notes"][i] + "\n" if payload["notes"][i] else "") + str(ann.get("text", ""))
-    id_attr = f' id="{_esc(chart_id)}"' if chart_id else ""
+    id_attr = f' id="{esc(chart_id)}"' if chart_id else ""
     return (
         f'<svg class="chart line" viewBox="0 0 {width} {height}" role="img" '
-        f'aria-label="{_esc(series)} over {n} run(s)" data-chart="{_esc(json.dumps(payload))}"{id_attr}>'
+        f'aria-label="{esc(series)} over {n} run(s)" data-chart="{esc(json.dumps(payload))}"{id_attr}>'
         + "".join(parts)
         + "</svg>"
     )
@@ -324,12 +321,12 @@ def hbar_chart(
         w = 0.0 if value is None else plot_w * min(max(float(value), 0.0), max_value) / max_value
         cls = str(row.get("cls", ""))
         parts.append(
-            f'<g class="c-bar-row" data-tip="{_esc(row.get("tip", ""))}">'
+            f'<g class="c-bar-row" data-tip="{esc(row.get("tip", ""))}">'
             f'<rect class="c-hit" x="0" y="{_f(y - gap / 2)}" width="{width}" height="{bar_h + gap}"/>'
-            f'<text class="c-label" x="{_f(left - 10)}" y="{_f(y + bar_h / 2 + 4)}" text-anchor="end">{_esc(row.get("label"))}</text>'
+            f'<text class="c-label" x="{_f(left - 10)}" y="{_f(y + bar_h / 2 + 4)}" text-anchor="end">{esc(row.get("label"))}</text>'
             f'<rect class="c-track" x="{_f(left)}" y="{_f(y)}" width="{_f(plot_w)}" height="{bar_h}" rx="4"/>'
-            f'<path class="c-fill {_esc(cls)}" d="{_rounded_hbar(left, y, w, bar_h)}"/>'
-            f'<text class="c-value" x="{_f(left + w + 8)}" y="{_f(y + bar_h / 2 + 4)}">{_esc(fmt_value(value, fmt))}</text>'
+            f'<path class="c-fill {esc(cls)}" d="{_rounded_hbar(left, y, w, bar_h)}"/>'
+            f'<text class="c-value" x="{_f(left + w + 8)}" y="{_f(y + bar_h / 2 + 4)}">{esc(fmt_value(value, fmt))}</text>'
             "</g>"
         )
     return (
@@ -361,8 +358,8 @@ def stacked_hbar(
         y = gap + i * (bar_h + gap)
         total = sum(int(s.get("count", 0)) for s in row.get("segments", []))
         x = left
-        label = _esc(row.get("label"))
-        note = f' <tspan class="c-note">{_esc(row["note"])}</tspan>' if row.get("note") else ""
+        label = esc(row.get("label"))
+        note = f' <tspan class="c-note">{esc(row["note"])}</tspan>' if row.get("note") else ""
         parts.append(
             f'<text class="c-label" x="{_f(left - 10)}" y="{_f(y + bar_h / 2 + 4)}" text-anchor="end">{label}{note}</text>'
         )
@@ -374,8 +371,8 @@ def stacked_hbar(
             draw_w = max(w - 2, 0.5)
             tip = f"{row.get('label')}\n{seg.get('label')}: {count} of {total}"
             parts.append(
-                f'<g class="c-seg" data-tip="{_esc(tip)}">'
-                f'<rect class="c-fill {_esc(seg.get("cls", ""))}" x="{_f(x)}" y="{_f(y)}" width="{_f(draw_w)}" height="{bar_h}" rx="2"/>'
+                f'<g class="c-seg" data-tip="{esc(tip)}">'
+                f'<rect class="c-fill {esc(seg.get("cls", ""))}" x="{_f(x)}" y="{_f(y)}" width="{_f(draw_w)}" height="{bar_h}" rx="2"/>'
                 "</g>"
             )
             x += w
@@ -412,10 +409,10 @@ def histogram(
         x = left + slot * i + (slot - bar_w) / 2
         y = top + plot_h - h
         parts.append(
-            f'<g class="c-col" data-tip="{_esc(b.get("tip", ""))}">'
+            f'<g class="c-col" data-tip="{esc(b.get("tip", ""))}">'
             f'<rect class="c-hit" x="{_f(left + slot * i)}" y="{_f(top)}" width="{_f(slot)}" height="{_f(plot_h)}"/>'
-            f'<path class="c-fill {_esc(b.get("cls", ""))}" d="{_rounded_vbar(x, y, bar_w, h)}"/>'
-            f'<text class="c-axis" x="{_f(left + slot * i + slot / 2)}" y="{_f(height - 10)}" text-anchor="middle">{_esc(b.get("label"))}</text>'
+            f'<path class="c-fill {esc(b.get("cls", ""))}" d="{_rounded_vbar(x, y, bar_w, h)}"/>'
+            f'<text class="c-axis" x="{_f(left + slot * i + slot / 2)}" y="{_f(height - 10)}" text-anchor="middle">{esc(b.get("label"))}</text>'
             + (f'<text class="c-value" x="{_f(x + bar_w / 2)}" y="{_f(y - 6)}" text-anchor="middle">{count}</text>' if count else "")
             + "</g>"
         )

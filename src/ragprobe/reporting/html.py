@@ -11,9 +11,8 @@ install dependency-free.
 
 from __future__ import annotations
 
-import html
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional
 
 from ragprobe.regression.diff import (
     STATUS_DEGRADED,
@@ -24,6 +23,7 @@ from ragprobe.regression.diff import (
     STATUS_REMOVED,
     DiffReport,
 )
+from ragprobe.reporting.fragments import checks_table, chunk_list, esc, fmt_pct, fmt_score
 
 _CSS = """
 :root {
@@ -177,94 +177,11 @@ _JS = """
 """
 
 
-def _esc(value: Any) -> str:
-    return html.escape(str(value if value is not None else ""), quote=True)
-
-
-def _fmt(value: Optional[float], digits: int = 3) -> str:
-    if value is None:
-        return "n/a"
-    return f"{value:.{digits}f}"
-
-
-def _pct(value: Optional[float]) -> str:
-    return "n/a" if value is None else f"{value * 100:.1f}%"
-
-
 def _card(label: str, value: str, kind: str = "") -> str:
     return (
-        f'<div class="card {kind}"><div class="label">{_esc(label)}</div>'
-        f'<div class="value">{_esc(value)}</div></div>'
+        f'<div class="card {kind}"><div class="label">{esc(label)}</div>'
+        f'<div class="value">{esc(value)}</div></div>'
     )
-
-
-def _check_pill(check: Mapping[str, Any]) -> str:
-    if not check.get("applicable", True):
-        return '<span class="pill skip">skip</span>'
-    return (
-        '<span class="pill pass">pass</span>'
-        if check.get("passed")
-        else '<span class="pill fail">fail</span>'
-    )
-
-
-def _render_checks(checks: Sequence[Mapping[str, Any]]) -> str:
-    if not checks:
-        return '<p class="muted">No checks were recorded (the case errored before evaluation).</p>'
-    rows = []
-    for check in checks:
-        advisory = (check.get("metadata") or {}).get("advisory")
-        name = _esc(check.get("name"))
-        if advisory:
-            name += ' <span class="muted">(advisory)</span>'
-        rows.append(
-            "<tr>"
-            f"<td>{_check_pill(check)}</td>"
-            f"<td>{name}</td>"
-            f'<td class="num">{_fmt(check.get("score"), 2)}</td>'
-            f"<td>{_esc(check.get('detail'))}</td>"
-            "</tr>"
-        )
-    return (
-        "<table><thead><tr><th></th><th>Check</th>"
-        '<th class="num">Score</th><th>Detail</th></tr></thead><tbody>'
-        + "".join(rows)
-        + "</tbody></table>"
-    )
-
-
-def _render_chunks(retrieved: Sequence[Mapping[str, Any]], expected: Sequence[str]) -> str:
-    if not retrieved:
-        return '<p class="muted">Nothing was retrieved for this question.</p>'
-    expected_anchors = {str(chunk).split("~", 1)[0] for chunk in expected}
-    blocks = []
-    for chunk in retrieved:
-        chunk_id = str(chunk.get("chunk_id", ""))
-        is_expected = chunk_id.split("~", 1)[0] in expected_anchors
-        label = (
-            '<span class="pill pass">expected</span>'
-            if is_expected
-            else '<span class="pill skip">not in golden set</span>'
-        )
-        blocks.append(
-            f'<div class="chunk {"expected" if is_expected else ""}">'
-            f'<div class="chead"><span class="cid">{_esc(chunk_id)}</span>'
-            f'<span class="muted">rank {_esc(chunk.get("rank"))} &middot; '
-            f'score {_fmt(chunk.get("score"))}</span>{label}</div>'
-            f'<div class="ctext">{_esc(chunk.get("text"))}</div></div>'
-        )
-    missing = sorted(
-        anchor
-        for anchor in expected_anchors
-        if anchor not in {str(c.get("chunk_id", "")).split("~", 1)[0] for c in retrieved}
-    )
-    if missing:
-        blocks.append(
-            '<p class="muted">Expected but not retrieved: '
-            + ", ".join(f"<code>{_esc(item)}</code>" for item in missing)
-            + "</p>"
-        )
-    return "".join(blocks)
 
 
 def _render_faithfulness(faithfulness: Mapping[str, Any]) -> str:
@@ -275,17 +192,17 @@ def _render_faithfulness(faithfulness: Mapping[str, Any]) -> str:
     parts = [
         '<div class="kv">Faithfulness</div>',
         f'<p class="muted">Heuristic grounding score '
-        f'<strong>{_fmt(heuristic.get("score"), 2)}</strong> over '
+        f'<strong>{fmt_score(heuristic.get("score"), 2)}</strong> over '
         f'{len(heuristic.get("claims") or [])} claim(s).',
     ]
     if judge:
         parts.append(
-            f' LLM judge ({_esc(judge.get("provider"))}) scored '
-            f'<strong>{_fmt(judge.get("score"), 2)}</strong>'
+            f' LLM judge ({esc(judge.get("provider"))}) scored '
+            f'<strong>{fmt_score(judge.get("score"), 2)}</strong>'
         )
         disagreement = faithfulness.get("disagreement")
         if disagreement is not None:
-            parts.append(f", disagreement {_fmt(disagreement, 2)}")
+            parts.append(f", disagreement {fmt_score(disagreement, 2)}")
         if not judge.get("deterministic", True):
             parts.append(' <span class="pill skip">nondeterministic</span>')
         parts.append(".")
@@ -295,14 +212,14 @@ def _render_faithfulness(faithfulness: Mapping[str, Any]) -> str:
     if unsupported:
         parts.append('<p class="muted">Ungrounded claim(s):</p><ul class="muted">')
         for claim in unsupported:
-            parts.append(f"<li>{_esc(claim)}</li>")
+            parts.append(f"<li>{esc(claim)}</li>")
         parts.append("</ul>")
     return "".join(parts)
 
 
 def _render_case(case: Mapping[str, Any]) -> str:
     passed = bool(case.get("passed"))
-    status_tokens = ["pass" if passed else "fail", _esc(case.get("category", "general"))]
+    status_tokens = ["pass" if passed else "fail", esc(case.get("category", "general"))]
     pill = (
         '<span class="pill pass">pass</span>'
         if passed
@@ -312,27 +229,27 @@ def _render_case(case: Mapping[str, Any]) -> str:
     if case.get("error"):
         error_html = (
             f'<div class="banner fail">This case raised an exception: '
-            f'<code>{_esc(case["error"])}</code></div>'
+            f'<code>{esc(case["error"])}</code></div>'
         )
 
     retrieval_rows = "".join(
-        f'<tr><td>{_esc(name)}</td><td class="num">{_fmt(value)}</td></tr>'
+        f'<tr><td>{esc(name)}</td><td class="num">{fmt_score(value)}</td></tr>'
         for name, value in sorted((case.get("retrieval") or {}).items())
     )
 
     return (
         f'<details class="case" data-case-row data-status="{" ".join(status_tokens)}">'
         f"<summary>{pill}"
-        f'<span class="qid">{_esc(case.get("id"))}</span>'
-        f'<span class="qtext">{_esc(case.get("question"))}</span>'
-        f'<span class="score">{_fmt(case.get("score"), 2)}</span></summary>'
+        f'<span class="qid">{esc(case.get("id"))}</span>'
+        f'<span class="qtext">{esc(case.get("question"))}</span>'
+        f'<span class="score">{fmt_score(case.get("score"), 2)}</span></summary>'
         f'<div class="body">{error_html}'
-        f'<div class="kv">Answer</div><div class="answer">{_esc(case.get("answer")) or "<em>(empty)</em>"}</div>'
-        f'<div class="kv">Checks</div>{_render_checks(case.get("checks") or [])}'
+        f'<div class="kv">Answer</div><div class="answer">{esc(case.get("answer")) or "<em>(empty)</em>"}</div>'
+        f'<div class="kv">Checks</div>{checks_table(case.get("checks") or [])}'
         f'<div class="kv">Retrieval metrics</div>'
         f'<table><thead><tr><th>Metric</th><th class="num">Value</th></tr></thead>'
         f"<tbody>{retrieval_rows}</tbody></table>"
-        f'<div class="kv">Retrieved chunks</div>{_render_chunks(case.get("retrieved") or [], case.get("expected_chunks") or [])}'
+        f'<div class="kv">Retrieved chunks</div>{chunk_list(case.get("retrieved") or [], case.get("expected_chunks") or [])}'
         f'{_render_faithfulness(case.get("faithfulness") or {})}'
         "</div></details>"
     )
@@ -346,29 +263,29 @@ def _render_diff_case(case: Mapping[str, Any]) -> str:
     if case.get("newly_failing"):
         transitions.append(
             '<p class="muted">Now failing: '
-            + ", ".join(f"<code>{_esc(n)}</code>" for n in case["newly_failing"])
+            + ", ".join(f"<code>{esc(n)}</code>" for n in case["newly_failing"])
             + "</p>"
         )
     if case.get("newly_passing"):
         transitions.append(
             '<p class="muted">Now passing: '
-            + ", ".join(f"<code>{_esc(n)}</code>" for n in case["newly_passing"])
+            + ", ".join(f"<code>{esc(n)}</code>" for n in case["newly_passing"])
             + "</p>"
         )
     return (
-        f'<details class="case" data-diff-row data-status="{_esc(status)}"'
+        f'<details class="case" data-diff-row data-status="{esc(status)}"'
         f'{" open" if status == STATUS_REGRESSED else ""}>'
-        f'<summary><span class="pill {_esc(status)}">{_esc(status)}</span>'
-        f'<span class="qid">{_esc(case.get("id"))}</span>'
-        f'<span class="qtext">{_esc(case.get("question"))}</span>'
-        f'<span class="score">{_esc(delta_text)}</span></summary>'
-        f'<div class="body"><p class="muted">{_esc(case.get("reason"))}</p>'
+        f'<summary><span class="pill {esc(status)}">{esc(status)}</span>'
+        f'<span class="qid">{esc(case.get("id"))}</span>'
+        f'<span class="qtext">{esc(case.get("question"))}</span>'
+        f'<span class="score">{esc(delta_text)}</span></summary>'
+        f'<div class="body"><p class="muted">{esc(case.get("reason"))}</p>'
         + "".join(transitions)
         + '<div class="diffcols">'
         f'<div class="diffcol"><div class="label">Baseline answer</div>'
-        f'<div class="answer">{_esc(case.get("baseline_answer")) or "<em>(none)</em>"}</div></div>'
+        f'<div class="answer">{esc(case.get("baseline_answer")) or "<em>(none)</em>"}</div></div>'
         f'<div class="diffcol"><div class="label">Current answer</div>'
-        f'<div class="answer">{_esc(case.get("current_answer")) or "<em>(none)</em>"}</div></div>'
+        f'<div class="answer">{esc(case.get("current_answer")) or "<em>(none)</em>"}</div></div>'
         "</div></div></details>"
     )
 
@@ -381,11 +298,11 @@ def _render_diff_section(diff: DiffReport, gate=None) -> str:
         if gate.ok:
             parts.append('<div class="banner pass">Gate passed: no blocking regressions.</div>')
         else:
-            items = "".join(f"<li>{_esc(reason)}</li>" for reason in gate.reasons)
+            items = "".join(f"<li>{esc(reason)}</li>" for reason in gate.reasons)
             parts.append(f'<div class="banner fail"><strong>Gate failed</strong><ul>{items}</ul></div>')
 
     for warning in diff.warnings:
-        parts.append(f'<div class="banner warn">{_esc(warning)}</div>')
+        parts.append(f'<div class="banner warn">{esc(warning)}</div>')
 
     parts.append(
         '<div class="cards">'
@@ -405,8 +322,8 @@ def _render_diff_section(diff: DiffReport, gate=None) -> str:
         "<th class='num'>Current</th><th class='num'>Delta</th></tr></thead><tbody>"
     )
     for label, key, formatter in (
-        ("Pass rate", "pass_rate", _pct),
-        ("Mean score", "mean_score", lambda v: _fmt(v, 3)),
+        ("Pass rate", "pass_rate", fmt_pct),
+        ("Mean score", "mean_score", lambda v: fmt_score(v, 3)),
         ("Passed", "passed", lambda v: "n/a" if v is None else str(int(v))),
         ("Failed", "failed", lambda v: "n/a" if v is None else str(int(v))),
     ):
@@ -419,9 +336,9 @@ def _render_diff_section(diff: DiffReport, gate=None) -> str:
         except (TypeError, ValueError):
             delta_value = "n/a"
         parts.append(
-            f"<tr><td>{_esc(label)}</td><td class='num'>{_esc(formatter(before))}</td>"
-            f"<td class='num'>{_esc(formatter(after))}</td>"
-            f"<td class='num'>{_esc(delta_value)}</td></tr>"
+            f"<tr><td>{esc(label)}</td><td class='num'>{esc(formatter(before))}</td>"
+            f"<td class='num'>{esc(formatter(after))}</td>"
+            f"<td class='num'>{esc(delta_value)}</td></tr>"
         )
     parts.append("</tbody></table>")
 
@@ -471,13 +388,13 @@ def render_report(
         + _card("Cases", str(summary.get("total", 0)))
         + _card("Passed", str(summary.get("passed", 0)), "pass")
         + _card("Failed", str(summary.get("failed", 0)), "fail" if summary.get("failed") else "")
-        + _card("Pass rate", _pct(summary.get("pass_rate")))
-        + _card("Mean score", _fmt(summary.get("mean_score"), 3))
+        + _card("Pass rate", fmt_pct(summary.get("pass_rate")))
+        + _card("Mean score", fmt_score(summary.get("mean_score"), 3))
         + "</div>"
     )
 
     retrieval_rows = "".join(
-        f'<tr><td>{_esc(name)}</td><td class="num">{_fmt(value)}</td></tr>'
+        f'<tr><td>{esc(name)}</td><td class="num">{fmt_score(value)}</td></tr>'
         for name, value in sorted(retrieval.items())
     )
     retrieval_table = (
@@ -488,10 +405,10 @@ def render_report(
     )
 
     category_rows = "".join(
-        f"<tr><td>{_esc(name)}</td>"
+        f"<tr><td>{esc(name)}</td>"
         f"<td class='num'>{stats.get('passed', 0)}/{stats.get('total', 0)}</td>"
-        f"<td class='num'>{_pct(stats.get('pass_rate'))}</td>"
-        f"<td class='num'>{_fmt(stats.get('mean_score'), 3)}</td></tr>"
+        f"<td class='num'>{fmt_pct(stats.get('pass_rate'))}</td>"
+        f"<td class='num'>{fmt_score(stats.get('mean_score'), 3)}</td></tr>"
         for name, stats in (summary.get("by_category") or {}).items()
     )
 
@@ -501,7 +418,7 @@ def render_report(
         '<button data-filter="fail" aria-pressed="false">Failing</button>'
         '<button data-filter="pass" aria-pressed="false">Passing</button>'
         + "".join(
-            f'<button data-filter="{_esc(category)}" aria-pressed="false">{_esc(category)}</button>'
+            f'<button data-filter="{esc(category)}" aria-pressed="false">{esc(category)}</button>'
             for category in categories
         )
         + "</div>"
@@ -514,21 +431,21 @@ def render_report(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{_esc(title)}</title>
+<title>{esc(title)}</title>
 <style>{_CSS}</style>
 </head>
 <body>
 <div class="wrap">
 <header class="page">
-  <h1>{_esc(title)}</h1>
+  <h1>{esc(title)}</h1>
   <p class="sub">Evaluation and regression report for a RAG pipeline.</p>
   <div class="meta">
-    <span>Run <code>{_esc(run.get('started_at'))}</code></span>
-    <span>Provider <code>{_esc(run.get('provider'))}</code></span>
-    <span>Config <code>{_esc(run.get('config_fingerprint'))}</code></span>
-    <span>Dataset <code>{_esc(run.get('dataset_fingerprint'))}</code></span>
-    <span>Corpus <code>{_esc(pipeline.get('documents'))} docs / {_esc(pipeline.get('chunks'))} chunks</code></span>
-    <span>RAGProbe <code>{_esc(run.get('ragprobe_version'))}</code></span>
+    <span>Run <code>{esc(run.get('started_at'))}</code></span>
+    <span>Provider <code>{esc(run.get('provider'))}</code></span>
+    <span>Config <code>{esc(run.get('config_fingerprint'))}</code></span>
+    <span>Dataset <code>{esc(run.get('dataset_fingerprint'))}</code></span>
+    <span>Corpus <code>{esc(pipeline.get('documents'))} docs / {esc(pipeline.get('chunks'))} chunks</code></span>
+    <span>RAGProbe <code>{esc(run.get('ragprobe_version'))}</code></span>
   </div>
 </header>
 {determinism_note}
@@ -542,7 +459,7 @@ def render_report(
 {''.join(_render_case(case) for case in cases)}
 {diff_section}
 <footer class="page">
-  Generated by RAGProbe {_esc(run.get('ragprobe_version'))}. This file is self-contained:
+  Generated by RAGProbe {esc(run.get('ragprobe_version'))}. This file is self-contained:
   no external scripts, styles or fonts are loaded.
 </footer>
 </div>
