@@ -38,7 +38,11 @@ REFUSAL_PATTERNS: Sequence[str] = (
     "is not mentioned in the provided",
 )
 
-_CITATION_RE = re.compile(r"\[([^\[\]]+)\]")
+# A citation is a bracketed chunk id: ``[doc#anchor]``, optionally with the ``~2``
+# split suffix or a ``-2`` duplicate-heading suffix. It must not be followed by
+# ``(``, which would make it a markdown link. Anything looser turns every markdown
+# link and every ``[Note]`` in a real corpus into a "fabricated citation".
+_CITATION_RE = re.compile(r"\[([A-Za-z0-9_.\-]+#[A-Za-z0-9_\-~.]+)\](?!\()")
 
 
 @dataclass
@@ -202,7 +206,10 @@ def refusal_behaviour(answer: str, should_refuse: bool) -> CheckResult:
 
 
 def extract_citations(answer: str) -> List[str]:
-    """Pull ``[chunk#anchor]`` markers out of an answer, in order, deduplicated."""
+    """Pull ``[chunk#anchor]`` markers out of an answer, in order, deduplicated.
+
+    Markdown links (``[text](url)``) and prose in brackets are not citations.
+    """
     seen: Set[str] = set()
     result: List[str] = []
     for match in _CITATION_RE.findall(answer or ""):

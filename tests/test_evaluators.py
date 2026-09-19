@@ -168,6 +168,24 @@ class TestCitations:
     def test_extracts_nothing_from_plain_text(self):
         assert extract_citations("no citations here") == []
 
+    def test_markdown_links_and_bracketed_prose_are_not_citations(self):
+        """Real documentation is full of ``[text](url)`` links and ``[Note]`` asides.
+
+        Treating those as citations makes every answer over a real corpus look like
+        it fabricated a source. Only ``[doc#anchor]`` counts.
+        """
+        answer = (
+            "Use [UI Mode](./test-ui-mode.md) or the [Receives Events] check. "
+            "[test_ui_mode#opening-ui-mode] Also [docs#split~2] and [docs#dup-2]."
+        )
+        assert extract_citations(answer) == [
+            "test_ui_mode#opening-ui-mode", "docs#split~2", "docs#dup-2",
+        ]
+
+    def test_markdown_link_is_not_a_fabricated_citation(self):
+        result = citation_present("See [the guide](./x.md). [doc#a]", ["doc#a"])
+        assert result.passed, result.detail
+
     def test_passes_when_citation_is_real(self):
         result = citation_present("Answer. [doc#a]", ["doc#a", "doc#b"])
         assert result.passed

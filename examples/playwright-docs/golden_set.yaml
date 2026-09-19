@@ -1,0 +1,446 @@
+# Golden set for a documentation assistant over the Playwright guides.
+#
+# 62 questions written the way QA engineers actually ask them - sometimes with the
+# wrong vocabulary, sometimes asking for two things at once, sometimes about things
+# the docs do not cover. Every `expected_chunks` id was checked against the corpus
+# produced by scripts/fetch_playwright_docs.py at the pinned revision.
+#
+# Categories:
+#   locators      finding elements and the strictness / auto-wait rules around them
+#   timeouts      the five different timeouts and which one fired
+#   parallel      workers, retries, sharding, serial mode, flakiness
+#   config        fixtures, projects, reporters, web server, snapshots
+#   network       routing, mocking, waiting for responses
+#   tooling       trace viewer, codegen, UI mode, inspector, browsers, docker
+#   auth          storage state strategies
+#   out-of-scope  questions the docs cannot answer; the assistant must say so
+#
+# Cases whose notes start with `hard:` are known to be difficult for lexical
+# retrieval. They are in the suite on purpose; a golden set that is green on day one
+# is not asserting anything.
+
+cases:
+  # ------------------------------------------------------------- locators
+  - id: loc-recommended-locator
+    category: locators
+    question: Which locator does Playwright recommend I use first when writing resilient tests?
+    expected_chunks: [locators#locating-elements, locators#locate-by-role]
+    required_keywords: ["getByRole"]
+    notes: The guide says to prioritise user-facing attributes, page.getByRole() first.
+
+  - id: loc-testid-tradeoff
+    category: locators
+    question: What is the downside of locating elements by test id?
+    expected_chunks: [locators#locate-by-test-id]
+    required_keywords: ["not user facing"]
+    notes: The chunk says test ids are the most resilient but not user facing.
+
+  - id: loc-strict-mode
+    category: locators
+    question: My click threw an error saying the locator resolved to more than one element. Why does Playwright do that?
+    expected_chunks: [locators#strictness]
+    required_keywords: ["strict"]
+    notes: Strictness - operations throw when more than one element matches.
+
+  - id: loc-css-vs-role
+    category: locators
+    question: Why shouldn't I select a button by its CSS class in my test?
+    expected_chunks: [best_practices#prefer-user-facing-attributes-to-xpath-or-css-selectors]
+    required_keywords: ["DOM"]
+    notes: Best practices - DOM structure changes, class names change, tests break.
+
+  - id: loc-visible-opacity
+    category: locators
+    question: Does Playwright treat an element with opacity 0 as visible?
+    expected_chunks: [actionability#visible]
+    required_keywords: ["opacity"]
+    expected_answer: Yes. Elements with opacity:0 are considered visible; zero-size and display:none elements are not.
+    notes: Counter-intuitive rule that people get wrong; the answer must contain the opacity clause.
+
+  - id: loc-stable-definition
+    category: locators
+    question: What does Playwright mean when it waits for an element to be "stable"?
+    expected_chunks: [actionability#stable]
+    required_keywords: ["bounding box", "animation frames"]
+    notes: Same bounding box for at least two consecutive animation frames.
+
+  - id: loc-actionability-checks
+    category: locators
+    question: What checks does Playwright do automatically before clicking an element?
+    expected_chunks: [actionability#introduction]
+    required_keywords: ["Visible", "Stable", "Enabled"]
+    notes: The auto-wait list - visible, stable, receives events, enabled.
+
+  - id: loc-force-click
+    category: locators
+    question: What does the force option on click actually skip?
+    expected_chunks: [actionability#forcing-actions]
+    required_keywords: ["actionability checks"]
+    notes: Disables non-essential actionability checks such as the receives-events check.
+
+  - id: loc-manual-assertion
+    category: locators
+    question: Is expect(await locator.isVisible()).toBe(true) a good assertion?
+    expected_chunks: [best_practices#don-t-use-manual-assertions]
+    required_keywords: ["toBeVisible"]
+    forbidden_keywords: []
+    notes: Should steer to web-first assertions; isVisible() does not wait.
+
+  # ------------------------------------------------------------- timeouts
+  - id: to-default-test-timeout
+    category: timeouts
+    question: What is the default timeout for a single test?
+    expected_chunks: [test_timeouts#test-timeout, test_timeouts#intro]
+    required_keywords: ["30"]
+    expected_answer: Each test has a 30 second timeout by default; fixture setup and beforeEach time count against it.
+
+  - id: to-expect-timeout
+    category: timeouts
+    question: How long does expect(locator).toHaveText() keep retrying before it fails?
+    expected_chunks: [test_timeouts#expect-timeout, test_timeouts#intro]
+    required_keywords: ["5"]
+    forbidden_keywords: ["30 seconds"]
+    notes: 5 seconds, separate from the test timeout. The forbidden keyword catches an answer that conflates the two.
+
+  - id: to-global-timeout
+    category: timeouts
+    question: Is there a timeout for the whole test run, and what is it by default?
+    expected_chunks: [test_timeouts#global-timeout]
+    required_keywords: ["no default", "globalTimeout"]
+    notes: There is no default global timeout; set testConfig.globalTimeout.
+
+  - id: to-beforeall-timeout
+    category: timeouts
+    question: How do I give a beforeAll hook more time than a normal test?
+    expected_chunks: [test_timeouts#change-timeout-for-beforeall-afterall-hook]
+    required_keywords: ["setTimeout"]
+    notes: test.setTimeout() / testInfo.setTimeout() inside the hook.
+
+  - id: to-fixture-timeout
+    category: timeouts
+    question: Can a slow worker fixture have its own timeout instead of eating into the test timeout?
+    expected_chunks: [test_timeouts#fixture-timeout, test_fixtures#fixture-timeout]
+    required_keywords: ["timeout"]
+    notes: "Pass { timeout: N } in the fixture tuple."
+
+  - id: to-webserver-timeout
+    category: timeouts
+    question: My dev server takes ages to boot and Playwright gives up waiting for it. What do I change?
+    expected_chunks: [test_webserver#adding-a-server-timeout]
+    required_keywords: ["timeout"]
+    notes: webServer.timeout in the config.
+
+  # ------------------------------------------------------------- parallel
+  - id: par-retries-flag
+    category: parallel
+    question: How do I make Playwright retry failing tests?
+    expected_chunks: [test_retries#retries]
+    required_keywords: ["retries"]
+    notes: --retries=N on the CLI or retries in the config.
+
+  - id: par-flaky-definition
+    category: parallel
+    question: What does Playwright count as a "flaky" test in its results?
+    expected_chunks: [test_retries#retries]
+    required_keywords: ["failed on the first run", "passed when retried"]
+    notes: Exact definition from the retries guide.
+
+  - id: par-retries-default
+    category: parallel
+    question: Are failing tests retried by default?
+    expected_chunks: [test_retries#retries]
+    required_keywords: ["not retried"]
+    expected_answer: No. By default failing tests are not retried.
+
+  - id: par-workers-cli
+    category: parallel
+    question: How do I limit the number of parallel workers on CI but keep the default locally?
+    expected_chunks: [test_parallel#limit-workers]
+    required_keywords: ["workers", "process.env.CI"]
+    notes: "workers: process.env.CI ? 2 : undefined."
+
+  - id: par-disable-parallel
+    category: parallel
+    question: How do I turn parallelism off completely?
+    expected_chunks: [test_parallel#disable-parallelism]
+    required_keywords: ["--workers=1"]
+
+  - id: par-serial-mode
+    category: parallel
+    question: My tests depend on each other. How do I make them run in order and stop after the first failure?
+    expected_chunks: [test_retries#serial-mode, test_parallel#serial-mode]
+    required_keywords: ["serial"]
+    notes: "test.describe.configure({ mode: 'serial' }); subsequent tests are skipped on failure."
+
+  - id: par-max-failures
+    category: parallel
+    question: Can I stop the whole run after ten failures so I don't waste CI minutes?
+    expected_chunks: [test_parallel#limit-failures-and-fail-fast]
+    required_keywords: ["max-failures"]
+    notes: --max-failures=10 or maxFailures in the config.
+
+  - id: par-shard-flag
+    category: parallel
+    question: How do I split my suite across four CI machines?
+    expected_chunks: [test_sharding#sharding-tests-between-multiple-machines]
+    required_keywords: ["--shard"]
+    notes: --shard=1/4 ... --shard=4/4.
+
+  - id: par-merge-reports
+    category: parallel
+    question: After sharding, how do I get one HTML report instead of four?
+    expected_chunks: [test_sharding#merge-reports-cli, test_sharding#merging-reports-from-multiple-shards]
+    required_keywords: ["merge-reports"]
+    notes: npx playwright merge-reports with blob reports.
+
+  - id: par-worker-index
+    category: parallel
+    question: How can a test find out which worker it is running in, so each worker uses its own test account?
+    expected_chunks: [test_parallel#worker-index-and-parallel-index, test_parallel#isolate-test-data-between-parallel-workers]
+    required_keywords: ["workerIndex"]
+    notes: testInfo.workerIndex / process.env.TEST_WORKER_INDEX. The parallelIndex distinction is a bonus.
+
+  - id: par-isolation-context
+    category: parallel
+    question: How does Playwright keep one test's cookies and local storage from leaking into the next test?
+    expected_chunks: [browser_contexts#how-playwright-achieves-test-isolation, browser_contexts#introduction]
+    required_keywords: ["browser context"]
+    notes: A fresh browser context per test.
+
+  # --------------------------------------------------------------- config
+  - id: cfg-worker-fixture
+    category: config
+    question: How do I set something up once per worker instead of once per test?
+    expected_chunks: [test_fixtures#worker-scoped-fixtures]
+    required_keywords: ["scope: 'worker'"]
+    notes: "The tuple syntax with { scope: 'worker' }."
+
+  - id: cfg-auto-fixture
+    category: config
+    question: Can a fixture run for every test without each test having to list it as a parameter?
+    expected_chunks: [test_fixtures#automatic-fixtures]
+    required_keywords: ["auto: true"]
+
+  - id: cfg-fixture-order
+    category: config
+    question: If fixture A depends on fixture B, which one is torn down first?
+    expected_chunks: [test_fixtures#execution-order]
+    required_keywords: ["torn down after"]
+    notes: hard - B is set up before A and torn down after A; wording in the chunk is "B is always set up before A and torn down after A".
+
+  - id: cfg-project-dependencies
+    category: config
+    question: How do I make a login setup step run before my chromium and firefox projects?
+    expected_chunks: [test_projects#dependencies]
+    required_keywords: ["dependencies"]
+    notes: A setup project listed in the other projects' dependencies.
+
+  - id: cfg-run-one-project
+    category: config
+    question: How do I run only the firefox project from the command line?
+    expected_chunks: [test_projects#run-projects]
+    required_keywords: ["--project"]
+
+  - id: cfg-default-reporter-ci
+    category: config
+    question: Which reporter is used by default on CI?
+    expected_chunks: [test_reporters#dot-reporter, test_reporters#list-reporter]
+    required_keywords: ["dot"]
+    forbidden_keywords: []
+    notes: list locally, dot on CI. Two chunks state it; either is a hit.
+
+  - id: cfg-html-report-open
+    category: config
+    question: How do I stop the HTML report from opening in a browser automatically after a failed run?
+    expected_chunks: [test_reporters#html-reporter]
+    required_keywords: ["open"]
+    notes: "reporter [['html', { open: 'never' }]] or PLAYWRIGHT_HTML_OPEN."
+
+  - id: cfg-github-annotations
+    category: config
+    question: Is there a reporter that annotates failures directly in GitHub Actions?
+    expected_chunks: [test_reporters#github-actions-annotations]
+    required_keywords: ["github"]
+
+  - id: cfg-webserver
+    category: config
+    question: Can Playwright start my app's dev server before the tests instead of me running it separately?
+    expected_chunks: [test_webserver#configuring-a-web-server, test_webserver#introduction]
+    required_keywords: ["webServer"]
+
+  - id: cfg-update-snapshots
+    category: config
+    question: The UI changed on purpose and my screenshot comparisons fail. How do I regenerate the baselines?
+    expected_chunks: [test_snapshots#updating-screenshots]
+    required_keywords: ["--update-snapshots"]
+
+  - id: cfg-max-diff-pixels
+    category: config
+    question: How do I allow a small number of differing pixels in toHaveScreenshot?
+    expected_chunks: [test_snapshots#maxdiffpixels]
+    required_keywords: ["maxDiffPixels"]
+
+  - id: cfg-video-retain
+    category: config
+    question: How do I record video only for tests that fail?
+    expected_chunks: [videos#record-video]
+    required_keywords: ["retain-on-failure"]
+
+  - id: cfg-tag-tests
+    category: config
+    question: How do I tag tests as smoke so I can run just those?
+    expected_chunks: [test_annotations#tag-tests]
+    required_keywords: ["@"]
+    notes: Tags must start with @, via the details object or the title.
+
+  - id: cfg-focus-test
+    category: config
+    question: How do I run only one test while I'm debugging it?
+    expected_chunks: [test_annotations#focus-a-test]
+    required_keywords: ["test.only"]
+
+  # -------------------------------------------------------------- network
+  - id: net-mock-api
+    category: network
+    question: How do I return fake JSON for an API call so the test never hits the real backend?
+    expected_chunks: [mock#mock-api-requests, network#handle-requests]
+    required_keywords: ["route"]
+    notes: page.route() + route.fulfill({ json }).
+
+  - id: net-abort-images
+    category: network
+    question: Can I block all image requests to make tests faster?
+    expected_chunks: [network#abort-requests]
+    required_keywords: ["abort"]
+
+  - id: net-glob-double-star
+    category: network
+    question: In a page.route pattern, what is the difference between * and **?
+    expected_chunks: [network#glob-url-patterns]
+    required_keywords: ["except", "/"]
+    notes: A single * matches any characters except /, ** includes /.
+
+  - id: net-redirect-handler
+    category: network
+    question: If a request redirects, does my route handler get called again for the redirected request?
+    expected_chunks: [network#redirects]
+    required_keywords: ["once"]
+    expected_answer: No. The handler is called once for the original request and the browser follows the redirect on its own.
+
+  - id: net-msw-missing-events
+    category: network
+    question: I use Mock Service Worker in the app and page.route never sees the requests. What is going on?
+    expected_chunks: [network#missing-network-events-and-service-workers]
+    required_keywords: ["Service Worker"]
+    notes: MSW adds its own service worker; set serviceWorkers to 'block'.
+
+  - id: net-wait-for-response
+    category: network
+    question: How do I wait for a specific API response before asserting on the page?
+    expected_chunks: [network#variations, network#network-events]
+    required_keywords: ["waitForResponse"]
+
+  - id: net-offline-webrtc
+    category: network
+    question: Does the offline option also cut WebRTC connections?
+    expected_chunks: [emulation#offline]
+    required_keywords: ["WebRTC"]
+    expected_answer: No. Offline emulation affects the regular network stack only; established RTCPeerConnections keep flowing.
+
+  - id: net-download-event
+    category: network
+    question: How do I get hold of a file the page downloads during a test?
+    expected_chunks: [downloads#introduction]
+    required_keywords: ["download"]
+    notes: waitForEvent('download') then download.saveAs().
+
+  - id: net-new-tab
+    category: network
+    question: A link opens in a new tab. How do I get a handle on that new page?
+    expected_chunks: [pages#handling-new-pages]
+    required_keywords: ["waitForEvent"]
+    notes: context.waitForEvent('page').
+
+  - id: net-dialog-default
+    category: network
+    question: What happens to an alert() dialog if my test never handles it?
+    expected_chunks: [dialogs#alert-confirm-prompt-dialogs]
+    required_keywords: ["auto-dismissed"]
+
+  # -------------------------------------------------------------- tooling
+  - id: tool-trace-on-ci
+    category: tooling
+    question: What trace setting do the docs recommend for CI?
+    expected_chunks: [trace_viewer#tracing-on-ci]
+    required_keywords: ["on-first-retry"]
+
+  - id: tool-open-trace
+    category: tooling
+    question: How do I open a trace.zip file that CI produced?
+    expected_chunks: [trace_viewer#opening-trace-viewer]
+    required_keywords: ["show-trace"]
+
+  - id: tool-ui-mode
+    category: tooling
+    question: What is the command to open UI mode?
+    expected_chunks: [test_ui_mode#opening-ui-mode]
+    required_keywords: ["--ui"]
+
+  - id: tool-codegen
+    category: tooling
+    question: How do I record a test by clicking through the site instead of writing it by hand?
+    expected_chunks: [codegen#running-codegen, codegen_intro#running-codegen]
+    required_keywords: ["codegen"]
+
+  - id: tool-install-one-browser
+    category: tooling
+    question: How do I install only WebKit instead of all browsers?
+    expected_chunks: [browsers#install-browsers]
+    required_keywords: ["install webkit"]
+
+  - id: tool-docker-image
+    category: tooling
+    question: Does the official Docker image include the Playwright npm package itself?
+    expected_chunks: [docker#introduction]
+    required_keywords: ["not included"]
+    expected_answer: No. The image includes the browsers and system dependencies; the Playwright package must be installed separately.
+
+  # ----------------------------------------------------------------- auth
+  - id: auth-shared-account
+    category: auth
+    question: What is the recommended way to log in once and reuse the session across all tests?
+    expected_chunks: [auth#basic-shared-account-in-all-tests, auth#core-concepts]
+    required_keywords: ["setup project"]
+    notes: Authenticate once in a setup project, save storage state, reuse it.
+
+  - id: auth-per-worker
+    category: auth
+    question: My tests change server-side data, so a single shared login breaks them in parallel. What does the guide suggest?
+    expected_chunks: [auth#moderate-one-account-per-parallel-worker]
+    required_keywords: ["worker"]
+    notes: One account per parallel worker.
+
+  # --------------------------------------------------------- out-of-scope
+  - id: oos-pricing
+    category: out-of-scope
+    question: How much does the Playwright enterprise licence cost per seat?
+    should_refuse: true
+    notes: Nothing in the guides. Playwright is free and open source, but the docs here do not say so - the assistant must not invent a price.
+
+  - id: oos-cypress-retries
+    category: out-of-scope
+    question: How do I configure retries in Cypress?
+    should_refuse: true
+    notes: hard - "retries" is a strong lexical match for the Playwright retries page. A grounded assistant must notice the question is about a different tool.
+
+  - id: oos-selenium-grid-java
+    category: out-of-scope
+    question: Write me a Java Selenium test that logs in to my app.
+    should_refuse: true
+    notes: hard - Java samples were stripped from the corpus and Selenium is not covered by these guides.
+
+  - id: oos-python-syntax
+    category: out-of-scope
+    question: What is the Python syntax for page.get_by_role?
+    should_refuse: true
+    notes: hard - the corpus is the JavaScript guide set only; the Python API is not documented here.
