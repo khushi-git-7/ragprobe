@@ -1,6 +1,14 @@
 # RAGProbe
 
+[![CI](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml/badge.svg)](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml)
+[![Live dashboard](https://img.shields.io/badge/live-dashboard-2a5bd7)](https://khushi-git-7.github.io/ragprobe/)
+
 **An evaluation and regression-testing harness for RAG pipelines and LLM features.**
+
+**Live dashboard:** <https://khushi-git-7.github.io/ragprobe/> - the landing page, with
+the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html) and the latest
+[regression report](https://khushi-git-7.github.io/ragprobe/report.html) rebuilt from
+the run history on every push to `main`.
 
 RAGProbe treats a prompt change the way a good engineering team treats a code change:
 it runs a golden test set against a known-good baseline, produces a diff of exactly
@@ -58,6 +66,7 @@ before merge, not after.*
 - [CLI reference](#cli-reference)
 - [Reports](#reports)
 - [Dashboard](#dashboard)
+- [Site](#site)
 - [Testing the harness itself](#testing-the-harness-itself)
 - [Continuous integration](#continuous-integration)
 - [Project layout](#project-layout)
@@ -643,6 +652,29 @@ skips recording a run, for throwaway experiments. A file in the history director
 is not a results document, or is a copy of one already there, is skipped with a warning
 rather than taking the page down.
 
+## Site
+
+The GitHub Pages site is two generated pages: `index.html`, a landing page with live
+numbers from the latest run, and `dashboard.html`, the analytics dashboard, plus the
+latest `report.html`. CI rebuilds all three on every push to `main` (see
+[Continuous integration](#continuous-integration)).
+
+The landing page comes from `scripts/build_site.py`, which is deliberately outside
+the `ragprobe` package: the library stays a testing tool, the script is
+presentation. It is standard-library only, reads the run history directly, and
+produces one self-contained file - embedded CSS and SVG, no external assets, light
+and dark themes. It links to the dashboard and the report only when those files
+exist next to it, so a site built without them has no dead links.
+
+```bash
+ragprobe run                                   # a run or two for the numbers
+ragprobe dashboard --out site/dashboard.html
+python scripts/build_site.py --out site/index.html
+```
+
+`tests/test_build_site.py` covers the empty state, the stats strip, corrupt and
+foreign history files, escaping, and the CLI.
+
 ## Testing the harness itself
 
 ```bash
@@ -679,7 +711,7 @@ The suite runs offline in a few seconds. It is organised around the question
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs two jobs on every push and pull request, fully offline:
+`.github/workflows/ci.yml` runs three jobs, fully offline:
 
 1. **`unit-tests`** - the pytest suite, on two Python versions.
 2. **`regression`** - `ragprobe diff` against the committed `baselines/baseline.json`
@@ -687,6 +719,12 @@ The suite runs offline in a few seconds. It is organised around the question
    the job red. The HTML report and the dashboard are uploaded as build artifacts
    whether or not the gate passed, because they are most useful precisely when it
    failed.
+3. **`pages`** - on pushes to `main` only: restores the run history kept on the
+   `gh-pages` branch, appends the run the regression job just produced, rebuilds the
+   dashboard and the landing page, and publishes them to
+   <https://khushi-git-7.github.io/ragprobe/>. The history is capped at the newest
+   200 runs. One-time setup: after the first run, Settings -> Pages should show the
+   source as *Deploy from a branch: gh-pages*.
 
 `RAGPROBE_PROVIDER=stub` is pinned in the job environment so that CI can never make a
 network call regardless of what the config says.
@@ -725,6 +763,7 @@ ragprobe/
 │   ├── dashboard/              Run-history analytics: metrics, insights, inline SVG, HTML
 │   ├── history.py              Append/load runs in reports/history/
 │   └── cli.py                  argparse entrypoint, exit-code contract
+├── scripts/build_site.py       Landing page for GitHub Pages (stdlib only)
 ├── datasets/
 │   ├── docs/                   Five fictional sample documents
 │   └── golden_set.yaml         Sixteen cases across six categories
