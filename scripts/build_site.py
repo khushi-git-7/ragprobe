@@ -229,7 +229,7 @@ section p.sub{font-size:19px;color:var(--muted);margin:0 0 40px;max-width:40em}
 .stat.y .v{color:var(--yellow)}.stat.r .v{color:var(--red)}.stat.b .v{color:#5B7BFF}.stat.g .v{color:var(--green)}
 .substats{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:40px;padding-top:24px;border-top:1px solid #333;font-family:var(--mono);font-size:13px;color:#B5B5B0}
 .substats b{color:#fff;font-weight:700}
-.band .note{margin:18px 0 0;font-size:14px;color:#B5B5B0}
+.band .bandnote{margin:18px 0 0;font-size:14px;color:#B5B5B0}
 .band a{color:var(--yellow)}
 /* ---- comparison ---- */
 .compare{width:100%;border-collapse:separate;border-spacing:0;border:2px solid var(--ink);border-radius:12px;overflow:hidden;background:var(--surface);font-size:15.5px}
@@ -407,7 +407,7 @@ def render_stats(numbers: Dict[str, str], dashboard_href: Optional[str]) -> str:
     if not numbers:
         return (
             '<div class="stats">' + stat_cell("0", "runs recorded", "y") + "</div>"
-            '<p class="note">No runs recorded yet. The first push to main fills this in.</p>'
+            '<p class="bandnote">No runs recorded yet. The first push to main fills this in.</p>'
         )
     cells = [
         stat_cell(numbers["runs"], "runs recorded", "y"),
@@ -425,7 +425,7 @@ def render_stats(numbers: Dict[str, str], dashboard_href: Optional[str]) -> str:
     note = "Every number comes from the latest recorded run on main."
     if dashboard_href:
         note += ' The <a href="' + esc(dashboard_href) + '">dashboard</a> reads the same history.'
-    return '<div class="stats">' + "".join(cells) + '</div><div class="substats">' + sub + '</div><p class="note">' + note + "</p>"
+    return '<div class="stats">' + "".join(cells) + '</div><div class="substats">' + sub + '</div><p class="bandnote">' + note + "</p>"
 
 
 # ---------------------------------------------------------------------------
@@ -454,7 +454,7 @@ def _nav(dash_link: str, readme: str, repo_url: str, report_href: Optional[str])
     sub = [
         '<span class="badge">v0.1 &middot; MIT</span>',
         '<span class="badge">Python 3.9+</span>',
-        '<span class="badge live">runs offline <span class="badge live">CI green &middot; runs offline</span>middot; no API key</span>',
+        '<span class="badge live">CI green &middot; runs offline &middot; no API key</span>',
         '<a href="' + esc(repo_url + "/actions") + '">Latest CI run &rarr;</a>',
     ]
     if report_href:

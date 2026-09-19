@@ -405,19 +405,22 @@ _JS = """
   /* ---------- navigation ---------- */
   var titles = {};
   $$('.nav a[data-section]').forEach(function (a) { titles[a.getAttribute('data-section')] = a.getAttribute('data-title') || a.textContent; });
-  function show(section) {
+  function show(section, writeHash) {
     if (!Object.prototype.hasOwnProperty.call(titles, section)) section = 'overview';
     $$('.panel').forEach(function (p) { p.classList.toggle('active', p.id === section); });
     $$('.nav a[data-section]').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-section') === section); });
     var h = $('#section-title'); if (h) h.textContent = titles[section] || section;
-    if (history.replaceState) history.replaceState(null, '', '#' + section);
+    /* Only write the hash on a click. Writing it during load makes the browser
+       scroll to the panel element once the document finishes loading, which
+       leaves the app shell offset from the top of the viewport. */
+    if (writeHash && history.replaceState && location.hash !== '#' + section) history.replaceState(null, '', '#' + section);
     window.scrollTo(0, 0);
   }
   $$('.nav a[data-section]').forEach(function (a) {
-    a.addEventListener('click', function (e) { e.preventDefault(); show(a.getAttribute('data-section')); });
+    a.addEventListener('click', function (e) { e.preventDefault(); show(a.getAttribute('data-section'), true); });
   });
-  window.addEventListener('hashchange', function () { show((location.hash || '#overview').slice(1)); });
-  show((location.hash || '#overview').slice(1));
+  window.addEventListener('hashchange', function () { show((location.hash || '#overview').slice(1), false); });
+  show((location.hash || '#overview').slice(1), false);
 
   /* ---------- theme ---------- */
   var themeBtn = $('#theme-toggle');
