@@ -115,6 +115,7 @@ class RunPoint:
 
 
 def build_run_points(runs: Sequence[Mapping[str, Any]], sources: Optional[Sequence[str]] = None) -> List[RunPoint]:
+    """Reduce each run (oldest first) to a :class:`RunPoint`, marking config and dataset changes."""
     points: List[RunPoint] = []
     previous: Optional[Mapping[str, Any]] = None
     for index, run in enumerate(runs):
@@ -154,6 +155,8 @@ def build_run_points(runs: Sequence[Mapping[str, Any]], sources: Optional[Sequen
 
 @dataclass
 class Kpi:
+    """One overview tile: the latest value, the change since the previous run, the series."""
+
     key: str
     label: str
     value: Optional[float]
@@ -193,6 +196,7 @@ def _delta(current: Optional[float], previous: Optional[float]) -> Optional[floa
 
 
 def kpi_tiles(points: Sequence[RunPoint]) -> List[Kpi]:
+    """The overview tiles: each headline metric on the latest run, its delta and its series."""
     if not points:
         return []
     latest = points[-1]
@@ -505,6 +509,8 @@ class CaseRow:
 
 @dataclass
 class DashboardModel:
+    """Everything the page shows, computed once from the stored runs and an optional baseline."""
+
     runs: List[Dict[str, Any]]
     points: List[RunPoint]
     kpis: List[Kpi]

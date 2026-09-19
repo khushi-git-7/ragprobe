@@ -600,6 +600,14 @@ class TestRenderDashboard:
         assert 'data-category="sec"' in page
         assert 'data-filter="regressed"' in page
 
+    def test_navigation_only_routes_to_section_ids(self):
+        """Charts and widgets have ids too (``trend-pass_rate``, ``tooltip``). A URL hash naming
+        one of those used to satisfy the "does this id exist" check and hide every panel."""
+        page = render_dashboard(build_model([make_run([make_case("a")])]))
+        assert "hasOwnProperty.call(titles, section)" in page
+        assert "document.getElementById(section)" not in page
+        assert 'id="trend-pass_rate"' in page  # the collision that motivated the guard
+
     def test_insight_rules_are_rendered_as_tooltips(self):
         page = render_dashboard(build_model([make_run([make_case("a")])]))
         assert 'class="rule-btn"' in page and 'title="Rule:' in page

@@ -36,6 +36,7 @@ def _f(value: float) -> str:
 
 
 def fmt_value(value: Number, fmt: str) -> str:
+    """Display form of a metric: ``87.5%`` (percent), ``12`` (count) or ``0.875`` (score)."""
     if value is None:
         return "n/a"
     if fmt == "percent":
@@ -46,6 +47,7 @@ def fmt_value(value: Number, fmt: str) -> str:
 
 
 def fmt_delta(value: Number, fmt: str) -> str:
+    """Signed change in the same units as :func:`fmt_value`; percent deltas are in points."""
     if value is None:
         return "n/a"
     if fmt == "percent":
@@ -285,10 +287,10 @@ def line_chart(
         i = int(ann.get("index", -1))
         if 0 <= i < n:
             payload["notes"][i] = (payload["notes"][i] + "\n" if payload["notes"][i] else "") + str(ann.get("text", ""))
+    id_attr = f' id="{_esc(chart_id)}"' if chart_id else ""
     return (
         f'<svg class="chart line" viewBox="0 0 {width} {height}" role="img" '
-        f'aria-label="{_esc(series)} over {n} run(s)" data-chart="{_esc(json.dumps(payload))}"'
-        f'{f" id={chr(34)}{_esc(chart_id)}{chr(34)}" if chart_id else ""}>'
+        f'aria-label="{_esc(series)} over {n} run(s)" data-chart="{_esc(json.dumps(payload))}"{id_attr}>'
         + "".join(parts)
         + "</svg>"
     )

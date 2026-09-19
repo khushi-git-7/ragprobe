@@ -378,7 +378,7 @@ _JS = """
   var titles = {};
   $$('.nav a[data-section]').forEach(function (a) { titles[a.getAttribute('data-section')] = a.getAttribute('data-title') || a.textContent; });
   function show(section) {
-    if (!document.getElementById(section)) section = 'overview';
+    if (!Object.prototype.hasOwnProperty.call(titles, section)) section = 'overview';
     $$('.panel').forEach(function (p) { p.classList.toggle('active', p.id === section); });
     $$('.nav a[data-section]').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-section') === section); });
     var h = $('#section-title'); if (h) h.textContent = titles[section] || section;
@@ -896,14 +896,14 @@ def _case_group(row: CaseRow, model: DashboardModel) -> str:
     change_pill = f' <span class="pill {_esc(row.change_status)}">{_esc(row.change_status)}</span>' if row.change_status and row.change_status != STATUS_FLAT else ""
     return (
         f'<tbody class="case-group" data-id="{_esc(row.id)}" data-status="{" ".join(tokens)}" '
-        f'data-category="{_esc(case.get("category"))}" data-score="{_esc(case.get("score"))}" '
+        f'data-category="{_esc(case.get("category", "general"))}" data-score="{_esc(case.get("score"))}" '
         f'data-delta="{_esc(delta if delta is not None else "")}" data-fails="{len(failing)}" '
         f'data-hit="{_esc(hit if hit is not None else "")}" data-flips="{row.history.flips}" '
         f'data-search="{_esc(search_blob)}">'
         f'<tr class="case-row" tabindex="0" aria-label="{_esc(row.id)}">'
         f'<td><span class="caret">&#9654;</span><span class="pill {status}">{status}</span>{change_pill}</td>'
         f'<td><span class="case-id">{_esc(row.id)}</span><span class="case-q">{_esc(case.get("question"))}</span></td>'
-        f'<td><span class="tag">{_esc(case.get("category"))}</span></td>'
+        f'<td><span class="tag">{_esc(case.get("category", "general"))}</span></td>'
         f'<td class="num">{_fmt(case.get("score"), 3)}</td>'
         f'<td class="num delta-cell {delta_cls}">{_esc(delta_text)}</td>'
         f'<td><div class="fails">{fails_html}</div></td>'
@@ -929,12 +929,14 @@ def _cases(model: DashboardModel) -> str:
         STATUS_IMPROVED: sum(1 for r in model.rows if r.change_status == STATUS_IMPROVED),
     }
     compare = f" vs {model.comparison_label}" if model.comparison_label else ""
-    chips = "".join(
-        f'<button class="fbtn" data-filter="{key}" aria-pressed="{"true" if key == "all" else "false"}"'
-        f'{f" title={chr(34)}{label}{compare}{chr(34)}" if key in (STATUS_REGRESSED, STATUS_IMPROVED) else ""}>'
-        f'{label}<span class="n">{counts[key]}</span></button>'
-        for key, label in (("all", "All"), ("pass", "Pass"), ("fail", "Fail"), (STATUS_REGRESSED, "Regressed"), (STATUS_IMPROVED, "Improved"))
-    )
+    chips = []
+    for key, label in (("all", "All"), ("pass", "Pass"), ("fail", "Fail"), (STATUS_REGRESSED, "Regressed"), (STATUS_IMPROVED, "Improved")):
+        pressed = "true" if key == "all" else "false"
+        title = f' title="{_esc(label + compare)}"' if key in (STATUS_REGRESSED, STATUS_IMPROVED) else ""
+        chips.append(
+            f'<button class="fbtn" data-filter="{key}" aria-pressed="{pressed}"{title}>'
+            f'{label}<span class="n">{counts[key]}</span></button>'
+        )
     options = '<option value="all">All categories</option>' + "".join(f'<option value="{_esc(c)}">{_esc(c)}</option>' for c in categories)
     head = (
         "<thead><tr>"
@@ -953,7 +955,7 @@ def _cases(model: DashboardModel) -> str:
         f'<span class="small muted">regressed / improved chips compare with the {_esc(model.comparison_label or "previous run")}</span></div>'
         '<div class="toolbar">'
         '<input type="search" id="case-search" placeholder="Search id, question, answer, check" aria-label="Search cases">'
-        f'<div class="fgroup" id="case-status" role="group" aria-label="Status filter">{chips}</div>'
+        f'<div class="fgroup" id="case-status" role="group" aria-label="Status filter">{"".join(chips)}</div>'
         f'<select id="case-category" aria-label="Category filter">{options}</select>'
         '<span class="spacer"></span><span class="result-count" id="case-count"></span></div>'
         f'<div class="card table-card"><div class="table-scroll"><table id="cases-table">{head}'
@@ -1063,6 +1065,7 @@ def _insights(insights: Sequence[Insight]) -> str:
 
 
 def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -> str:
+    """Render the complete, self-contained dashboard page for ``model``."""
     insights = generate_insights(model)
     latest = model.latest
     latest_point = model.latest_point
@@ -1139,6 +1142,7 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
 
 
 def write_dashboard(path: Path, model: DashboardModel, title: str = "RAGProbe Dashboard") -> Path:
+    """Render ``model`` to ``path`` (creating parent directories) and return the path."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(render_dashboard(model, title=title), encoding="utf-8")
