@@ -274,3 +274,76 @@ class TestConfigFingerprint:
 
         with pytest.raises(ConfigError):
             ProbeConfig().apply_overrides({"retrieval.nope": 1})
+
+
+class TestFastEmbedWiring:
+    """The fastembed backend is optional; these tests inject a fake module so the
+    wiring (batching, query path, normalisation, factory) is covered without the
+    dependency or a model download."""
+
+    @pytest.fixture
+    def fake_fastembed(self, monkeypatch):
+        import sys
+        import types
+
+        calls = {"embed": [], "query": []}
+
+        class TextEmbedding:
+            def __init__(self, model_name):
+                self.model_name = model_name
+
+            def embed(self, texts, batch_size=32):
+                calls["embed"].append((list(texts), batch_size))
+                for text in texts:
+                    yield [3.0, 4.0] if "probe" not in text else [1.0, 0.0]
+
+            def query_embed(self, text):
+                calls["query"].append(text)
+                yield [0.0, 2.0]
+
+        module = types.ModuleType("fastembed")
+        module.TextEmbedding = TextEmbedding
+        monkeypatch.setitem(sys.modules, "fastembed", module)
+        return calls
+
+    def test_factory_selects_fastembed_and_probes_dim(self, fake_fastembed):
+        from ragprobe.config import RetrievalConfig
+        from ragprobe.pipeline.embeddings import FastEmbedEmbedder
+
+        embedder = get_embedder(RetrievalConfig(embedder="fastembed"))
+        assert isinstance(embedder, FastEmbedEmbedder)
+        assert embedder.model_name == FastEmbedEmbedder.DEFAULT_MODEL
+        assert embedder.dim == 2
+
+    def test_sentence_transformers_model_name_is_not_passed_to_fastembed(self, fake_fastembed):
+        from ragprobe.config import RetrievalConfig
+
+        cfg = RetrievalConfig(embedder="fastembed", model_name="sentence-transformers/all-MiniLM-L6-v2")
+        assert get_embedder(cfg).model_name == "BAAI/bge-small-en-v1.5"
+
+    def test_vectors_are_normalised_and_batched(self, fake_fastembed):
+        from ragprobe.config import RetrievalConfig
+
+        embedder = get_embedder(RetrievalConfig(embedder="fastembed"))
+        many = embedder.embed_many(["a", "b", "c"])
+        assert many == [[0.6, 0.8]] * 3
+        assert fake_fastembed["embed"][-1] == (["a", "b", "c"], 32)
+
+    def test_queries_use_the_query_path(self, fake_fastembed):
+        from ragprobe.config import RetrievalConfig
+
+        embedder = get_embedder(RetrievalConfig(embedder="fastembed"))
+        assert embedder.embed_query("what?") == [0.0, 1.0]
+        assert fake_fastembed["query"] == ["what?"]
+
+    def test_unknown_embedder_lists_the_options(self):
+        from ragprobe.config import RetrievalConfig
+
+        with pytest.raises(ValueError, match="tfidf, fastembed, sentence-transformers"):
+            get_embedder(RetrievalConfig(embedder="bm25"))
+
+
+class TestEmbedderBaseQueryPath:
+    def test_tfidf_query_path_equals_passage_path(self):
+        embedder = HashingTfidfEmbedder(dim=64).fit(CORPUS)
+        assert embedder.embed_query(CORPUS[0]) == embedder.embed(CORPUS[0])

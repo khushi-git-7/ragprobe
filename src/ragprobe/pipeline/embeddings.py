@@ -20,7 +20,7 @@ import math
 import zlib
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from ragprobe.config import RetrievalConfig
 from ragprobe.text_utils import tokenize
@@ -43,7 +43,17 @@ class Embedder(ABC):
         """Return an L2-normalised vector for ``text``."""
 
     def embed_many(self, texts: Sequence[str]) -> List[Vector]:
+        """Embed passages. Backends with batched inference override this."""
         return [self.embed(text) for text in texts]
+
+    def embed_query(self, text: str) -> Vector:
+        """Embed a *question*. Same as ``embed`` unless the model distinguishes the two.
+
+        Retrieval models such as bge are trained asymmetrically: a query and a
+        passage are encoded differently, and using the passage path for both costs
+        measurable recall. The pipeline calls this for questions only.
+        """
+        return self.embed(text)
 
 
 def _l2_normalize(vector: Vector) -> Vector:
@@ -150,12 +160,70 @@ class SentenceTransformerEmbedder(Embedder):
         return [float(value) for value in vector]
 
 
+class FastEmbedEmbedder(Embedder):
+    """Neural embeddings through ONNX Runtime. Requires ``pip install 'ragprobe[fastembed]'``.
+
+    This is the practical neural option: no PyTorch, a ~130 MB model, and CPU
+    inference fast enough to re-index a few thousand chunks in a minute. The
+    default model, ``BAAI/bge-small-en-v1.5``, is a strong small retrieval model;
+    fastembed applies its query instruction automatically in ``embed_query``.
+
+    As with any neural embedder, cosine scores live in a different range from
+    TF-IDF cosines: re-calibrate ``generation.refusal_threshold`` and re-baseline.
+    """
+
+    name = "fastembed"
+    DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
+
+    def __init__(self, model_name: Optional[str] = None, batch_size: int = 32) -> None:
+        try:
+            from fastembed import TextEmbedding  # type: ignore
+        except ImportError as exc:  # pragma: no cover - exercised only when extra absent
+            raise ImportError(
+                "The 'fastembed' embedder requires the optional extra: "
+                "pip install 'ragprobe[fastembed]'. "
+                "The default 'tfidf' embedder needs no extra dependencies."
+            ) from exc
+        self.model_name = model_name or self.DEFAULT_MODEL
+        self.batch_size = batch_size
+        self._model = TextEmbedding(model_name=self.model_name)
+        self.dim = self._probe_dim()
+
+    def _probe_dim(self) -> int:
+        return len(self._first(self._model.embed(["dimension probe"])))
+
+    @staticmethod
+    def _first(vectors) -> Vector:  # noqa: ANN001 - generator of numpy arrays
+        for vector in vectors:
+            return [float(value) for value in vector]
+        raise RuntimeError("embedding model returned no vectors")
+
+    def fit(self, corpus: Sequence[str]) -> "FastEmbedEmbedder":
+        return self  # pre-trained; nothing to learn from the corpus
+
+    def embed(self, text: str) -> Vector:
+        return _l2_normalize(self._first(self._model.embed([text])))
+
+    def embed_many(self, texts: Sequence[str]) -> List[Vector]:
+        vectors = self._model.embed(list(texts), batch_size=self.batch_size)
+        return [_l2_normalize([float(value) for value in vector]) for vector in vectors]
+
+    def embed_query(self, text: str) -> Vector:
+        return _l2_normalize(self._first(self._model.query_embed(text)))
+
+
+EMBEDDERS = ("tfidf", "fastembed", "sentence-transformers")
+
+
 def get_embedder(cfg: RetrievalConfig) -> Embedder:
     """Factory keyed on ``retrieval.embedder``."""
     if cfg.embedder == "tfidf":
         return HashingTfidfEmbedder(dim=cfg.dim)
+    if cfg.embedder == "fastembed":
+        model = cfg.model_name if cfg.model_name and "sentence-transformers/" not in cfg.model_name else None
+        return FastEmbedEmbedder(model_name=model)
     if cfg.embedder == "sentence-transformers":
         return SentenceTransformerEmbedder(model_name=cfg.model_name)
     raise ValueError(
-        f"unknown embedder {cfg.embedder!r}; expected 'tfidf' or 'sentence-transformers'"
+        f"unknown embedder {cfg.embedder!r}; expected one of {', '.join(EMBEDDERS)}"
     )
