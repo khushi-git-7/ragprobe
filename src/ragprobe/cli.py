@@ -120,7 +120,12 @@ def _build_config(args: argparse.Namespace) -> ProbeConfig:
 
 
 def _base_dir(args: argparse.Namespace) -> Path:
-    return Path(args.root) if getattr(args, "root", None) else Path.cwd()
+    """``--root`` if given, else the working directory as a relative path.
+
+    Relative rather than ``Path.cwd()`` so every path the CLI prints (results,
+    history, baseline) keeps the short form the user typed.
+    """
+    return Path(args.root) if getattr(args, "root", None) else Path(".")
 
 
 def _history_dir(args: argparse.Namespace) -> Optional[Path]:
@@ -133,9 +138,7 @@ def _history_dir(args: argparse.Namespace) -> Optional[Path]:
     if getattr(args, "no_history", False):
         return None
     path = Path(getattr(args, "history_dir", None) or DEFAULT_HISTORY_DIR)
-    if path.is_absolute() or not getattr(args, "root", None):
-        return path
-    return Path(args.root) / path
+    return path if path.is_absolute() else _base_dir(args) / path
 
 
 def _record_history(args: argparse.Namespace, payload: Mapping[str, Any]) -> Optional[Path]:
