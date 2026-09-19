@@ -12,7 +12,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from ragprobe import __version__
 from ragprobe.config import ProbeConfig
@@ -29,7 +29,7 @@ from ragprobe.evaluation.evaluators import (
     refusal_behaviour,
 )
 from ragprobe.evaluation.judge import assess_faithfulness, grounding_check, judge_check
-from ragprobe.pipeline.rag import RagResult
+from ragprobe.pipeline.rag import RagResult, RetrievedChunk
 from ragprobe.targets import get_target
 
 SCHEMA_VERSION = 1
@@ -323,4 +323,61 @@ def run_suite(
         pipeline_stats=pipeline.stats(),
         started_at=started_at,
         duration_seconds=time.time() - started,
+    )
+
+
+def rescore(
+    payload: Mapping[str, Any],
+    cases: Sequence[GoldenCase],
+    config: Optional[ProbeConfig] = None,
+) -> RunResult:
+    """Re-run every evaluator over the answers saved in a results document.
+
+    Live-model answers are expensive and nondeterministic; the evaluators are
+    neither. When an evaluator is fixed or a threshold re-tuned, this re-scores the
+    recorded answers and retrieved chunks without calling the model again, so the
+    effect of the evaluator change can be measured on its own. The LLM judge is not
+    re-run (it would need the model); the offline grounding heuristic is.
+    """
+    config = config or ProbeConfig.from_dict(payload.get("config") or {}, source="<results>")
+    config = config.apply_overrides({"evaluation.judge_enabled": False})
+    by_id = {case.id: case for case in cases}
+    started = time.time()
+    results: List[CaseResult] = []
+    for saved in payload.get("cases", []):
+        case = by_id.get(saved.get("id"))
+        if case is None:
+            continue  # the dataset no longer has this case; nothing to score against
+        rag_result = RagResult(
+            question=saved.get("question", case.question),
+            answer=saved.get("answer", ""),
+            refused=bool(saved.get("refused", False)),
+            retrieved=[
+                RetrievedChunk(
+                    chunk_id=str(chunk.get("chunk_id", "")),
+                    doc_id=str(chunk.get("doc_id", "")),
+                    heading=str(chunk.get("heading", "")),
+                    text=str(chunk.get("text", "")),
+                    score=float(chunk.get("score", 0.0) or 0.0),
+                    rank=int(chunk.get("rank", index)),
+                )
+                for index, chunk in enumerate(saved.get("retrieved", []), start=1)
+            ],
+            provider=str(payload.get("provider", "")),
+            model=(saved.get("model") if isinstance(saved.get("model"), str) else None),
+        )
+        results.append(evaluate_case(case, rag_result, config, provider=None))
+    metadata = dict(payload.get("metadata") or {})
+    metadata["rescored_from"] = payload.get("started_at")
+    return RunResult(
+        cases=results,
+        config=config.to_dict(),
+        config_fingerprint=config.fingerprint(),
+        dataset_fingerprint=dataset_fingerprint(cases),
+        provider=str(payload.get("provider", "")),
+        deterministic=bool(payload.get("deterministic", False)),
+        pipeline_stats=dict(payload.get("pipeline") or {}),
+        started_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started)),
+        duration_seconds=time.time() - started,
+        metadata=metadata,
     )

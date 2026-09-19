@@ -28,7 +28,7 @@ from ragprobe import __version__
 from ragprobe.config import ConfigError, ProbeConfig
 from ragprobe.dashboard import build_model, write_dashboard
 from ragprobe.evaluation.dataset import DatasetError, load_dataset
-from ragprobe.evaluation.runner import RunResult, run_suite
+from ragprobe.evaluation.runner import RunResult, rescore, run_suite
 from ragprobe.targets import TargetError, parse_target_spec
 from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, is_valid_run, load_history, merge_current
 from ragprobe.pipeline.loader import CorpusError
@@ -107,6 +107,8 @@ def _build_config(args: argparse.Namespace) -> ProbeConfig:
         overrides["dataset_path"] = args.dataset
     if getattr(args, "top_k", None) is not None:
         overrides["retrieval.top_k"] = args.top_k
+    if getattr(args, "embedder", None):
+        overrides["retrieval.embedder"] = args.embedder
     if getattr(args, "provider", None):
         overrides["generation.provider"] = args.provider
     if getattr(args, "model", None):
@@ -366,6 +368,10 @@ def _add_pipeline_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--top-k", type=int, help="override retrieval.top_k")
     parser.add_argument(
+        "--embedder", choices=["tfidf", "fastembed", "sentence-transformers"],
+        help="override retrieval.embedder (default: tfidf, no extra dependencies)",
+    )
+    parser.add_argument(
         "--provider",
         choices=["stub", "anthropic", "openai"],
         help="override generation.provider (default: stub, no API key required; "
@@ -519,7 +525,84 @@ def build_parser() -> argparse.ArgumentParser:
     )
     dashboard_parser.set_defaults(func=cmd_dashboard)
 
+    # rescore --------------------------------------------------------------
+    rescore_parser = subparsers.add_parser(
+        "rescore",
+        help="re-run the evaluators over the answers saved in a results file (no model calls)",
+    )
+    rescore_parser.add_argument("--results", default=DEFAULT_RESULTS, help="results JSON to re-score")
+    rescore_parser.add_argument("--out", default=DEFAULT_RESULTS, help="where to write the re-scored results")
+    rescore_parser.add_argument("--config", help="config to score with (default: the one saved in the results)")
+    rescore_parser.add_argument("--root", help="project root that relative paths resolve against")
+    _add_history_args(rescore_parser)
+    rescore_parser.set_defaults(func=cmd_rescore)
+
+    # import ---------------------------------------------------------------
+    import_parser = subparsers.add_parser(
+        "import", help="build a corpus and golden set from a public dataset (SQuAD 2.0)"
+    )
+    import_parser.add_argument("dataset_name", choices=["squad"], help="dataset to import")
+    import_parser.add_argument("--out", required=True, metavar="DIR", help="directory to write into")
+    import_parser.add_argument("--split", default="dev", choices=["dev", "train"], help="SQuAD split (default: dev)")
+    import_parser.add_argument("--source", help="local copy of the dataset JSON instead of downloading it")
+    import_parser.add_argument("--limit", type=int, default=100, help="number of questions (default: 100)")
+    import_parser.add_argument(
+        "--unanswerable-ratio", type=float, default=0.25,
+        help="fraction of questions that must be refused (default: 0.25)",
+    )
+    import_parser.add_argument("--articles", type=int, help="cap the number of articles in the corpus (default: all)")
+    import_parser.add_argument("--seed", type=int, default=7, help="sampling seed (default: 7)")
+    import_parser.set_defaults(func=cmd_import)
+
     return parser
+
+
+def cmd_rescore(args: argparse.Namespace) -> int:
+    """Re-apply the evaluators to saved answers; no model calls."""
+    payload = _read_json(Path(args.results), "results")
+    config = _build_config(args) if args.config else None
+    base_dir = _base_dir(args)
+    dataset_path = base_dir / (config.dataset_path if config else payload["config"]["dataset_path"])
+    cases = load_dataset(dataset_path)
+    result = rescore(payload, cases, config)
+    out = result.to_dict()
+    results_path = _write_json(Path(args.out), out)
+    print(render_run_summary(out))
+    print(f"  rescored {payload.get('started_at')} -> {results_path}")
+    history_path = _record_history(args, out)
+    if history_path is not None:
+        print(f"  history -> {history_path}")
+    return EXIT_OK
+
+
+def cmd_import(args: argparse.Namespace) -> int:
+    """Turn a public dataset into a corpus + golden set + config directory."""
+    if args.dataset_name != "squad":
+        raise InputError(f"unknown dataset {args.dataset_name!r}; expected 'squad'")
+    from ragprobe.importers import squad
+
+    try:
+        data, source = squad.load_source(Path(args.source) if args.source else None, args.split)
+        documents, cases = squad.convert(
+            data,
+            limit=args.limit,
+            unanswerable_ratio=args.unanswerable_ratio,
+            seed=args.seed,
+            articles=args.articles,
+        )
+        out = squad.write_example(
+            Path(args.out), documents, cases, args.split, source,
+            args.seed, args.limit, args.unanswerable_ratio,
+        )
+    except squad.ImportError_ as exc:
+        raise InputError(str(exc)) from exc
+    refusals = sum(1 for case in cases if case.get("should_refuse"))
+    print(
+        f"imported {len(cases)} case(s) ({refusals} unanswerable) over "
+        f"{len(documents)} article(s) into {out}"
+    )
+    print(f"  next: ragprobe run --config {out / 'ragprobe.yaml'} --root {out} --html")
+    return EXIT_OK
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:

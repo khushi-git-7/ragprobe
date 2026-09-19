@@ -10,6 +10,8 @@ measuring.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -104,6 +106,7 @@ class RagPipeline:
         self.store = InMemoryVectorStore()
         self.embedder: Optional[Embedder] = None
         self.chunks: List[Chunk] = []
+        self.embedding_cache_hit: Optional[bool] = None
         self._ingested = False
 
     # ---------------------------------------------------------------- ingest
@@ -130,12 +133,48 @@ class RagPipeline:
         self.embedder.fit([chunk.text for chunk in chunks])
 
         self.store = InMemoryVectorStore()
-        # Batched: neural backends are an order of magnitude faster this way, and
-        # the default implementation is the same per-chunk loop as before.
-        for chunk, vector in zip(chunks, self.embedder.embed_many([c.text for c in chunks])):
+        for chunk, vector in zip(chunks, self._passage_vectors([c.text for c in chunks])):
             self.store.add(chunk, vector)
         self._ingested = True
         return self
+
+    def _passage_vectors(self, texts: List[str]) -> List[List[float]]:
+        """Embed passages, through the on-disk cache when the backend allows it.
+
+        Neural embedding of a few thousand chunks is the slowest step of a run and
+        its output is a pure function of (model, text), so an A/B of two prompt
+        versions or two chunk sizes should not pay for it twice. The cache is keyed
+        on the backend identity and the exact texts, so any change that alters a
+        chunk misses cleanly.
+        """
+        assert self.embedder is not None
+        cache_dir = self.config.retrieval.cache_dir
+        if not (self.embedder.cacheable and cache_dir):
+            # Batched: neural backends are an order of magnitude faster this way, and
+            # the default implementation is the same per-chunk loop as before.
+            return self.embedder.embed_many(texts)
+        digest = hashlib.sha256()
+        digest.update(self.embedder.cache_key().encode("utf-8"))
+        for text in texts:
+            digest.update(b"\x00")
+            digest.update(text.encode("utf-8"))
+        path = self.base_dir / cache_dir / (digest.hexdigest()[:24] + ".json")
+        if path.is_file():
+            try:
+                cached = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(cached, list) and len(cached) == len(texts):
+                    self.embedding_cache_hit = True
+                    return cached
+            except (OSError, ValueError):
+                pass  # a corrupt cache file is simply recomputed
+        vectors = self.embedder.embed_many(texts)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps([[round(v, 7) for v in vec] for vec in vectors]), encoding="utf-8")
+        except OSError:
+            pass  # a read-only checkout must still run
+        self.embedding_cache_hit = False
+        return vectors
 
     def _ensure_ingested(self) -> None:
         if not self._ingested:
@@ -200,6 +239,7 @@ class RagPipeline:
             "chunks": len(self.chunks),
             "embedder": self.config.retrieval.embedder,
             "dim": getattr(self.embedder, "dim", None),
+            "embedding_cache_hit": self.embedding_cache_hit,
             "provider": self.provider.name,
             "deterministic_provider": self.provider.deterministic,
         }

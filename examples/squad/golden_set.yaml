@@ -1,0 +1,907 @@
+# Golden set imported from SQuAD 2.0 (dev split).
+# Source: https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json
+# License: CC BY-SA 4.0 - https://rajpurkar.github.io/SQuAD-explorer/
+#
+# expected_chunks names the exact paragraph each question was written against;
+# should_refuse cases were written to look answerable from a paragraph and are not.
+
+cases:
+  - id: "squad-5ad4e56d5b96ef001a10a59a"
+    category: "immune_system"
+    question: "What do tumor cells release that strengthens the immune response?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Immune system', paragraph 41. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-56e1e9dfe3433e14004231fe"
+    category: "computational_complexity_theory"
+    question: "What finite hierarchy implies that the graph isomorphism problem is NP-complete?"
+    expected_chunks: ["computational_complexity_theory#paragraph-37"]
+    required_keywords: ["polynomial time"]
+    expected_answer: "polynomial time hierarchy"
+    notes: "SQuAD 2.0, article 'Computational complexity theory', paragraph 37."
+
+  - id: "squad-56ddde6b9a695914005b962a"
+    category: "normans"
+    question: "From which countries did the Norse originate?"
+    expected_chunks: ["normans#paragraph-1"]
+    required_keywords: ["Denmark, Iceland and Norway"]
+    expected_answer: "Denmark, Iceland and Norway"
+    notes: "SQuAD 2.0, article 'Normans', paragraph 1."
+
+  - id: "squad-572fdbb004bcaa1900d76ddc"
+    category: "scottish_parliament"
+    question: "How many seats did the SNP take from the Liberal Democrats?"
+    expected_chunks: ["scottish_parliament#paragraph-37"]
+    required_keywords: ["eight"]
+    expected_answer: "eight"
+    notes: "SQuAD 2.0, article 'Scottish Parliament', paragraph 37."
+
+  - id: "squad-5acfab5077cf76001a6857d1"
+    category: "university_of_chicago"
+    question: "Who is the founder of T. Seaborg and Co.?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'University of Chicago', paragraph 36. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5ad03cd377cf76001a686ec5"
+    category: "scottish_parliament"
+    question: "Who is able to legislate on issues that are reserved to Westminster?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Scottish Parliament', paragraph 25. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57114dfb50c2381900b54a53"
+    category: "steam_engine"
+    question: "What happens to the working fluid in a closed loop system?"
+    expected_chunks: ["steam_engine#paragraph-18"]
+    required_keywords: ["recycled continuously"]
+    expected_answer: "recycled continuously"
+    notes: "SQuAD 2.0, article 'Steam engine', paragraph 18."
+
+  - id: "squad-57376828c3c5551400e51ebd"
+    category: "force"
+    question: "How do you determine the acceleration of a rope when two people are pulling it?"
+    expected_chunks: ["force#paragraph-12"]
+    required_keywords: ["it is impossible"]
+    expected_answer: "Associating forces with vectors"
+    notes: "SQuAD 2.0, article 'Force', paragraph 12."
+
+  - id: "squad-5727d6faff5b5019007d969b"
+    category: "harvard_university"
+    question: "How many total volumes are in the Harvard library system?"
+    expected_chunks: ["harvard_university#paragraph-21"]
+    required_keywords: ["18 million"]
+    expected_answer: "18 million volumes"
+    notes: "SQuAD 2.0, article 'Harvard University', paragraph 21."
+
+  - id: "squad-57332442d058e614000b5724"
+    category: "warsaw"
+    question: "What is the full official city name of Warsaw?"
+    expected_chunks: ["warsaw#paragraph-5"]
+    required_keywords: ["miasto stołeczne Warszawa"]
+    expected_answer: "miasto stołeczne Warszawa"
+    notes: "SQuAD 2.0, article 'Warsaw', paragraph 5."
+
+  - id: "squad-57269bb8708984140094cb96"
+    category: "european_union_law"
+    question: "Which TEFU article states that no quantitative restrictions can be placed on trade?"
+    expected_chunks: ["european_union_law#paragraph-15"]
+    required_keywords: ["article 30"]
+    expected_answer: "article 30"
+    notes: "SQuAD 2.0, article 'European Union law', paragraph 15."
+
+  - id: "squad-572fe60fb2c2fd140056858b"
+    category: "rhine"
+    question: "How many bodies of water makes up Lake Constance?"
+    expected_chunks: ["rhine#paragraph-7"]
+    required_keywords: ["three"]
+    expected_answer: "three"
+    notes: "SQuAD 2.0, article 'Rhine', paragraph 7."
+
+  - id: "squad-5ad547945b96ef001a10ac18"
+    category: "computational_complexity_theory"
+    question: "What is not an example of a machine model that deviates from a generally accepted multi-tape Turing machine?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Computational complexity theory', paragraph 16. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57113c6da58dae1900cd6d34"
+    category: "steam_engine"
+    question: "What was Hero of Alexandria's nationality?"
+    expected_chunks: ["steam_engine#paragraph-9"]
+    required_keywords: ["Greek"]
+    expected_answer: "Greek"
+    notes: "SQuAD 2.0, article 'Steam engine', paragraph 9."
+
+  - id: "squad-571cca4add7acb1400e4c154"
+    category: "oxygen"
+    question: "When did oxygen begin to move from the oceans to the atmosphere?"
+    expected_chunks: ["oxygen#paragraph-29"]
+    required_keywords: ["3–2.7 billion years ago"]
+    expected_answer: "3–2.7 billion years ago"
+    notes: "SQuAD 2.0, article 'Oxygen', paragraph 29."
+
+  - id: "squad-570d47b8b3d812140066d62e"
+    category: "victoria_australia"
+    question: "To what gauge have some lines been changed in the west of Victoria?"
+    expected_chunks: ["victoria_australia#paragraph-20"]
+    required_keywords: ["1,435 mm"]
+    expected_answer: "1,435 mm"
+    notes: "SQuAD 2.0, article 'Victoria (Australia)', paragraph 20."
+
+  - id: "squad-572659535951b619008f7041"
+    category: "1973_oil_crisis"
+    question: "Name an extra that was added to the production of the compacts."
+    expected_chunks: ["1973_oil_crisis#paragraph-20"]
+    required_keywords: ["power windows"]
+    expected_answer: "power steering"
+    notes: "SQuAD 2.0, article '1973 oil crisis', paragraph 20."
+
+  - id: "squad-57060df252bb891400689822"
+    category: "southern_california"
+    question: "Other than Downtown San Bernardino, and University Town, what is the name of another business district in the San Bernardino-Riverside area?"
+    expected_chunks: ["southern_california#paragraph-29"]
+    required_keywords: ["Downtown Riverside"]
+    expected_answer: "Hospitality Business/Financial Centre"
+    notes: "SQuAD 2.0, article 'Southern California', paragraph 29."
+
+  - id: "squad-5ad286fdd7d075001a429903"
+    category: "force"
+    question: "Whose mechanics affected three dimensional objects?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Force', paragraph 37. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57264f18f1498d1400e8dbb0"
+    category: "black_death"
+    question: "What do the strains of y. pestis suggest abut the plague?"
+    expected_chunks: ["black_death#paragraph-12"]
+    required_keywords: ["may have entered Europe in two waves"]
+    expected_answer: "the plague may have entered Europe in two waves"
+    notes: "SQuAD 2.0, article 'Black Death', paragraph 12."
+
+  - id: "squad-5a2c3a5cbfd06b001a5aea7d"
+    category: "sky_united_kingdom"
+    question: "What is the name brand of the video recorder that BSkyB never sold?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Sky (United Kingdom)', paragraph 5. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-571c8eb9dd7acb1400e4c0fa"
+    category: "oxygen"
+    question: "What second part of air was deemed lifeless by Lavoisier?"
+    expected_chunks: ["oxygen#paragraph-14"]
+    required_keywords: ["azote"]
+    expected_answer: "azote"
+    notes: "SQuAD 2.0, article 'Oxygen', paragraph 14."
+
+  - id: "squad-5a6ce55e4eec6b001a80a690"
+    category: "pharmacy"
+    question: "What type of authority are ambulatory care pharmacists not given in the U.S. federal health care system?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Pharmacy', paragraph 13. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-571cd11add7acb1400e4c171"
+    category: "oxygen"
+    question: "What type of exercise does research show receives a boost in performance from oxygen?"
+    expected_chunks: ["oxygen#paragraph-33"]
+    required_keywords: ["aerobic"]
+    expected_answer: "aerobic"
+    notes: "SQuAD 2.0, article 'Oxygen', paragraph 33."
+
+  - id: "squad-572671a5f1498d1400e8dfe5"
+    category: "geology"
+    question: "Stretched rocks that pinch into lenses are known by what word?"
+    expected_chunks: ["geology#paragraph-12"]
+    required_keywords: ["boudins"]
+    expected_answer: "boudins"
+    notes: "SQuAD 2.0, article 'Geology', paragraph 12."
+
+  - id: "squad-57097141200fba1400367ffd"
+    category: "sky_united_kingdom"
+    question: "what was the name of the other HD channel Virgin media could carry in the future?"
+    expected_chunks: ["sky_united_kingdom#paragraph-19"]
+    required_keywords: ["Channel 4 HD"]
+    expected_answer: "Channel 4 HD"
+    notes: "SQuAD 2.0, article 'Sky (United Kingdom)', paragraph 19."
+
+  - id: "squad-5726414e271a42140099d7e6"
+    category: "packet_switching"
+    question: "What completed the triad"
+    expected_chunks: ["packet_switching#paragraph-14"]
+    required_keywords: ["1972 connections"]
+    expected_answer: "an interactive host to host connection was made between the IBM mainframe computer systems at the University of Michigan in Ann Arbor and Wayne State"
+    notes: "SQuAD 2.0, article 'Packet switching', paragraph 14."
+
+  - id: "squad-5726581fdd62a815002e823d"
+    category: "1973_oil_crisis"
+    question: "Which country's imports became the de facto mass market leaders?"
+    expected_chunks: ["1973_oil_crisis#paragraph-19"]
+    required_keywords: ["Japan"]
+    expected_answer: "Japan"
+    notes: "SQuAD 2.0, article '1973 oil crisis', paragraph 19."
+
+  - id: "squad-5726462b708984140094c117"
+    category: "packet_switching"
+    question: "What is CSNET"
+    expected_chunks: ["packet_switching#paragraph-20"]
+    required_keywords: ["Computer Science Network"]
+    expected_answer: "The Computer Science Network"
+    notes: "SQuAD 2.0, article 'Packet switching', paragraph 20."
+
+  - id: "squad-573766251c45671900574474"
+    category: "force"
+    question: "How are laboratory measurements of forces determined?"
+    expected_chunks: ["force#paragraph-11"]
+    required_keywords: ["experimentation"]
+    expected_answer: "experimentation"
+    notes: "SQuAD 2.0, article 'Force', paragraph 11."
+
+  - id: "squad-5a0c7edcf5590b0018dab43a"
+    category: "amazon_rainforest"
+    question: "The biodiversity of what is the lowest on earth?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Amazon rainforest', paragraph 10. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5ad02aff77cf76001a686c80"
+    category: "imperialism"
+    question: "The North saw themselves as what compared to the east?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Imperialism', paragraph 11. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57294e6b1d04691400779276"
+    category: "intergovernmental_panel_on_climate_change"
+    question: "What did the Kyoto Protocol try to address?"
+    expected_chunks: ["intergovernmental_panel_on_climate_change#paragraph-21"]
+    required_keywords: ["Climate Change"]
+    expected_answer: "Climate Change"
+    notes: "SQuAD 2.0, article 'Intergovernmental Panel on Climate Change', paragraph 21."
+
+  - id: "squad-572827fc3acd2414000df5bb"
+    category: "jacksonville_florida"
+    question: "What portion of households in Jacksonville have only one person?"
+    expected_chunks: ["jacksonville_florida#paragraph-21"]
+    required_keywords: ["29.7%"]
+    expected_answer: "29.7%"
+    notes: "SQuAD 2.0, article 'Jacksonville, Florida', paragraph 21."
+
+  - id: "squad-5733f1784776f41900661577"
+    category: "french_and_indian_war"
+    question: "What was the fort that was being built to be named?"
+    expected_chunks: ["french_and_indian_war#paragraph-23"]
+    required_keywords: ["Fort Duquesne"]
+    expected_answer: "Fort Duquesne."
+    notes: "SQuAD 2.0, article 'French and Indian War', paragraph 23."
+
+  - id: "squad-572fb42904bcaa1900d76c17"
+    category: "scottish_parliament"
+    question: "What type of ballot is used to elect the Presiding Officer and deputies of the Parliament?"
+    expected_chunks: ["scottish_parliament#paragraph-9"]
+    required_keywords: ["secret"]
+    expected_answer: "secret"
+    notes: "SQuAD 2.0, article 'Scottish Parliament', paragraph 9."
+
+  - id: "squad-5726a299dd62a815002e8b9f"
+    category: "european_union_law"
+    question: "Which entities were originally concerned with preventing violation of human rights?"
+    expected_chunks: ["european_union_law#paragraph-23"]
+    required_keywords: ["member states"]
+    expected_answer: "member states"
+    notes: "SQuAD 2.0, article 'European Union law', paragraph 23."
+
+  - id: "squad-57094a79efce8f15003a7dc4"
+    category: "sky_united_kingdom"
+    question: "What year was Setanta Sports awarded Primeier Leage rights to broadcast?"
+    expected_chunks: ["sky_united_kingdom#paragraph-2"]
+    required_keywords: ["2006"]
+    expected_answer: "2006"
+    notes: "SQuAD 2.0, article 'Sky (United Kingdom)', paragraph 2."
+
+  - id: "squad-5a2eba17a83784001a7d2434"
+    category: "black_death"
+    question: "In what year was Kaffa founded?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Black Death', paragraph 3. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-572fd6aa04bcaa1900d76da0"
+    category: "scottish_parliament"
+    question: "What month, every four years, are the ordinary general elections held on?"
+    expected_chunks: ["scottish_parliament#paragraph-31"]
+    required_keywords: ["May"]
+    expected_answer: "May"
+    notes: "SQuAD 2.0, article 'Scottish Parliament', paragraph 31."
+
+  - id: "squad-5a838676e60761001a2eb767"
+    category: "ctenophora"
+    question: "What do the tentacles on plankton do to help them find prey?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Ctenophora', paragraph 17. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5727e21e4b864d1900163f34"
+    category: "harvard_university"
+    question: "What Fields Medal winning Mathematician is a faculty member at Harvard?"
+    expected_chunks: ["harvard_university#paragraph-30"]
+    required_keywords: ["Shing-Tung Yau"]
+    expected_answer: "Shing-Tung Yau"
+    notes: "SQuAD 2.0, article 'Harvard University', paragraph 30."
+
+  - id: "squad-570d2d68fed7b91900d45cbb"
+    category: "victoria_australia"
+    question: "How much Victorian farmland is farmed in grains?"
+    expected_chunks: ["victoria_australia#paragraph-8"]
+    required_keywords: ["26,000 square kilometres"]
+    expected_answer: "26,000 square kilometres"
+    notes: "SQuAD 2.0, article 'Victoria (Australia)', paragraph 8."
+
+  - id: "squad-5730a0778ab72b1400f9c60e"
+    category: "imperialism"
+    question: "What were the two forms of environmental determinism?"
+    expected_chunks: ["imperialism#paragraph-21"]
+    required_keywords: ["orientalism and tropicality"]
+    expected_answer: "orientalism and tropicality"
+    notes: "SQuAD 2.0, article 'Imperialism', paragraph 21."
+
+  - id: "squad-57281ab63acd2414000df494"
+    category: "jacksonville_florida"
+    question: "What was the white population of Jacksonville as of 2010?"
+    expected_chunks: ["jacksonville_florida#paragraph-11"]
+    required_keywords: ["55.1%"]
+    expected_answer: "55.1%"
+    notes: "SQuAD 2.0, article 'Jacksonville, Florida', paragraph 11."
+
+  - id: "squad-5ad2ba09d7d075001a42a064"
+    category: "rhine"
+    question: "When was the Treaty of Versailles written?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Rhine', paragraph 42. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5726da89dd62a815002e92b3"
+    category: "pharmacy"
+    question: "With what body must a pharmacy technician register?"
+    expected_chunks: ["pharmacy#paragraph-3"]
+    required_keywords: ["General Pharmaceutical Council (GPhC)"]
+    expected_answer: "the General Pharmaceutical Council (GPhC) register"
+    notes: "SQuAD 2.0, article 'Pharmacy', paragraph 3."
+
+  - id: "squad-5728804b4b864d1900164a4a"
+    category: "yuan_dynasty"
+    question: "When did Zhu publish 'Jade Mirror of the Four Unknowns'?"
+    expected_chunks: ["yuan_dynasty#paragraph-34"]
+    required_keywords: ["1303"]
+    expected_answer: "1303"
+    notes: "SQuAD 2.0, article 'Yuan dynasty', paragraph 34."
+
+  - id: "squad-572f6c85947a6a140053c942"
+    category: "rhine"
+    question: "What is Europe's largest inland port?"
+    expected_chunks: ["rhine#paragraph-14"]
+    required_keywords: ["Duisburg"]
+    expected_answer: "Duisburg"
+    notes: "SQuAD 2.0, article 'Rhine', paragraph 14."
+
+  - id: "squad-5728f6446aef0514001548e5"
+    category: "immune_system"
+    question: "What immune system is activated by the innate response?"
+    expected_chunks: ["immune_system#paragraph-4"]
+    required_keywords: ["adaptive"]
+    expected_answer: "adaptive immune system"
+    notes: "SQuAD 2.0, article 'Immune system', paragraph 4."
+
+  - id: "squad-57293e983f37b3190047818e"
+    category: "intergovernmental_panel_on_climate_change"
+    question: "How sure did the statement say scientists were that temperatures would keep rising?"
+    expected_chunks: ["intergovernmental_panel_on_climate_change#paragraph-8"]
+    required_keywords: ["at least 90%"]
+    expected_answer: "at least 90%"
+    notes: "SQuAD 2.0, article 'Intergovernmental Panel on Climate Change', paragraph 8."
+
+  - id: "squad-572987e46aef051400154fa5"
+    category: "prime_number"
+    question: "If q=9 and a=3,6 or 9, how many primes would be in the progression?"
+    expected_chunks: ["prime_number#paragraph-16"]
+    required_keywords: ["one"]
+    expected_answer: "at most one prime number"
+    notes: "SQuAD 2.0, article 'Prime number', paragraph 16."
+
+  - id: "squad-5729e1e36aef0514001550bc"
+    category: "economic_inequality"
+    question: "What did S&P recommend to somewhat remedy the wealth gap?"
+    expected_chunks: ["economic_inequality#paragraph-10"]
+    required_keywords: ["increasing access to education"]
+    expected_answer: "increasing access to education"
+    notes: "SQuAD 2.0, article 'Economic inequality', paragraph 10."
+
+  - id: "squad-5a82325231013a001a3352b9"
+    category: "harvard_university"
+    question: "What did families with incomes below $38,000 pay for tuition in 2009?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Harvard University', paragraph 20. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57340d124776f419006617c3"
+    category: "french_and_indian_war"
+    question: "Where did many Spanish Catholic move after British takeover in Florida?"
+    expected_chunks: ["french_and_indian_war#paragraph-46"]
+    required_keywords: ["Cuba"]
+    expected_answer: "Most went to Cuba,"
+    notes: "SQuAD 2.0, article 'French and Indian War', paragraph 46."
+
+  - id: "squad-5705e26d75f01819005e76d7"
+    category: "southern_california"
+    question: "What are the ties that best described what the \"eight counties\" are based on?"
+    expected_chunks: ["southern_california#paragraph-1"]
+    required_keywords: ["economic"]
+    expected_answer: "demographics and economic ties"
+    notes: "SQuAD 2.0, article 'Southern California', paragraph 1."
+
+  - id: "squad-5a23548782b03a001a4aa785"
+    category: "construction"
+    question: "What US companies are compiled in the Top-250"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Construction', paragraph 4. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-572883a33acd2414000dfa79"
+    category: "yuan_dynasty"
+    question: "Who did the Mongols bring to China as administrators?"
+    expected_chunks: ["yuan_dynasty#paragraph-42"]
+    required_keywords: ["Central Asian Muslims"]
+    expected_answer: "Central Asian Muslims"
+    notes: "SQuAD 2.0, article 'Yuan dynasty', paragraph 42."
+
+  - id: "squad-5a58cfd63e1742001a15ce32"
+    category: "geology"
+    question: "What illustrates the relationships between rock and crystal?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Geology', paragraph 1. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5733140a4776f419006606e1"
+    category: "warsaw"
+    question: "What city served as Poland's capital in 1313?"
+    expected_chunks: ["warsaw#paragraph-3"]
+    required_keywords: ["Kraków"]
+    expected_answer: "Kraków"
+    notes: "SQuAD 2.0, article 'Warsaw', paragraph 3."
+
+  - id: "squad-5ad3f689604f3c001a3ff9e6"
+    category: "steam_engine"
+    question: "What are rotors attaches to?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Steam engine', paragraph 35. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-572a058aaf94a219006aa751"
+    category: "immune_system"
+    question: "What does a T cell extend when it encounters a foreign pathogen?"
+    expected_chunks: ["immune_system#paragraph-36"]
+    required_keywords: ["vitamin D receptor"]
+    expected_answer: "a vitamin D receptor"
+    notes: "SQuAD 2.0, article 'Immune system', paragraph 36."
+
+  - id: "squad-5acfe95877cf76001a686440"
+    category: "islamism"
+    question: "Who was not an important figure in the twentieth-century Islamic revival in India?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Islamism', paragraph 12. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-572646655951b619008f6ec3"
+    category: "ctenophora"
+    question: "Ctenophores are less complex than what other group?"
+    expected_chunks: ["ctenophora#paragraph-6"]
+    required_keywords: ["bilaterians"]
+    expected_answer: "bilaterians"
+    notes: "SQuAD 2.0, article 'Ctenophora', paragraph 6."
+
+  - id: "squad-5726a5525951b619008f78dd"
+    category: "european_union_law"
+    question: "What lead to the UK to subscribe to the agreement on Social Policy?"
+    expected_chunks: ["european_union_law#paragraph-27"]
+    required_keywords: ["the election of the UK Labour Party to government"]
+    expected_answer: "the election of the UK Labour Party to government"
+    notes: "SQuAD 2.0, article 'European Union law', paragraph 27."
+
+  - id: "squad-5a1c6968b4fb5d0018714619"
+    category: "jacksonville_florida"
+    question: "What I lent to the team of northern University students discover pottery?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Jacksonville, Florida', paragraph 4. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57283f014b864d19001647ec"
+    category: "university_of_chicago"
+    question: "What year was the first class taught at the University of Chicago?"
+    expected_chunks: ["university_of_chicago#paragraph-3"]
+    required_keywords: ["1892"]
+    expected_answer: "1892"
+    notes: "SQuAD 2.0, article 'University of Chicago', paragraph 3."
+
+  - id: "squad-56e200e4cd28a01900c67c17"
+    category: "computational_complexity_theory"
+    question: "In what year was the Alan Turing's definitional model of a computing device received?"
+    expected_chunks: ["computational_complexity_theory#paragraph-44"]
+    required_keywords: ["1936"]
+    expected_answer: "1936"
+    notes: "SQuAD 2.0, article 'Computational complexity theory', paragraph 44."
+
+  - id: "squad-56e1c2eee3433e1400423135"
+    category: "computational_complexity_theory"
+    question: "A multi-tape Turing machine requires what type of time for a solution?"
+    expected_chunks: ["computational_complexity_theory#paragraph-25"]
+    required_keywords: ["linear"]
+    expected_answer: "linear time"
+    notes: "SQuAD 2.0, article 'Computational complexity theory', paragraph 25."
+
+  - id: "squad-5ad25b1cd7d075001a428e68"
+    category: "oxygen"
+    question: "What happened 3.7-2 billion years ago?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Oxygen', paragraph 29. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5a6696d0f038b7001ab0c022"
+    category: "packet_switching"
+    question: "What applications did AUSTPAC not support?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Packet switching', paragraph 18. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5727500f708984140094dbfd"
+    category: "private_school"
+    question: "What percentage of Filipino primary school students are in private schools?"
+    expected_chunks: ["private_school#paragraph-17"]
+    required_keywords: ["7.5"]
+    expected_answer: "7.5"
+    notes: "SQuAD 2.0, article 'Private school', paragraph 17."
+
+  - id: "squad-5a38a8d2a4b263001a8c1878"
+    category: "1973_oil_crisis"
+    question: "What did the price of oil rise to in 1979 globally?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article '1973 oil crisis', paragraph 1. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57271c235951b619008f860d"
+    category: "civil_disobedience"
+    question: "What was the the movement called that brought Baltic countries independence from the Soviet Union?"
+    expected_chunks: ["civil_disobedience#paragraph-1"]
+    required_keywords: ["Singing Revolution"]
+    expected_answer: "Singing Revolution"
+    notes: "SQuAD 2.0, article 'Civil disobedience', paragraph 1."
+
+  - id: "squad-5725be0f271a42140099d11a"
+    category: "amazon_rainforest"
+    question: "When did it retract to a inland formation?"
+    expected_chunks: ["amazon_rainforest#paragraph-2"]
+    required_keywords: ["Middle Miocene"]
+    expected_answer: "It expanded again during the Middle Miocene, then retracted to a mostly inland formation at the last glacial maximum."
+    notes: "SQuAD 2.0, article 'Amazon rainforest', paragraph 2."
+
+  - id: "squad-5727565ef1498d1400e8f676"
+    category: "construction"
+    question: "Where have some workers made more than $100,000?"
+    expected_chunks: ["construction#paragraph-21"]
+    required_keywords: ["US/Canada"]
+    expected_answer: "US/Canada"
+    notes: "SQuAD 2.0, article 'Construction', paragraph 21."
+
+  - id: "squad-5725cf3238643c19005acd65"
+    category: "amazon_rainforest"
+    question: "Who discovered this and where did they come from?"
+    expected_chunks: ["amazon_rainforest#paragraph-8"]
+    required_keywords: ["Michael Heckenberger and colleagues of the University of Florida"]
+    expected_answer: "Michael Heckenberger and colleagues of the University of Florida"
+    notes: "SQuAD 2.0, article 'Amazon rainforest', paragraph 8."
+
+  - id: "squad-57274d1cdd62a815002e9aae"
+    category: "private_school"
+    question: "What is the Irish term for private schools?"
+    expected_chunks: ["private_school#paragraph-12"]
+    required_keywords: ["scoil phríobháideach"]
+    expected_answer: "scoil phríobháideach"
+    notes: "SQuAD 2.0, article 'Private school', paragraph 12."
+
+  - id: "squad-5725f2c838643c19005aceef"
+    category: "fresno_california"
+    question: "How many seats does the amphitheatre at Woodward park have?"
+    expected_chunks: ["fresno_california#paragraph-18"]
+    required_keywords: ["2,500"]
+    expected_answer: "2,500"
+    notes: "SQuAD 2.0, article 'Fresno, California', paragraph 18."
+
+  - id: "squad-57265746dd62a815002e821c"
+    category: "ctenophora"
+    question: "Where is the mouth located on the pleuobrachia located?"
+    expected_chunks: ["ctenophora#paragraph-14"]
+    required_keywords: ["the narrow end"]
+    expected_answer: "at the narrow end"
+    notes: "SQuAD 2.0, article 'Ctenophora', paragraph 14."
+
+  - id: "squad-5727d3843acd2414000ded69"
+    category: "harvard_university"
+    question: "Between 1978 an d2008 four year full time undergraduate students were required to complete how many classes outside of their concentration?"
+    expected_chunks: ["harvard_university#paragraph-18"]
+    required_keywords: ["seven"]
+    expected_answer: "core curriculum of seven classes"
+    notes: "SQuAD 2.0, article 'Harvard University', paragraph 18."
+
+  - id: "squad-572753335951b619008f8857"
+    category: "construction"
+    question: "The procedure continues until what?"
+    expected_chunks: ["construction#paragraph-17"]
+    required_keywords: ["building is ready to occupy"]
+    expected_answer: "the building is ready to occupy."
+    notes: "SQuAD 2.0, article 'Construction', paragraph 17."
+
+  - id: "squad-57302700a23a5019007fce8b"
+    category: "islamism"
+    question: "What organization did General Gaafar al-Nimeiry invite members of to serve in his government?"
+    expected_chunks: ["islamism#paragraph-28"]
+    required_keywords: ["National Islamic Front"]
+    expected_answer: "National Islamic Front"
+    notes: "SQuAD 2.0, article 'Islamism', paragraph 28."
+
+  - id: "squad-572657d9dd62a815002e8231"
+    category: "geology"
+    question: "Sedimentary rock can be turned into which of the three types of rock?"
+    expected_chunks: ["geology#paragraph-1"]
+    required_keywords: ["metamorphic"]
+    expected_answer: "metamorphic rock"
+    notes: "SQuAD 2.0, article 'Geology', paragraph 1."
+
+  - id: "squad-57285ed5ff5b5019007da1b8"
+    category: "yuan_dynasty"
+    question: "Who started the Yuan dynasty?"
+    expected_chunks: ["yuan_dynasty#paragraph-1"]
+    required_keywords: ["Kublai Khan"]
+    expected_answer: "Kublai Khan"
+    notes: "SQuAD 2.0, article 'Yuan dynasty', paragraph 1."
+
+  - id: "squad-5729f8516aef05140015516c"
+    category: "immune_system"
+    question: "Newborns are vulnerable to infection because they have no previous exposure to what?"
+    expected_chunks: ["immune_system#paragraph-23"]
+    required_keywords: ["microbes"]
+    expected_answer: "microbes"
+    notes: "SQuAD 2.0, article 'Immune system', paragraph 23."
+
+  - id: "squad-57265a58dd62a815002e8272"
+    category: "1973_oil_crisis"
+    question: "Mazda, Mitsubishi and Isuzu joined partnership with which American car company?"
+    expected_chunks: ["1973_oil_crisis#paragraph-21"]
+    required_keywords: ["Ford"]
+    expected_answer: "Ford, Chrysler, and GM"
+    notes: "SQuAD 2.0, article '1973 oil crisis', paragraph 21."
+
+  - id: "squad-5729d609af94a219006aa662"
+    category: "economic_inequality"
+    question: "Why do firms substitute equipment for workers?"
+    expected_chunks: ["economic_inequality#paragraph-4"]
+    required_keywords: ["reduce costs and maximize profits"]
+    expected_answer: "reduce costs and maximize profits"
+    notes: "SQuAD 2.0, article 'Economic inequality', paragraph 4."
+
+  - id: "squad-5726f96ddd62a815002e9699"
+    category: "pharmacy"
+    question: "Who pays Australian pharmacists for doing Home Medicines Reviews?"
+    expected_chunks: ["pharmacy#paragraph-25"]
+    required_keywords: ["Australian Government"]
+    expected_answer: "the Australian Government"
+    notes: "SQuAD 2.0, article 'Pharmacy', paragraph 25."
+
+  - id: "squad-5ad15289645df0001a2d175a"
+    category: "european_union_law"
+    question: "What does not help the free movement of goods?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'European Union law', paragraph 31. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5a63772268151a001a9222f0"
+    category: "victoria_australia"
+    question: "When did Captain Daniel Woodriff visit New South Wales?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Victoria (Australia)', paragraph 21. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5ad3f028604f3c001a3ff825"
+    category: "normans"
+    question: "What naval base fell to the Normans?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Normans', paragraph 14. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-572973f76aef051400154f0a"
+    category: "prime_number"
+    question: "Any even number larger than what cannot be considered prime?"
+    expected_chunks: ["prime_number#paragraph-5"]
+    required_keywords: ["2"]
+    expected_answer: "2"
+    notes: "SQuAD 2.0, article 'Prime number', paragraph 5."
+
+  - id: "squad-570953a7efce8f15003a7e00"
+    category: "sky_united_kingdom"
+    question: "What did Virgin Media claim BSkyB did that resulted Virgin not carrying the channels anymore?"
+    expected_chunks: ["sky_united_kingdom#paragraph-6"]
+    required_keywords: ["increased the asking price"]
+    expected_answer: "substantially increased the asking price"
+    notes: "SQuAD 2.0, article 'Sky (United Kingdom)', paragraph 6."
+
+  - id: "squad-5730a314069b5314008321ec"
+    category: "imperialism"
+    question: "Which regions have temperate climates?"
+    expected_chunks: ["imperialism#paragraph-22"]
+    required_keywords: ["Mid-Atlantic"]
+    expected_answer: "Northern Europe and the Mid-Atlantic"
+    notes: "SQuAD 2.0, article 'Imperialism', paragraph 22."
+
+  - id: "squad-572856beff5b5019007da191"
+    category: "university_of_chicago"
+    question: "How man volumes does the The University of Chicago Library system hold?"
+    expected_chunks: ["university_of_chicago#paragraph-18"]
+    required_keywords: ["9.8 million"]
+    expected_answer: "9.8 million"
+    notes: "SQuAD 2.0, article 'University of Chicago', paragraph 18."
+
+  - id: "squad-572824f13acd2414000df592"
+    category: "jacksonville_florida"
+    question: "What is the scale used to measure the strength of hurricanes called?"
+    expected_chunks: ["jacksonville_florida#paragraph-19"]
+    required_keywords: ["Saffir-Simpson"]
+    expected_answer: "Saffir-Simpson Scale"
+    notes: "SQuAD 2.0, article 'Jacksonville, Florida', paragraph 19."
+
+  - id: "squad-5725f8f5ec44d21400f3d7b3"
+    category: "fresno_california"
+    question: "How many same-sex married couples or partnerships were there?"
+    expected_chunks: ["fresno_california#paragraph-23"]
+    required_keywords: ["1,388"]
+    expected_answer: "1,388"
+    notes: "SQuAD 2.0, article 'Fresno, California', paragraph 23."
+
+  - id: "squad-5ad2434fd7d075001a4289d7"
+    category: "economic_inequality"
+    question: "What publication printed that the wealthiest 1% have more money than those in the bottom 99%?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Economic inequality', paragraph 2. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57109180a58dae1900cd6a41"
+    category: "huguenot"
+    question: "French Church Street is in what Irish town?"
+    expected_chunks: ["huguenot#paragraph-17"]
+    required_keywords: ["Cork City"]
+    expected_answer: "Cork City"
+    notes: "SQuAD 2.0, article 'Huguenot', paragraph 17."
+
+  - id: "squad-5728284e3acd2414000df5d1"
+    category: "civil_disobedience"
+    question: "What year did the the case go before the supreme court?"
+    expected_chunks: ["civil_disobedience#paragraph-14"]
+    required_keywords: ["1978"]
+    expected_answer: "1978"
+    notes: "SQuAD 2.0, article 'Civil disobedience', paragraph 14."
+
+  - id: "squad-5a7b05cd21c2de001afe9cda"
+    category: "fresno_california"
+    question: "How long was the Southern Pacific line?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Fresno, California', paragraph 2. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-57273f27dd62a815002e9a0b"
+    category: "construction"
+    question: "There are other categories for what?"
+    expected_chunks: ["construction#paragraph-5"]
+    required_keywords: ["service firms"]
+    expected_answer: "construction service firms (e.g., engineering, architecture) and construction managers"
+    notes: "SQuAD 2.0, article 'Construction', paragraph 5."
+
+  - id: "squad-5a679cc7f038b7001ab0c344"
+    category: "private_school"
+    question: "Who can legally teach English in India?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Private school', paragraph 11. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-573004bf947a6a140053cf5a"
+    category: "islamism"
+    question: "Who was the first democratically elected president of Egypt?"
+    expected_chunks: ["islamism#paragraph-16"]
+    required_keywords: ["Mohamed Morsi"]
+    expected_answer: "Mohamed Morsi"
+    notes: "SQuAD 2.0, article 'Islamism', paragraph 16."
+
+  - id: "squad-5726378238643c19005ad315"
+    category: "packet_switching"
+    question: "What was suggested at the Symposium in 1967"
+    expected_chunks: ["packet_switching#paragraph-5"]
+    required_keywords: ["use in the ARPANET"]
+    expected_answer: "suggested it for use in the ARPANET"
+    notes: "SQuAD 2.0, article 'Packet switching', paragraph 5."
+
+  - id: "squad-57111380a58dae1900cd6bd9"
+    category: "huguenot"
+    question: "What leader of the Swiss reformation was a student of Lefevre?"
+    expected_chunks: ["huguenot#paragraph-36"]
+    required_keywords: ["William Farel"]
+    expected_answer: "William Farel"
+    notes: "SQuAD 2.0, article 'Huguenot', paragraph 36."
+
+  - id: "squad-572a05eb3f37b31900478653"
+    category: "economic_inequality"
+    question: "What year did Robert J. Shiller win an Economics Nobel prize?"
+    expected_chunks: ["economic_inequality#paragraph-21"]
+    required_keywords: ["2013"]
+    expected_answer: "2013"
+    notes: "SQuAD 2.0, article 'Economic inequality', paragraph 21."
+
+  - id: "squad-5726f7715951b619008f838e"
+    category: "pharmacy"
+    question: "Why might a physician diagnose a large number of conditions?"
+    expected_chunks: ["pharmacy#paragraph-23"]
+    required_keywords: ["sell more medications to the patient"]
+    expected_answer: "because he or she can then sell more medications to the patient"
+    notes: "SQuAD 2.0, article 'Pharmacy', paragraph 23."
+
+  - id: "squad-573380e0d058e614000b5bea"
+    category: "warsaw"
+    question: "What is the second level of territorial division in Poland?"
+    expected_chunks: ["warsaw#paragraph-29"]
+    required_keywords: ["counties or powiats"]
+    expected_answer: "counties or powiats"
+    notes: "SQuAD 2.0, article 'Warsaw', paragraph 29."
+
+  - id: "squad-57264d58f1498d1400e8db7c"
+    category: "black_death"
+    question: "What percent of untreated victims of the plague die within 8 days?"
+    expected_chunks: ["black_death#paragraph-10"]
+    required_keywords: ["80"]
+    expected_answer: "80 percent"
+    notes: "SQuAD 2.0, article 'Black Death', paragraph 10."
+
+  - id: "squad-57060a1175f01819005e78d4"
+    category: "southern_california"
+    question: "Which type of livestock was the argricultural region known for?"
+    expected_chunks: ["southern_california#paragraph-26"]
+    required_keywords: ["cattle"]
+    expected_answer: "cattle"
+    notes: "SQuAD 2.0, article 'Southern California', paragraph 26."
+
+  - id: "squad-570d418dfed7b91900d45dc0"
+    category: "victoria_australia"
+    question: "What is the upper house of the Parliament of Victoria called?"
+    expected_chunks: ["victoria_australia#paragraph-16"]
+    required_keywords: ["Legislative Council"]
+    expected_answer: "Legislative Council"
+    notes: "SQuAD 2.0, article 'Victoria (Australia)', paragraph 16."
+
+  - id: "squad-5710e9f8a58dae1900cd6b32"
+    category: "huguenot"
+    question: "What was the name of the Florida Huguenot colony?"
+    expected_chunks: ["huguenot#paragraph-27"]
+    required_keywords: ["Fort Caroline"]
+    expected_answer: "Fort Caroline"
+    notes: "SQuAD 2.0, article 'Huguenot', paragraph 27."
+
+  - id: "squad-572673f5708984140094c69d"
+    category: "geology"
+    question: "What type of gradients are formed by faulting and other deformational processes?"
+    expected_chunks: ["geology#paragraph-13"]
+    required_keywords: ["topographic"]
+    expected_answer: "topographic gradients"
+    notes: "SQuAD 2.0, article 'Geology', paragraph 13."
+
+  - id: "squad-5733f9fa4776f41900661621"
+    category: "french_and_indian_war"
+    question: "What other clashes were involved in taking Louisbourg?"
+    expected_chunks: ["french_and_indian_war#paragraph-30"]
+    required_keywords: ["Petitcodiac in 1755 and at Bloody Creek"]
+    expected_answer: "Petitcodiac in 1755 and at Bloody Creek near Annapolis Royal in 1757"
+    notes: "SQuAD 2.0, article 'French and Indian War', paragraph 30."
+
+  - id: "squad-5ad401de604f3c001a3ffd2d"
+    category: "yuan_dynasty"
+    question: "What religion was Shi Tianze?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Yuan dynasty', paragraph 6. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-5a3e3aa9378766001a00250d"
+    category: "intergovernmental_panel_on_climate_change"
+    question: "What measures the levels of fuel consumption?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Intergovernmental Panel on Climate Change', paragraph 11. Written to look answerable from this paragraph; it is not."
+
+  - id: "squad-56de1563cffd8e1900b4b5c2"
+    category: "normans"
+    question: "When did the Normans attack Dyrrachium?"
+    expected_chunks: ["normans#paragraph-14"]
+    required_keywords: ["1185"]
+    expected_answer: "1185"
+    notes: "SQuAD 2.0, article 'Normans', paragraph 14."
+
+  - id: "squad-5ad4f63b5b96ef001a10a7c2"
+    category: "warsaw"
+    question: "What is the city centre of Berlin called in Polish?"
+    should_refuse: true
+    notes: "SQuAD 2.0, article 'Warsaw', paragraph 32. Written to look answerable from this paragraph; it is not."

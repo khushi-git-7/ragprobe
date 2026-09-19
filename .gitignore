@@ -13,6 +13,8 @@ venv/
 # RAGProbe outputs. Baselines ARE committed (they are the regression contract);
 # per-run reports are not.
 reports/
+# Cached neural embeddings (pure function of model + corpus; rebuilt on demand)
+.ragprobe/
 
 # Editors / OS
 .vscode/

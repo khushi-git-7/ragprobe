@@ -33,6 +33,13 @@ class Embedder(ABC):
 
     name: str = "abstract"
     dim: int = 0
+    #: True for pre-trained backends whose vectors depend only on (model, text) and
+    #: so can be cached on disk. Fitted backends (TF-IDF) depend on the corpus.
+    cacheable: bool = False
+
+    def cache_key(self) -> str:
+        """Identity of the vectors this backend produces; part of the cache key."""
+        return self.name
 
     @abstractmethod
     def fit(self, corpus: Sequence[str]) -> "Embedder":
@@ -138,6 +145,7 @@ class SentenceTransformerEmbedder(Embedder):
     """
 
     name = "sentence-transformers"
+    cacheable = True
 
     def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> None:
         try:
@@ -151,6 +159,9 @@ class SentenceTransformerEmbedder(Embedder):
         self._model = SentenceTransformer(model_name)
         self.dim = int(self._model.get_sentence_embedding_dimension())
         self.model_name = model_name
+
+    def cache_key(self) -> str:
+        return self.name + ":" + self.model_name
 
     def fit(self, corpus: Sequence[str]) -> "SentenceTransformerEmbedder":
         return self  # pre-trained; nothing to learn from the corpus
@@ -174,6 +185,7 @@ class FastEmbedEmbedder(Embedder):
 
     name = "fastembed"
     DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
+    cacheable = True
 
     def __init__(self, model_name: Optional[str] = None, batch_size: int = 32) -> None:
         try:
@@ -197,6 +209,9 @@ class FastEmbedEmbedder(Embedder):
         for vector in vectors:
             return [float(value) for value in vector]
         raise RuntimeError("embedding model returned no vectors")
+
+    def cache_key(self) -> str:
+        return self.name + ":" + self.model_name
 
     def fit(self, corpus: Sequence[str]) -> "FastEmbedEmbedder":
         return self  # pre-trained; nothing to learn from the corpus

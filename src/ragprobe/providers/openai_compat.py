@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -155,6 +156,11 @@ class OpenAICompatibleProvider(LLMProvider):
                     raise ProviderHTTPError(last_error) from exc
                 wait = delay
             self.retries += 1
+            print(
+                f"  [{self.name}] {_summarise(last_error)} - retrying in {wait:.0f}s "
+                f"(attempt {attempt}/{MAX_ATTEMPTS})",
+                file=sys.stderr,
+            )
             self._sleep(wait)
             delay = min(delay * 2, 60.0)
         raise ProviderHTTPError(last_error)  # pragma: no cover - loop always returns or raises
@@ -205,6 +211,27 @@ class OpenAICompatibleProvider(LLMProvider):
             provider=self.name,
             deterministic=False,
         )
+
+
+def _summarise(error: str) -> str:
+    """One line for the retry log: the status plus the server's own message.
+
+    Providers put the useful part - which quota, what limit - inside a JSON body;
+    surfacing it is the difference between "429" and "free-tier limit: 20/day".
+    """
+    head, _, body = error.partition(": ")
+    message = ""
+    try:
+        parsed = json.loads(body)
+        if isinstance(parsed, list) and parsed:
+            parsed = parsed[0]
+        if isinstance(parsed, dict):
+            inner = parsed.get("error", parsed)
+            message = str(inner.get("message", "")) if isinstance(inner, dict) else ""
+    except ValueError:
+        message = body
+    message = " ".join(message.split())[:140]
+    return head + (" - " + message if message else "")
 
 
 def _retry_after(header: Optional[str], fallback: float) -> float:

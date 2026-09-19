@@ -1,0 +1,41 @@
+# RAGProbe configuration for the SQuAD 2.0 import. Run from this directory:
+#
+#   ragprobe run --config ragprobe.yaml --html
+#
+# Paragraphs are the retrieval unit, so max_words is set high enough to keep most
+# of them whole; split parts still count for the section they belong to.
+
+corpus_dir: corpus
+dataset_path: golden_set.yaml
+
+chunk:
+  strategy: heading
+  max_words: 400
+  overlap_words: 40
+  min_words: 5
+
+retrieval:
+  embedder: tfidf
+  dim: 4096
+  top_k: 3
+  min_score: 0.0
+
+generation:
+  provider: stub
+  prompt_version: v1
+  max_sentences: 2
+  include_citations: true
+  refusal_threshold: 0.10
+  max_tokens: 1024
+
+evaluation:
+  fuzzy_threshold: 0.60
+  grounding_threshold: 0.55
+  claim_support_threshold: 0.50
+  judge_enabled: true
+  required_checks:
+    - keyword_presence
+    - forbidden_absent
+    - refusal_behaviour
+    - citation_present
+    - grounding
