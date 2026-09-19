@@ -24,6 +24,7 @@ from ragprobe.dashboard.analytics import (
     ATTRIBUTION_MIXED,
     ATTRIBUTION_REFUSAL,
     ATTRIBUTION_RETRIEVAL,
+    ATTRIBUTION_UNKNOWN,
     DashboardModel,
 )
 from ragprobe.regression.diff import STATUS_DEGRADED, STATUS_REGRESSED
@@ -72,6 +73,15 @@ def _join(ids: List[str], limit: int = 4) -> str:
 
 
 def worst_category(model: DashboardModel) -> Optional[Insight]:
+    """The category with the lowest pass rate in the latest run, and its failing cases."""
+    if not model.rows:
+        return Insight(
+            "worst_category", SEVERITY_INFO, "The latest run has no cases",
+            "Nothing was evaluated, so there is no pass rate to break down.",
+            "Rule: report the category with the lowest pass rate; the run has no cases.",
+        )
+    if not model.categories:
+        return None  # the results file has no per-category summary to rank
     failing = [c for c in model.categories if c.failed > 0]
     if not failing:
         return Insight(
@@ -97,6 +107,7 @@ def worst_category(model: DashboardModel) -> Optional[Insight]:
 
 
 def most_common_failing_check(model: DashboardModel) -> Optional[Insight]:
+    """The check that fails most often in the latest run; required checks outrank advisory ones."""
     failing = [c for c in model.checks if c.failed > 0 and not c.advisory]
     if not failing:
         advisory = [c for c in model.checks if c.failed > 0 and c.advisory]
@@ -130,6 +141,7 @@ def most_common_failing_check(model: DashboardModel) -> Optional[Insight]:
 
 
 def flaky_cases(model: DashboardModel) -> Optional[Insight]:
+    """Cases whose pass/fail status flips between runs with an identical config."""
     runs = len(model.points)
     if runs < MIN_RUNS_FOR_FLAKINESS:
         return Insight(
@@ -179,6 +191,7 @@ def flaky_cases(model: DashboardModel) -> Optional[Insight]:
 
 
 def largest_drops(model: DashboardModel, limit: int = 3) -> Optional[Insight]:
+    """The cases that lost the most score against the baseline (``None`` without one)."""
     if model.diff is None:
         return None
     changed = [
@@ -213,6 +226,9 @@ def largest_drops(model: DashboardModel, limit: int = 3) -> Optional[Insight]:
 
 
 def attribution(model: DashboardModel) -> Optional[Insight]:
+    """Which stage the latest run's failures point at: retrieval, generation, refusal policy or an error."""
+    if not model.rows:
+        return None  # worst_category already reports the empty run
     failing = [row for row in model.rows if not row.passed and row.attribution is not None]
     if not failing:
         return Insight(
@@ -231,23 +247,37 @@ def attribution(model: DashboardModel) -> Optional[Insight]:
         ATTRIBUTION_REFUSAL: "a refusal-policy problem (the case has no expected chunks)",
         ATTRIBUTION_MIXED: "mixed (retrieval was partial)",
         ATTRIBUTION_ERROR: "an error (the case raised before evaluation)",
+        ATTRIBUTION_UNKNOWN: "unattributed (no retrieval metrics were recorded)",
     }
-    for kind in (ATTRIBUTION_GENERATION, ATTRIBUTION_RETRIEVAL, ATTRIBUTION_REFUSAL, ATTRIBUTION_MIXED, ATTRIBUTION_ERROR):
+    kinds = (ATTRIBUTION_GENERATION, ATTRIBUTION_RETRIEVAL, ATTRIBUTION_REFUSAL, ATTRIBUTION_MIXED,
+             ATTRIBUTION_ERROR, ATTRIBUTION_UNKNOWN)
+    for kind in kinds:
         ids = by_kind.get(kind)
         if ids:
             sentences.append(f"{len(ids)} {label[kind]}: {_join(ids)}")
     top_count = max(len(ids) for ids in by_kind.values())
     leaders = sorted(kind for kind, ids in by_kind.items() if len(ids) == top_count)
-    if len(leaders) == 1:
+    if len(leaders) > 1:
+        headline = "Failures split evenly between " + " and ".join(leaders)
+    elif len(by_kind) == 1:
+        # Every failure agrees, so the headline can be categorical.
         headline = {
             ATTRIBUTION_GENERATION: "Failures point at generation, not retrieval",
-            ATTRIBUTION_RETRIEVAL: "Failures point at retrieval",
+            ATTRIBUTION_RETRIEVAL: "Failures point at retrieval, not generation",
             ATTRIBUTION_REFUSAL: "Failures are about refusal policy",
             ATTRIBUTION_MIXED: "Failures have mixed causes",
             ATTRIBUTION_ERROR: "Failures are crashes, not verdicts",
+            ATTRIBUTION_UNKNOWN: "Failures could not be attributed",
         }[leaders[0]]
     else:
-        headline = "Failures split evenly between " + " and ".join(leaders)
+        headline = {
+            ATTRIBUTION_GENERATION: "Most failures point at generation",
+            ATTRIBUTION_RETRIEVAL: "Most failures point at retrieval",
+            ATTRIBUTION_REFUSAL: "Most failures are about refusal policy",
+            ATTRIBUTION_MIXED: "Most failures have mixed causes",
+            ATTRIBUTION_ERROR: "Most failures are crashes, not verdicts",
+            ATTRIBUTION_UNKNOWN: "Most failures could not be attributed",
+        }[leaders[0]]
     return Insight(
         "attribution",
         SEVERITY_BAD if ATTRIBUTION_ERROR in by_kind else SEVERITY_WARN,
@@ -256,12 +286,14 @@ def attribution(model: DashboardModel) -> Optional[Insight]:
         "Rule: for each failing case, recall@k = 1.0 means every expected chunk was retrieved, so the "
         "generator had the evidence and the fault is in generation; hit rate 0 means no expected chunk "
         "was retrieved, so fix retrieval first; no expected chunks means the case tests refusal policy; "
-        "anything in between is mixed. This is a triage hint, not a root cause.",
+        "anything in between is mixed; a case with no retrieval metrics is left unattributed. "
+        "This is a triage hint, not a root cause.",
         [row.id for row in failing],
     )
 
 
 def pass_rate_trend(model: DashboardModel) -> Optional[Insight]:
+    """How many consecutive runs the pass rate has moved in one direction, ending now."""
     rates = [p.pass_rate for p in model.points]
     if len(rates) < 2 or any(r is None for r in rates[-2:]):
         return None
@@ -309,6 +341,7 @@ def pass_rate_trend(model: DashboardModel) -> Optional[Insight]:
 
 
 def latest_config_change(model: DashboardModel) -> Optional[Insight]:
+    """Whether the latest run followed a config change, and what the pass rate did across it."""
     latest = model.latest_point
     if not latest.config_changed or model.previous is None:
         if len(model.points) > 1:
@@ -366,7 +399,7 @@ def advisory_disagreement(model: DashboardModel) -> Optional[Insight]:
     return Insight(
         "advisory", SEVERITY_INFO,
         f"{len(hits)} passing case(s) fail an advisory check",
-        f"{_join(hits)} pass every required check but fail at least one advisory check "
+        f"Every required check passes but at least one advisory check fails for {_join(hits)} "
         f"(most often {top[0]}). They clear the gate; they may still be worth a look.",
         "Rule: passing cases with any applicable advisory check (one not in evaluation.required_checks) "
         "that failed. Advisory checks never gate, by design, so this is the only place they surface.",
@@ -375,6 +408,7 @@ def advisory_disagreement(model: DashboardModel) -> Optional[Insight]:
 
 
 def nondeterminism_warning(model: DashboardModel) -> Optional[Insight]:
+    """Flag stored runs from a nondeterministic provider, whose movements are partly noise."""
     nondet = [p for p in model.points if not p.deterministic]
     if not nondet:
         return None

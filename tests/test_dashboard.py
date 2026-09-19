@@ -21,6 +21,7 @@ from ragprobe.dashboard.analytics import (
     ATTRIBUTION_MIXED,
     ATTRIBUTION_REFUSAL,
     ATTRIBUTION_RETRIEVAL,
+    ATTRIBUTION_UNKNOWN,
     attribute_failure,
     build_model,
     case_histories,
@@ -280,6 +281,14 @@ class TestAttribution:
         case = make_case("a", passed=False, error="RuntimeError: boom")
         assert attribute_failure(case).kind == ATTRIBUTION_ERROR
 
+    def test_missing_retrieval_metrics_are_not_called_partial(self):
+        """A results file with no retrieval block must not be reported as "retrieval was partial"."""
+        case = make_case("a", passed=False, failed_checks=["keyword_presence"])
+        case["retrieval"] = {}
+        result = attribute_failure(case)
+        assert result.kind == ATTRIBUTION_UNKNOWN
+        assert "partial" not in result.reason
+
 
 class TestBuildModel:
     def test_requires_at_least_one_run(self):
@@ -329,6 +338,19 @@ class TestInsights:
     def test_all_passing_is_a_good_finding(self):
         insight = insights_mod.worst_category(_model([make_run([make_case("a")])]))
         assert insight.severity == "good"
+
+    def test_a_run_with_no_cases_is_not_reported_as_all_passing(self):
+        model = _model([make_run([])])
+        assert model.categories == [] and model.rows == []
+        insight = insights_mod.worst_category(model)
+        assert insight.severity == "info" and "no cases" in insight.title
+        assert insights_mod.attribution(model) is None
+        assert not any("every case" in i.body.lower() for i in generate_insights(model))
+
+    def test_missing_category_summary_yields_no_category_finding(self):
+        run = make_run([make_case("a")])
+        del run["summary"]["by_category"]
+        assert insights_mod.worst_category(_model([run])) is None
 
     def test_most_common_failing_check_prefers_required_checks(self):
         model = _model([make_run([
@@ -384,9 +406,15 @@ class TestInsights:
             make_case("ret", passed=False, failed_checks=["keyword_presence"], recall=0.0, hit=0.0),
         ])
         insight = insights_mod.attribution(_model([run]))
-        assert insight.title == "Failures point at generation, not retrieval"
+        assert insight.title == "Most failures point at generation"
         assert "2 a generation problem" in insight.body
         assert "1 a retrieval problem" in insight.body
+
+    def test_attribution_headline_is_absolute_only_when_every_failure_agrees(self):
+        run = make_run([make_case("gen", passed=False, failed_checks=["forbidden_absent"], recall=1.0)])
+        assert insights_mod.attribution(_model([run])).title == "Failures point at generation, not retrieval"
+        run = make_run([make_case("ret", passed=False, failed_checks=["keyword_presence"], recall=0.0, hit=0.0)])
+        assert insights_mod.attribution(_model([run])).title == "Failures point at retrieval, not generation"
 
     def test_attribution_tie_is_reported_as_a_split(self):
         run = make_run([
@@ -575,6 +603,20 @@ class TestRenderDashboard:
     def test_insight_rules_are_rendered_as_tooltips(self):
         page = render_dashboard(build_model([make_run([make_case("a")])]))
         assert 'class="rule-btn"' in page and 'title="Rule:' in page
+
+    def test_a_run_with_no_cases_renders(self):
+        page = render_dashboard(build_model([make_run([]), make_run([], "2026-01-02T00:00:00Z")]))
+        assert "0 cases, bins of 0.1" in page
+        assert "Nothing to plot" in page
+        assert_well_formed(page)
+
+    def test_minimal_foreign_document_renders(self):
+        """Only ``summary`` and ``cases`` are required; everything else is optional."""
+        run = {"started_at": "2026-01-02T00:00:00Z", "summary": {"total": 1, "passed": 1, "failed": 0},
+               "cases": [{"id": "x", "passed": True}]}
+        page = render_dashboard(build_model([run, dict(run)], baseline=run))
+        assert 'data-id="x"' in page
+        assert_well_formed(page)
 
     def test_older_results_without_golden_block_still_render(self):
         case = make_case("a")

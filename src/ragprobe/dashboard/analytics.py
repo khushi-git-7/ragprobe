@@ -34,6 +34,7 @@ ATTRIBUTION_GENERATION = "generation"
 ATTRIBUTION_REFUSAL = "refusal"
 ATTRIBUTION_ERROR = "error"
 ATTRIBUTION_MIXED = "mixed"
+ATTRIBUTION_UNKNOWN = "unknown"
 
 
 # ------------------------------------------------------------------ small utils
@@ -434,6 +435,7 @@ def attribute_failure(case: Mapping[str, Any]) -> Attribution:
     * no expected chunk retrieved (hit rate 0) -> ``retrieval``: the generator
       never saw the evidence, so its output is not the first thing to fix
     * anything in between -> ``mixed``
+    * no retrieval metrics recorded at all -> ``unknown``, rather than a guess
     """
     if case.get("error"):
         return Attribution(ATTRIBUTION_ERROR, "the case raised an exception before evaluation")
@@ -461,7 +463,12 @@ def attribute_failure(case: Mapping[str, Any]) -> Attribution:
     if hit is not None and float(hit) <= 0.0:
         return Attribution(
             ATTRIBUTION_RETRIEVAL,
-            f"no expected chunk was retrieved (hit rate 0), so the generator never saw the evidence",
+            "no expected chunk was retrieved (hit rate 0), so the generator never saw the evidence",
+        )
+    if recall is None and hit is None:
+        return Attribution(
+            ATTRIBUTION_UNKNOWN,
+            f"no retrieval metrics were recorded for this case; failing: {failing_text}",
         )
     return Attribution(
         ATTRIBUTION_MIXED,
