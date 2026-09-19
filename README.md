@@ -631,6 +631,8 @@ ragprobe dashboard                 # -> reports/dashboard.html
 
 ![Dashboard overview: KPI tiles with deltas and sparklines, top findings and the run log](docs/dashboard-overview.png)
 
+*Four local runs of the shipped golden set with different settings (`--max-sentences`, `--prompt-version`, `--top-k`); the run log names the config key that changed between each pair.*
+
 | Panel | What it shows |
 |---|---|
 | **Overview** | Pass rate, mean score, hit rate, MRR, precision and recall for the latest run, each with its delta against the previous run and a sparkline across history. The run log names the exact config keys that changed between consecutive runs, so a score movement can be attributed to the edit that caused it. |
