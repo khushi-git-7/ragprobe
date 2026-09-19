@@ -54,6 +54,7 @@ before merge, not after.*
 - [The problem](#the-problem)
 - [What RAGProbe does](#what-ragprobe-does)
 - [Quickstart](#quickstart)
+- [Testing your own RAG](#testing-your-own-rag)
 - [The regression workflow](#the-regression-workflow)
 - [Architecture](#architecture)
 - [Design decisions](#design-decisions)
@@ -137,6 +138,61 @@ pytest
 
 If you prefer not to install the package, `python -m ragprobe` works the same way
 with `src/` on `PYTHONPATH`.
+
+## Testing your own RAG
+
+The bundled pipeline is a reference implementation. The harness is built to test
+*yours*. Point it at a running service or at a Python entry point and the same golden
+set, retrieval metrics, evaluators, baseline and regression gate apply unchanged:
+
+```bash
+# A RAG service behind an HTTP endpoint
+ragprobe run --target http://localhost:8000/ask
+
+# A Python function or class in your own codebase (imported from --root)
+ragprobe run --target myapp.rag:answer
+
+# ...and gate it in CI exactly like the built-in pipeline
+ragprobe baseline --target http://localhost:8000/ask
+ragprobe diff     --target http://localhost:8000/ask
+```
+
+**HTTP contract.** RAGProbe POSTs `{"question": "..."}` and reads a JSON object back.
+Only `answer` is required; return `contexts` (the chunks your retriever used, with the
+stable ids your golden set names in `expected_chunks`) to get retrieval metrics:
+
+```json
+{"answer": "Full-time employees get 20 days.",
+ "contexts": [{"id": "handbook#paid-time-off", "text": "...", "score": 0.81}],
+ "refused": false}
+```
+
+Field names, the HTTP method, headers and extra body keys are configurable in
+`ragprobe.yaml`. Header values may reference environment variables; they are expanded
+per request and stored unexpanded, so a results file never contains a token:
+
+```yaml
+target:
+  kind: http
+  url: https://rag.internal/v1/answer
+  headers: {Authorization: "Bearer ${RAG_TOKEN}"}
+  question_field: query          # request body key (default: question)
+  answer_field: data.answer      # dotted paths into the response are fine
+  contexts_field: data.sources
+  extra_body: {top_k: 5}
+```
+
+**Python contract.** `target.entry` is `package.module:name`. A function receives the
+question and returns a string, a mapping in the shape above, or a `RagResult`. A class
+is instantiated once; its `ingest()`/`setup()` runs before the suite and its
+`answer()`/`query()`/`ask()` method answers each case. Chunk mappings accept the key
+spellings LangChain and LlamaIndex already emit (`page_content`, `metadata.source`,
+`content`, `similarity`...), so wrapping either is a few lines - see
+[`examples/`](examples/) for both.
+
+External targets are recorded as nondeterministic, which is what they are: the
+determinism flag in the results tells the diff to treat small score movements with
+appropriate suspicion.
 
 ## The regression workflow
 
@@ -544,18 +600,35 @@ failure does.
 
 ## Live mode
 
-To evaluate answer quality with a real model:
+To evaluate answer quality with a real model, pick either provider:
 
 ```bash
+# Any OpenAI-compatible endpoint - no SDK, standard library only. This includes the
+# free tiers of Google AI Studio (Gemini) and Groq, and a local Ollama.
+export GEMINI_API_KEY=...
+ragprobe run --provider openai --model gemini-2.5-flash   --base-url https://generativelanguage.googleapis.com/v1beta/openai --html
+
+# Claude via the official SDK
 pip install "ragprobe[anthropic]"
-export ANTHROPIC_API_KEY=...        # or authenticate however your environment does
+export ANTHROPIC_API_KEY=...
 RAGPROBE_PROVIDER=anthropic ragprobe run --html
 ```
 
-The environment variable overrides `generation.provider` in the config, so the same
-config file and golden set run in stub mode on CI and live mode locally with no file
-edits and no chance of committing a live-mode default. `RAGPROBE_MODEL` overrides the
-model ID (default `claude-opus-5`).
+| `--base-url` | key variable |
+|---|---|
+| `https://generativelanguage.googleapis.com/v1beta/openai` (Gemini, free tier) | `GEMINI_API_KEY` |
+| `https://api.groq.com/openai/v1` (Groq, free tier) | `GROQ_API_KEY` |
+| `https://api.openai.com/v1` | `OPENAI_API_KEY` |
+| `http://localhost:11434/v1` (Ollama) | none |
+
+`RAGPROBE_API_KEY` overrides all of them. Free tiers rate-limit per minute; the
+adapter retries with backoff and honours `Retry-After`, so a 60-case suite on a
+10-requests-per-minute tier takes minutes rather than failing.
+
+`RAGPROBE_PROVIDER` overrides `generation.provider` in the config, so the same config
+file and golden set run in stub mode on CI and live mode locally with no file edits
+and no chance of committing a live-mode default. `RAGPROBE_MODEL` and
+`RAGPROBE_BASE_URL` override the model ID and endpoint the same way.
 
 In live mode:
 
@@ -564,10 +637,12 @@ In live mode:
 - The judge is a genuine second opinion, and the HTML report shows where it disagrees
   with the heuristic.
 
-The neural embedder (`pip install "ragprobe[neural]"`, then `retrieval.embedder:
-sentence-transformers`) is a multi-gigabyte install and is separately opt-in. Its
-cosine similarities sit in a different range from TF-IDF, so `refusal_threshold` and
-`min_score` need re-calibrating and you must re-baseline.
+Neural embeddings are separately opt-in. `pip install "ragprobe[fastembed]"` then
+`retrieval.embedder: fastembed` runs `BAAI/bge-small-en-v1.5` through ONNX Runtime -
+no torch, a ~130 MB model, fast on CPU. (`ragprobe[neural]` with
+`sentence-transformers` also works but pulls in torch.) Neural cosine similarities
+sit in a different range from TF-IDF, so `refusal_threshold` and `min_score` need
+re-calibrating and you must re-baseline.
 
 ## CLI reference
 
@@ -752,6 +827,8 @@ ragprobe/
 │   ├── providers/              The pluggable LLM layer
 │   │   ├── base.py             LLMProvider interface and request/response types
 │   │   ├── stub.py             Deterministic extractive provider (default)
+│   │   ├── chat_prompts.py     Prompts and judge parsing shared by live providers
+│   │   ├── openai_compat.py    Any OpenAI-compatible endpoint: Gemini, Groq, Ollama, OpenAI
 │   │   └── anthropic_provider.py  Claude via the official SDK (opt-in)
 │   ├── evaluation/             The test harness
 │   │   ├── dataset.py          Golden set schema, loading, strict validation
@@ -760,12 +837,14 @@ ragprobe/
 │   │   ├── grounding.py        Offline faithfulness heuristic
 │   │   ├── judge.py            Heuristic + LLM judge orchestration
 │   │   └── runner.py           Runs the suite, builds results.json
+│   ├── targets/                Systems under test: builtin pipeline, HTTP service, Python entry point
 │   ├── regression/diff.py      Baseline comparison and the CI gate
 │   ├── reporting/              Terminal summary and self-contained HTML
 │   ├── dashboard/              Run-history analytics: metrics, insights, inline SVG, HTML
 │   ├── history.py              Append/load runs in reports/history/
 │   └── cli.py                  argparse entrypoint, exit-code contract
 ├── scripts/build_site.py       Landing page for GitHub Pages (stdlib only)
+├── examples/                   Wrapping a LangChain chain, a LlamaIndex engine, a FastAPI service
 ├── datasets/
 │   ├── docs/                   Five fictional sample documents
 │   └── golden_set.yaml         Sixteen cases across six categories
@@ -792,9 +871,6 @@ Ordered roughly by how much they would change what the tool can catch.
 - **Pluggable retrievers** (BM25 for a lexical baseline, a hybrid of the two) behind
   the same interface as the embedder, so retrieval strategies can be A/B'd with the
   same golden set.
-- **Adapter for an external pipeline.** A thin `LLMProvider`/`RagPipeline` shim that
-  wraps an HTTP endpoint, so RAGProbe can test a deployed service rather than only
-  the bundled pipeline.
 - **Per-category gates.** Fail on any regression in `security` while tolerating drift
   in `general`.
 - **Dataset generation helpers.** Draft candidate questions from corpus sections for a

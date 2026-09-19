@@ -1,0 +1,42 @@
+# RAGProbe configuration for the Playwright documentation assistant example.
+# Run from the repository root:
+#
+#   ragprobe run --config examples/playwright-docs/ragprobe.yaml --html
+#
+# Everything below is real: 59 Playwright guide pages (Apache-2.0, see NOTICE.md)
+# and 62 questions QA engineers ask about them.
+
+corpus_dir: examples/playwright-docs/corpus
+dataset_path: examples/playwright-docs/golden_set.yaml
+
+chunk:
+  strategy: heading
+  max_words: 180
+  overlap_words: 30
+  min_words: 5
+
+retrieval:
+  embedder: tfidf
+  dim: 2048            # 841 chunks: a wider hash space than the toy corpus needs
+  top_k: 3
+  min_score: 0.0
+
+generation:
+  provider: stub
+  prompt_version: v1
+  max_sentences: 2
+  include_citations: true
+  refusal_threshold: 0.10
+  max_tokens: 1024
+
+evaluation:
+  fuzzy_threshold: 0.60
+  grounding_threshold: 0.55
+  claim_support_threshold: 0.50
+  judge_enabled: true
+  required_checks:
+    - keyword_presence
+    - forbidden_absent
+    - refusal_behaviour
+    - citation_present
+    - grounding

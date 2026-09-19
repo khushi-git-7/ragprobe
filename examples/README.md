@@ -1,0 +1,21 @@
+# Wrapping your RAG as a RAGProbe target
+
+Each file here is a complete, runnable target. Pick the one closest to your stack,
+copy it next to your code, and run:
+
+```bash
+ragprobe run --root . --target <module>:<name> --dataset your_golden_set.yaml
+```
+
+| File | Stack | Run with |
+|---|---|---|
+| `langchain_target.py` | LangChain retriever + chat model | `ragprobe run --target langchain_target:DocsAssistant` |
+| `llamaindex_target.py` | LlamaIndex query engine | `ragprobe run --target llamaindex_target:answer` |
+| `fastapi_service.py` | Any service behind HTTP | `uvicorn fastapi_service:app` then `ragprobe run --target http://127.0.0.1:8000/ask` |
+
+None of these frameworks is a RAGProbe dependency; install the one you use.
+
+The only thing that matters for retrieval metrics is that the chunk ids you return
+are **stable** and are the same ids your golden set's `expected_chunks` name.
+`source#section` or `filename#heading-slug` are good choices; positional ids
+(`chunk-17`) break the moment you re-chunk.

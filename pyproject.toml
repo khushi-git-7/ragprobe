@@ -32,7 +32,11 @@ dev = [
 anthropic = [
     "anthropic>=0.40",
 ]
-# Neural embeddings. Multi-gigabyte install (pulls in torch); opt in deliberately.
+# Neural embeddings via ONNX Runtime: no torch, ~130 MB model, fast on CPU.
+fastembed = [
+    "fastembed>=0.3",
+]
+# Neural embeddings via sentence-transformers. Multi-gigabyte install (pulls in torch).
 neural = [
     "sentence-transformers>=2.2",
 ]

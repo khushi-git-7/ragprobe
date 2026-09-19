@@ -64,7 +64,15 @@ def get_provider(cfg: GenerationConfig, override: Optional[str] = None) -> LLMPr
         from ragprobe.providers.anthropic_provider import AnthropicProvider
 
         return AnthropicProvider(model=cfg.model, max_tokens=cfg.max_tokens)
+    if name == "openai":
+        # Standard library only, but kept lazy so the default suite never
+        # constructs a network client.
+        from ragprobe.providers.openai_compat import OpenAICompatibleProvider
+
+        return OpenAICompatibleProvider(
+            model=cfg.model, max_tokens=cfg.max_tokens, base_url=cfg.base_url
+        )
     raise ValueError(
-        f"unknown provider {name!r}; expected 'stub' or 'anthropic'. "
+        f"unknown provider {name!r}; expected 'stub', 'anthropic' or 'openai'. "
         f"Set {ENV_PROVIDER} or generation.provider."
     )

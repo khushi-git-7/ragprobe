@@ -83,7 +83,14 @@ class RagResult:
 
 
 class RagPipeline:
-    """ingest -> chunk -> embed -> retrieve -> answer."""
+    """ingest -> chunk -> embed -> retrieve -> answer.
+
+    This is the ``builtin`` target. It satisfies the ``ragprobe.targets.Target``
+    surface (``ingest``, ``answer``, ``stats``, ``provider``, ``provider_name``,
+    ``deterministic``) without inheriting from it, which keeps the import graph acyclic.
+    """
+
+    kind = "builtin"
 
     def __init__(
         self,
@@ -123,8 +130,10 @@ class RagPipeline:
         self.embedder.fit([chunk.text for chunk in chunks])
 
         self.store = InMemoryVectorStore()
-        for chunk in chunks:
-            self.store.add(chunk, self.embedder.embed(chunk.text))
+        # Batched: neural backends are an order of magnitude faster this way, and
+        # the default implementation is the same per-chunk loop as before.
+        for chunk, vector in zip(chunks, self.embedder.embed_many([c.text for c in chunks])):
+            self.store.add(chunk, vector)
         self._ingested = True
         return self
 
@@ -138,7 +147,7 @@ class RagPipeline:
         self._ensure_ingested()
         assert self.embedder is not None
         k = top_k if top_k is not None else self.config.retrieval.top_k
-        query_vector = self.embedder.embed(question)
+        query_vector = self.embedder.embed_query(question)
         hits = self.store.search(query_vector, k=k, min_score=self.config.retrieval.min_score)
         return [
             RetrievedChunk(
@@ -175,6 +184,14 @@ class RagPipeline:
         )
 
     # ------------------------------------------------------------------ info
+
+    @property
+    def provider_name(self) -> str:
+        return self.provider.name
+
+    @property
+    def deterministic(self) -> bool:
+        return self.provider.deterministic
 
     def stats(self) -> Dict[str, Any]:
         self._ensure_ingested()

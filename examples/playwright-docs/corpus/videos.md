@@ -1,0 +1,103 @@
+# Videos
+
+## Introduction
+
+With Playwright you can record videos for your tests.
+
+## Record video
+
+Playwright Test can record videos for your tests, controlled by the `video` option in your Playwright config. By default videos are off.
+
+- `'off'` - Do not record video.
+- `'on'` - Record video for each test.
+- `'retain-on-failure'` - Record video for each test, but remove all videos from successful test runs.
+- `'on-first-retry'` - Record video only when retrying a test for the first time.
+
+Video files will appear in the test output directory, typically `test-results`. See testOptions.video for advanced video configuration.
+
+Videos are saved upon [browser context](./browser-contexts.md) closure at the end of a test. If you create a browser context manually, make sure to await browserContext.close().
+
+```js
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  use: {
+    video: 'on-first-retry',
+  },
+});
+```
+
+```js
+const context = await browser.newContext({ recordVideo: { dir: 'videos/' } });
+// Make sure to await close, so that videos are saved.
+await context.close();
+```
+
+You can also specify video size and annotation. The video size defaults to the viewport size scaled down to fit 800x800. The video of the viewport is placed in the top-left corner of the output video, scaled down to fit if necessary. You may need to set the viewport size to match your desired video size.
+
+When `show: { actions }` is specified, each action will be visually highlighted in the video with the element outline and action title subtitle. The optional `duration` property controls how long each annotation is displayed (defaults to `500`ms).
+
+When `show: { test }` is specified, video will be annotated with the current test information with configurable `level`.
+
+```js
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  use: {
+    video: {
+      mode: 'on-first-retry',
+      size: { width: 640, height: 480 },
+      show: {
+        actions: {
+          duration: 500,
+          position: 'top-right',
+          fontSize: 14,
+        },
+        test: {
+          level: 'step',
+          position: 'top-left',
+          fontSize: 12,
+        }
+      },
+    },
+  },
+});
+```
+
+For multi-page scenarios, you can access the video file associated with the page via the
+page.video().
+
+```js
+const path = await page.video().path();
+```
+
+Note that the video is only available after the page or browser context is closed.
+
+## Record video
+
+Videos are saved upon [browser context](./browser-contexts.md) closure at the end of a test. If you create a browser context manually, make sure to await browserContext.close().
+
+```js
+const context = await browser.newContext({ recordVideo: { dir: 'videos/' } });
+// Make sure to await close, so that videos are saved.
+await context.close();
+```
+
+You can also specify video size. The video size defaults to the viewport size scaled down to fit 800x800. The video of the viewport is placed in the top-left corner of the output video, scaled down to fit if necessary. You may need to set the viewport size to match your desired video size.
+
+```js
+const context = await browser.newContext({
+  recordVideo: {
+    dir: 'videos/',
+    size: { width: 640, height: 480 },
+  }
+});
+```
+
+Saved video files will appear in the specified folder. They all have generated unique names.
+For the multi-page scenarios, you can access the video file associated with the page via the
+page.video().
+
+```js
+const path = await page.video().path();
+```
+
+Note that the video is only available after the page or browser context is closed.
