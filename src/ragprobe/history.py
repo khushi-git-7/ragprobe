@@ -48,6 +48,8 @@ class HistoryEntry:
 
 @dataclass
 class History:
+    """The usable runs in a history directory, oldest first, plus what was skipped."""
+
     entries: List[HistoryEntry] = field(default_factory=list)
     #: Files that were present but could not be used, with the reason.
     skipped: List[str] = field(default_factory=list)
@@ -69,7 +71,12 @@ def _timestamp_token(started_at: Optional[str]) -> str:
 
 
 def history_filename(run: Mapping[str, Any], sequence: int) -> str:
-    fingerprint = str(run.get("config_fingerprint") or "nofingerprint")
+    """``run-0007-20260918T173023Z-7501f486bed1.json`` for sequence 7.
+
+    The fingerprint is reduced to ``[0-9A-Za-z]`` so the name is valid on every
+    filesystem and matches ``_FILENAME_RE`` when read back.
+    """
+    fingerprint = re.sub(r"[^0-9a-zA-Z]", "", str(run.get("config_fingerprint") or "")) or "nofingerprint"
     return f"run-{sequence:04d}-{_timestamp_token(run.get('started_at'))}-{fingerprint}.json"
 
 
@@ -114,6 +121,22 @@ def append_run(history_dir: Path, run: Mapping[str, Any]) -> Path:
     return candidate
 
 
+def _find_duplicate(history: History, candidate: HistoryEntry) -> Optional[HistoryEntry]:
+    """The already-loaded entry whose document equals ``candidate``'s, if any.
+
+    Two distinct runs can share a timestamp and a config fingerprint (a fast suite
+    run twice in one second), so only a document that is equal in full counts.
+    """
+    for entry in history.entries:
+        if (
+            entry.started_at == candidate.started_at
+            and entry.config_fingerprint == candidate.config_fingerprint
+            and entry.run == candidate.run
+        ):
+            return entry
+    return None
+
+
 def _sort_key(entry: HistoryEntry) -> tuple:
     """Chronological: by ``started_at``, then by sequence number within a second.
 
@@ -128,14 +151,20 @@ def load_history(history_dir: Path, limit: Optional[int] = None) -> History:
     """Read every results file in ``history_dir``, oldest first.
 
     ``limit`` keeps only the most recent N runs. Files that are not valid results
-    documents are listed in ``History.skipped`` instead of raising.
+    documents are listed in ``History.skipped`` instead of raising, and so is a
+    file whose document is identical to one already loaded (a copied
+    ``results.json``): the same run twice would draw a flat step on every trend
+    line and count as an extra run in every insight.
     """
     history_dir = Path(history_dir)
     history = History()
     if not history_dir.is_dir():
         return history
 
-    for path in sorted(history_dir.glob("*.json")):
+    # Sequenced files first, so a duplicate is reported against the file whose
+    # name carries the sequence number, and that one is the copy that is kept.
+    paths = sorted(history_dir.glob("*.json"), key=lambda p: (_sequence_of(p) is None, p.name))
+    for path in paths:
         try:
             with path.open("r", encoding="utf-8") as handle:
                 payload = json.load(handle)
@@ -145,7 +174,12 @@ def load_history(history_dir: Path, limit: Optional[int] = None) -> History:
         if not is_valid_run(payload):
             history.skipped.append(f"{path.name}: not a RAGProbe results document")
             continue
-        history.entries.append(HistoryEntry(path=path, run=payload))
+        entry = HistoryEntry(path=path, run=payload)
+        duplicate_of = _find_duplicate(history, entry)
+        if duplicate_of is not None:
+            history.skipped.append(f"{path.name}: identical to {duplicate_of.path.name}")
+            continue
+        history.entries.append(entry)
 
     history.entries.sort(key=_sort_key)
     if limit is not None and limit > 0:

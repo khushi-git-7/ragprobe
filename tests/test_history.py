@@ -38,6 +38,12 @@ class TestFilenames:
         name = history_filename({"started_at": "yesterday", "config_fingerprint": "x"}, 1)
         assert name == "run-0001-unknown-x.json"
 
+    def test_fingerprint_is_reduced_to_filename_safe_characters(self):
+        """A fingerprint is a hex digest in practice; a hand-edited one must not break the path."""
+        name = history_filename({"started_at": "2026-09-18T17:30:23Z", "config_fingerprint": "a/b:c d"}, 2)
+        assert name == "run-0002-20260918T173023Z-abcd.json"
+        assert history_filename({"config_fingerprint": "<>"}, 3) == "run-0003-unknown-nofingerprint.json"
+
     def test_next_sequence_is_one_past_the_highest(self, tmp_path: Path):
         assert next_sequence(tmp_path) == 1
         (tmp_path / "run-0003-20260918T173023Z-abc.json").write_text("{}")
@@ -78,6 +84,22 @@ class TestAppendAndLoad:
         assert len(history.skipped) == 2
         assert any("broken.json" in item for item in history.skipped)
         assert any("foreign.json" in item for item in history.skipped)
+
+    def test_a_copied_results_file_is_skipped_as_a_duplicate(self, tmp_path: Path):
+        """``cp reports/results.json reports/history/`` must not add a second, flat step."""
+        history_dir = tmp_path / "history"
+        original = append_run(history_dir, make_run("2026-09-18T17:30:23Z"))
+        (history_dir / "results.json").write_text(original.read_text(encoding="utf-8"), encoding="utf-8")
+        history = load_history(history_dir)
+        assert len(history) == 1
+        assert history.skipped == [f"results.json: identical to {original.name}"]
+
+    def test_distinct_runs_in_the_same_second_with_the_same_config_are_both_kept(self, tmp_path: Path):
+        history_dir = tmp_path / "history"
+        append_run(history_dir, make_run("2026-09-18T17:30:23Z", pass_rate=1.0))
+        append_run(history_dir, make_run("2026-09-18T17:30:23Z", pass_rate=0.5))
+        history = load_history(history_dir)
+        assert len(history) == 2 and history.skipped == []
 
     def test_missing_directory_is_an_empty_history(self, tmp_path: Path):
         history = load_history(tmp_path / "nope")
