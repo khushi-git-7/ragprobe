@@ -278,3 +278,97 @@ class TestErrorHandling:
         with pytest.raises(SystemExit) as excinfo:
             main(["--version"])
         assert excinfo.value.code == 0
+
+
+class TestRunHistory:
+    def test_run_appends_to_history_under_root(self, workspace, tmp_path):
+        """A relative --history-dir resolves against --root, so the scratch copy gets it."""
+        _run(workspace, tmp_path / "a.json")
+        _run(workspace, tmp_path / "b.json", "--max-sentences", "1")
+        files = sorted((workspace / "reports" / "history").glob("run-*.json"))
+        assert len(files) == 2
+        assert files[0].name.startswith("run-0001-") and files[1].name.startswith("run-0002-")
+        assert json.loads(files[1].read_text(encoding="utf-8"))["config"]["generation"]["max_sentences"] == 1
+
+    def test_no_history_flag_skips_recording(self, workspace, tmp_path):
+        _run(workspace, tmp_path / "a.json", "--no-history")
+        assert not (workspace / "reports" / "history").exists()
+
+    def test_explicit_history_dir(self, workspace, tmp_path):
+        history = tmp_path / "elsewhere"
+        _run(workspace, tmp_path / "a.json", "--history-dir", str(history))
+        assert len(list(history.glob("run-*.json"))) == 1
+
+    def test_results_carry_the_golden_assertions(self, workspace, tmp_path):
+        out = tmp_path / "results.json"
+        _run(workspace, out)
+        case = json.loads(out.read_text(encoding="utf-8"))["cases"][0]
+        assert {"expected_answer", "required_keywords", "forbidden_keywords", "should_refuse", "notes"} <= set(case["golden"])
+
+    def test_diff_also_records_history_when_it_runs_the_suite(self, workspace, tmp_path):
+        baseline = tmp_path / "baseline.json"
+        _run(workspace, baseline, "--no-history")
+        main([
+            "diff", "--root", str(workspace), "--config", str(workspace / "ragprobe.yaml"),
+            "--baseline", str(baseline), "--quiet",
+        ])
+        assert len(list((workspace / "reports" / "history").glob("run-*.json"))) == 1
+
+
+class TestDashboardCommand:
+    def _history(self, workspace, tmp_path):
+        _run(workspace, tmp_path / "a.json")
+        _run(workspace, tmp_path / "b.json", "--max-sentences", "1")
+        _run(workspace, tmp_path / "c.json", "--prompt-version", "v2")
+        return workspace / "reports" / "history"
+
+    def test_renders_from_history_without_a_baseline(self, workspace, tmp_path):
+        self._history(workspace, tmp_path)
+        out = tmp_path / "dash.html"
+        code = main(["dashboard", "--root", str(workspace), "--out", str(out)])
+        assert code == EXIT_OK
+        content = out.read_text(encoding="utf-8")
+        assert "No baseline to compare against" in content
+        assert '<section id="trends"' in content
+        for marker in ("http://", "https://", "cdn."):
+            assert marker not in content
+        assert out.stat().st_size < 2 * 1024 * 1024
+
+    def test_renders_the_regression_panel_with_a_baseline(self, workspace, tmp_path):
+        history = self._history(workspace, tmp_path)
+        out = tmp_path / "dash.html"
+        code = main([
+            "dashboard", "--history-dir", str(history), "--baseline", str(tmp_path / "a.json"),
+            "--out", str(out), "--title", "My dash",
+        ])
+        assert code == EXIT_OK
+        content = out.read_text(encoding="utf-8")
+        assert "<title>My dash</title>" in content
+        assert "Changed cases" in content
+        assert "No baseline to compare against" not in content
+
+    def test_results_flag_adds_a_run_not_in_history(self, workspace, tmp_path):
+        history = self._history(workspace, tmp_path)
+        extra = tmp_path / "extra.json"
+        _run(workspace, extra, "--top-k", "5", "--no-history")
+        out = tmp_path / "dash.html"
+        main(["dashboard", "--history-dir", str(history), "--results", str(extra), "--out", str(out)])
+        assert "4 stored run(s)" in out.read_text(encoding="utf-8")
+
+    def test_limit_restricts_the_runs_used(self, workspace, tmp_path):
+        history = self._history(workspace, tmp_path)
+        out = tmp_path / "dash.html"
+        main(["dashboard", "--history-dir", str(history), "--limit", "2", "--out", str(out)])
+        assert "2 stored run(s)" in out.read_text(encoding="utf-8")
+
+    def test_empty_history_is_a_usage_error(self, tmp_path):
+        code = main(["dashboard", "--history-dir", str(tmp_path / "nothing"), "--out", str(tmp_path / "d.html")])
+        assert code == EXIT_USAGE
+
+    def test_corrupt_history_file_is_skipped_with_a_warning(self, workspace, tmp_path, capsys):
+        history = self._history(workspace, tmp_path)
+        (history / "run-0009-20260101T000000Z-bad.json").write_text("{", encoding="utf-8")
+        out = tmp_path / "dash.html"
+        assert main(["dashboard", "--history-dir", str(history), "--out", str(out)]) == EXIT_OK
+        assert "Skipped run-0009" in capsys.readouterr().err
+        assert "Skipped run-0009" in out.read_text(encoding="utf-8")

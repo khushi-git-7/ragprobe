@@ -57,6 +57,7 @@ before merge, not after.*
 - [Live mode](#live-mode)
 - [CLI reference](#cli-reference)
 - [Reports](#reports)
+- [Dashboard](#dashboard)
 - [Testing the harness itself](#testing-the-harness-itself)
 - [Continuous integration](#continuous-integration)
 - [Project layout](#project-layout)
@@ -571,6 +572,9 @@ ragprobe diff      Compare a run against the baseline and apply the gate.
                    --min-pass-rate R, --max-score-drop D, --epsilon E,
                    --allow-removed, --json, --html, --save-current.
 ragprobe report    Render HTML from stored JSON without re-running.
+ragprobe dashboard Render the analytics dashboard from reports/history/.
+                   --history-dir DIR, --results FILE, --baseline FILE,
+                   --limit N, --epsilon E, --out FILE.
 ```
 
 All run-style commands accept overrides: `--config`, `--root`, `--corpus`,
@@ -600,6 +604,40 @@ The screenshots below are from a real run of the shipped golden set:
 `results.json` is the machine-readable form and the input to `diff`. It carries
 enough provenance (config fingerprint, dataset fingerprint, provider, determinism
 flag, harness version) for the diff to tell you when a comparison is invalid.
+
+## Dashboard
+
+`ragprobe run` appends every run to `reports/history/`. `ragprobe dashboard` reads that
+history (plus the baseline, if there is one) and renders a single self-contained
+analytics page - the view you would want on a team wallboard rather than a per-run
+report.
+
+```bash
+ragprobe run --max-sentences 1     # a few runs with different settings ...
+ragprobe run --prompt-version v2
+ragprobe run
+ragprobe dashboard                 # -> reports/dashboard.html
+```
+
+![Dashboard overview: KPI tiles with deltas and sparklines, top findings and the run log](docs/dashboard-overview.png)
+
+| Panel | What it shows |
+|---|---|
+| **Overview** | Pass rate, mean score, hit rate, MRR, precision and recall for the latest run, each with its delta against the previous run and a sparkline across history. The run log names the exact config keys that changed between consecutive runs, so a score movement can be attributed to the edit that caused it. |
+| **Trends** | Pass rate, mean score and each retrieval metric over the run history, with markers where the config or dataset fingerprint changed. |
+| **Breakdown** | Pass rate per category, which checks fail most often, and the score distribution. |
+| **Cases** | Every case with search, status and category filters, sortable columns, and an expandable view of the question, expected and actual answers, retrieved chunks, check-by-check results, and a per-case score history so a flaky case is visible at a glance. |
+| **Regression** | The diff against the baseline - regressed, degraded, improved, flat, new and removed - with before/after answers for anything that changed. |
+| **Insights** | Plain-English findings computed from the data: the weakest category, the most common failing check, cases that flip between passing and failing across runs, the largest score drops since the baseline, and a retrieval-versus-generation attribution for each failure (retrieval found every expected chunk, so the defect is in generation - or it did not, so it is in retrieval). Every insight states the rule it was derived from. |
+
+Design constraints, all deliberate: one HTML file, no external scripts, styles or
+fonts, charts as inline SVG generated in Python, light and dark themes, no runtime
+dependency beyond PyYAML. It opens from a CI artifact, an email attachment or a USB
+stick and looks the same everywhere.
+
+`--limit N` restricts the view to the most recent N runs; `--epsilon` sets the score
+change treated as noise (default 0.01). `ragprobe run --no-history` skips recording a
+run, for throwaway experiments.
 
 ## Testing the harness itself
 
@@ -673,6 +711,8 @@ ragprobe/
 │   │   └── runner.py           Runs the suite, builds results.json
 │   ├── regression/diff.py      Baseline comparison and the CI gate
 │   ├── reporting/              Terminal summary and self-contained HTML
+│   ├── dashboard/              Run-history analytics: metrics, insights, inline SVG, HTML
+│   ├── history.py              Append/load runs in reports/history/
 │   └── cli.py                  argparse entrypoint, exit-code contract
 ├── datasets/
 │   ├── docs/                   Five fictional sample documents

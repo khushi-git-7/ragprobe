@@ -51,6 +51,10 @@ class CaseResult:
     expected_chunks: List[str]
     faithfulness: Dict[str, Any]
     error: Optional[str] = None
+    #: What the golden set asserted, copied into the results so a report can show
+    #: "expected" next to "actual" without re-reading the dataset. Additive: older
+    #: results files simply lack it.
+    golden: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def failed_checks(self) -> List[str]:
@@ -75,6 +79,7 @@ class CaseResult:
             "faithfulness": self.faithfulness,
             "failed_checks": self.failed_checks,
             "error": self.error,
+            "golden": self.golden,
         }
 
 
@@ -166,6 +171,16 @@ class RunResult:
         }
 
 
+def _golden_block(case: GoldenCase) -> Dict[str, Any]:
+    return {
+        "expected_answer": case.expected_answer,
+        "required_keywords": list(case.required_keywords),
+        "forbidden_keywords": list(case.forbidden_keywords),
+        "should_refuse": bool(case.should_refuse),
+        "notes": case.notes,
+    }
+
+
 def _score_case(checks: Sequence[CheckResult]) -> float:
     """Mean score over applicable checks.
 
@@ -242,6 +257,7 @@ def evaluate_case(
         retrieved=[chunk.to_dict() for chunk in result.retrieved],
         expected_chunks=list(case.expected_chunks),
         faithfulness=faithfulness.to_dict(),
+        golden=_golden_block(case),
     )
 
 
@@ -286,6 +302,7 @@ def run_suite(
                     expected_chunks=list(case.expected_chunks),
                     faithfulness={},
                     error=f"{type(exc).__name__}: {exc}",
+                    golden=_golden_block(case),
                 )
             )
 
