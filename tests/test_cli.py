@@ -352,7 +352,7 @@ class TestDashboardCommand:
         assert code == EXIT_OK
         content = out.read_text(encoding="utf-8")
         assert "<title>My dash</title>" in content
-        assert "Changed cases" in content
+        assert "Cases versus baseline" in content
         assert "No baseline to compare against" not in content
 
     def test_results_flag_adds_a_run_not_in_history(self, workspace, tmp_path):

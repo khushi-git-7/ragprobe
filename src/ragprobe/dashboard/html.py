@@ -953,7 +953,7 @@ def _regression(model: DashboardModel) -> str:
         f'<button class="fbtn" data-filter="{s}" aria-pressed="false">{s.capitalize()}<span class="n">{counts[s]}</span></button>'
         for s in (STATUS_REGRESSED, STATUS_DEGRADED, STATUS_IMPROVED, STATUS_NEW, STATUS_REMOVED, STATUS_FLAT)
     )
-    parts.append(f'<div class="section-head"><h2>Changed cases</h2><span class="small muted">before and after, side by side</span></div><div class="toolbar"><div class="fgroup" id="diff-filters">{chips}</div></div>')
+    parts.append(f'<div class="section-head"><h2>Cases versus baseline</h2><span class="small muted">every case, before and after; regressions open by default</span></div><div class="toolbar"><div class="fgroup" id="diff-filters">{chips}</div></div>')
     items = []
     for case in diff.cases:
         d = case.to_dict()
