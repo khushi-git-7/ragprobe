@@ -174,7 +174,7 @@ def test_every_icon_has_a_window(site, page):
     assert page.count('<section class="win') == len(site.WINDOW_KEYS)
     # the joke and the point
     assert "Not deleted. Kept as documented failures." in page
-    assert "Numbers land here once the live run finishes." in page
+    assert "out-of-scope refused" in page and "case-study/dashboard.html" in page
     assert "0.603" in page and "0.707" in page
     _check_html(page)
 
