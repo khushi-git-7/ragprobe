@@ -305,7 +305,7 @@ ignored or disabled - which costs you the checks that did work.
 
 ### Exit codes distinguish "it broke" from "it could not run"
 
-`0` success, `1` a gate failed, `2` usage error or missing file. Collapsing 1 and 2
+`0` success, `1` a gate failed, `2` usage error, bad config or an unusable file. Collapsing 1 and 2
 into "non-zero" makes a broken config look like a regression.
 
 ## Retrieval metrics
@@ -582,7 +582,7 @@ All run-style commands accept overrides: `--config`, `--root`, `--corpus`,
 `--dataset`, `--top-k`, `--provider`, `--prompt-version`, `--max-sentences`,
 `--no-judge`, `--quiet`. `ragprobe <command> --help` lists everything.
 
-Exit codes: `0` success, `1` a gate failed, `2` usage error, bad config or missing file.
+Exit codes: `0` success, `1` a gate failed, `2` usage error, bad config or a missing or unusable file.
 
 Configuration lives in `ragprobe.yaml`. Every value is hashed into the run's config
 fingerprint; unknown keys are rejected at load time.

@@ -391,6 +391,25 @@ class TestDashboardCommand:
         code = main(["dashboard", "--history-dir", str(tmp_path / "nothing"), "--out", str(tmp_path / "d.html")])
         assert code == EXIT_USAGE
 
+    @pytest.mark.parametrize("flag", ["--results", "--baseline"])
+    def test_unusable_input_file_is_a_usage_error_not_a_traceback(self, workspace, tmp_path, flag, capsys):
+        """A corrupt or foreign file named on the command line is exit 2 with a message.
+
+        Before: corrupt JSON escaped as a traceback with exit 1 (which means "gate
+        failed"), and a foreign document was silently ignored or diffed against.
+        """
+        history = self._history(workspace, tmp_path)
+        out = tmp_path / "dash.html"
+        corrupt = tmp_path / "corrupt.json"
+        corrupt.write_text("{", encoding="utf-8")
+        assert main(["dashboard", "--history-dir", str(history), flag, str(corrupt), "--out", str(out)]) == EXIT_USAGE
+        assert "not valid JSON" in capsys.readouterr().err
+        foreign = tmp_path / "foreign.json"
+        foreign.write_text('{"hello": "world"}', encoding="utf-8")
+        assert main(["dashboard", "--history-dir", str(history), flag, str(foreign), "--out", str(out)]) == EXIT_USAGE
+        assert "not a RAGProbe results document" in capsys.readouterr().err
+        assert not out.exists()
+
     def test_corrupt_history_file_is_skipped_with_a_warning(self, workspace, tmp_path, capsys):
         history = self._history(workspace, tmp_path)
         (history / "run-0009-20260101T000000Z-bad.json").write_text("{", encoding="utf-8")

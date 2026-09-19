@@ -8,7 +8,7 @@ Exit codes are part of the contract, because CI consumes them:
   0     success, and any gate that ran passed
   1     the run completed but a gate failed (regressions, or the
         pass rate / score threshold was breached)
-  2     usage error, bad config, or a missing file
+  2     usage error, bad config, or a missing or unusable file
 ======  ==========================================================
 
 The distinction between 1 and 2 matters: exit 1 means "your change broke something",
@@ -29,7 +29,7 @@ from ragprobe.config import ConfigError, ProbeConfig
 from ragprobe.dashboard import build_model, write_dashboard
 from ragprobe.evaluation.dataset import DatasetError, load_dataset
 from ragprobe.evaluation.runner import RunResult, run_suite
-from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, load_history, merge_current
+from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, is_valid_run, load_history, merge_current
 from ragprobe.pipeline.loader import CorpusError
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
 from ragprobe.reporting.html import write_report
@@ -70,15 +70,31 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     return path
 
 
+class InputError(Exception):
+    """A results or baseline file that exists but cannot be used (exit code 2)."""
+
+
 def _read_json(path: Path, label: str) -> Dict[str, Any]:
+    """Load a results/baseline document, or raise an actionable error.
+
+    Every file this reads is either produced by RAGProbe or named explicitly by
+    the user, so a file that is not a results document is a usage error, not a
+    traceback and not something to render an empty page from.
+    """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(
             f"{label} not found: {path}\n"
             f"Hint: create one with 'ragprobe baseline'."
         )
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except ValueError as exc:
+        raise InputError(f"{label} is not valid JSON: {path}: {exc}") from None
+    if not is_valid_run(payload):
+        raise InputError(f"{label} is not a RAGProbe results document: {path}")
+    return payload
 
 
 def _build_config(args: argparse.Namespace) -> ProbeConfig:
@@ -366,7 +382,7 @@ def build_parser() -> argparse.ArgumentParser:
             "exit codes:\n"
             "  0  success\n"
             "  1  a gate failed (regressions or threshold breach)\n"
-            "  2  usage error, bad config, or missing file\n"
+            "  2  usage error, bad config, or a missing or unusable file\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"ragprobe {__version__}")
@@ -487,7 +503,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (ConfigError, DatasetError, CorpusError, FileNotFoundError) as exc:
+    except (ConfigError, DatasetError, CorpusError, FileNotFoundError, InputError) as exc:
         # Expected, actionable failures: print the message, not a traceback.
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
