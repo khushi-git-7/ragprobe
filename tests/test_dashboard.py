@@ -583,12 +583,30 @@ class TestRenderDashboard:
         case["answer"] = evil
         case["retrieved"][0]["text"] = evil
         case["golden"]["notes"] = evil
-        run = make_run([case], fingerprint=evil)
+        case["checks"][0]["detail"] = evil
+        case["failed_checks"] = [evil]
+        case["checks"][0]["name"] = evil
+        case["retrieved"][0]["chunk_id"] = evil
+        run = make_run([case], started_at=evil, fingerprint=evil)
         run["config"]["generation"]["prompt_version"] = evil
+        run["pipeline"]["documents"] = evil
         previous = make_run([make_case("a")], "2025-12-31T00:00:00Z", "cfg-0")
-        page = render_dashboard(build_model([previous, run]))
+        baseline = make_run([make_case("a")], "2025-12-30T00:00:00Z", "cfg-0")
+        baseline["cases"][0]["answer"] = evil
+        model = build_model([previous, run], baseline=baseline, sources=[evil, evil], warnings=[evil])
+        page = render_dashboard(model, title=evil)
         assert evil not in page
         assert "&lt;script&gt;" in page
+        assert_well_formed(page)
+
+    def test_hostile_case_id_survives_the_filter_and_insight_links(self):
+        """The id is used as a data attribute, a search token and a button payload."""
+        evil = 'a"b<c>&d'
+        run = make_run([make_case(evil, passed=False, score=0.1, failed_checks=["keyword_presence"])])
+        page = render_dashboard(build_model([run]))
+        assert evil not in page
+        assert 'data-id="a&quot;b&lt;c&gt;&amp;d"' in page
+        assert 'data-case="a&quot;b&lt;c&gt;&amp;d"' in page
         assert_well_formed(page)
 
     def test_case_rows_carry_filter_and_sort_data(self):
@@ -599,6 +617,12 @@ class TestRenderDashboard:
         assert 'data-id="b" data-status="pass improved"' in page
         assert 'data-category="sec"' in page
         assert 'data-filter="regressed"' in page
+
+    def test_run_log_names_the_file_each_run_came_from(self):
+        runs = [make_run([make_case("a")]), make_run([make_case("a")], "2026-01-02T00:00:00Z")]
+        page = render_dashboard(build_model(runs, sources=["history/run-0001.json", "results.json"]))
+        assert '<td class="mono" title="history/run-0001.json">#1</td>' in page
+        assert '<td class="mono" title="results.json">#2</td>' in page
 
     def test_navigation_only_routes_to_section_ids(self):
         """Charts and widgets have ids too (``trend-pass_rate``, ``tooltip``). A URL hash naming

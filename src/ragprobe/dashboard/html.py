@@ -614,9 +614,10 @@ def _run_log(model: DashboardModel) -> str:
         if point.dataset_changed:
             changes = ("dataset changed; " + changes) if changes else "dataset changed"
         nondeterministic = "" if point.deterministic else ' <span class="pill warn plain">nondeterministic</span>'
+        source = f' title="{esc(point.source)}"' if point.source else ""
         rows.append(
             "<tr>"
-            f'<td class="mono">{esc(point.label)}</td>'
+            f'<td class="mono"{source}>{esc(point.label)}</td>'
             f'<td class="mono">{esc(point.started_at)}</td>'
             f'<td class="mono">{esc(point.config_fingerprint)}</td>'
             f"<td>{esc(point.provider)}{nondeterministic}</td>"
