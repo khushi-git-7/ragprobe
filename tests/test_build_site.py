@@ -131,3 +131,86 @@ def test_absolute_dashboard_url_is_kept(site, tmp_path):
     history = _write_history(tmp_path, [_run(1.0)])
     out = site.build(history, tmp_path / "site" / "index.html", "https://example.invalid/dash", None, site.REPO_URL)
     assert 'href="https://example.invalid/dash"' in out.read_text(encoding="utf-8")
+
+
+# ----------------------------------------------------------------- desktop
+
+
+@pytest.fixture(scope="module")
+def page(site, tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("desktop")
+    history = _write_history(tmp_path, [_run(0.875)])
+    out = site.build(history, tmp_path / "site" / "index.html", None, None, site.REPO_URL)
+    return out.read_text(encoding="utf-8")
+
+
+def test_tabbed_panel_markup(page):
+    tabs = re.findall(r'<button class="tab" role="tab" id="([^"]+)" aria-controls="([^"]+)" aria-selected="(true|false)"', page)
+    assert [t[0] for t in tabs] == ["tab-gate", "tab-target", "tab-numbers"]
+    assert [t[2] for t in tabs] == ["true", "false", "false"]
+    for _tab_id, panel_id, _selected in tabs:
+        assert 'role="tabpanel" id="' + panel_id + '"' in page
+    assert page.count('role="tabpanel"') == 3
+    for label in ("Run the gate", "Point it at your RAG", "See the numbers"):
+        assert ">" + label + "</button>" in page
+    assert "--target http://localhost:8000/ask" in page and "--target myapp.rag:answer" in page
+
+
+def test_desktop_icons_in_order(page):
+    icons = re.findall(r'<a class="dicon" href="#win-([a-z]+)" data-open="\1">.*?<span>([^<]+)</span></a>', page, re.S)
+    keys = [k for k, _ in icons]
+    labels = [label for _, label in icons]
+    assert keys[:7] == ["home", "gate", "golden", "metrics", "docs", "demo", "author"]
+    assert keys[7:] == ["about", "changelog", "casestudy", "examples", "hire", "trash"]
+    assert "The regression gate" in labels and "Talk to the author" in labels and "Hire me" in labels
+    assert ">DEMO</text>" in page  # the orange DEMO badge icon
+
+
+def test_every_icon_has_a_window(site, page):
+    assert '<section class="win main-win open" id="win-home"' in page
+    for key in site.WINDOW_KEYS:
+        if key != "home":
+            assert '<section class="win sub" id="win-' + key + '"' in page
+    assert page.count('<section class="win') == len(site.WINDOW_KEYS)
+    # the joke and the point
+    assert "Not deleted. Kept as documented failures." in page
+    assert "Numbers land here once the live run finishes." in page
+    assert "0.603" in page and "0.707" in page
+    _check_html(page)
+
+
+def test_windows_render_without_javascript(page):
+    assert page.startswith("<!DOCTYPE html>\n<html lang=\"en\" class=\"no-js\">")
+    # hidden only when the script has swapped no-js for js; static HTML shows everything stacked
+    assert ".js .win:not(.open){display:none}" in page
+    assert ".js .tabpanel:not(.active){display:none}" in page
+    assert "replace('no-js','js')" in page
+    # icons are real links to the stacked windows, not script-only buttons
+    assert 'href="#win-trash" data-open="trash"' in page
+
+
+def test_changelog_is_optional_and_escaped(site, tmp_path):
+    history = _write_history(tmp_path, [_run(1.0)])
+    out = tmp_path / "site" / "index.html"
+    without = site.build(history, out, None, None, site.REPO_URL).read_text(encoding="utf-8")
+    assert "No git history was available" in without
+    subjects = ["Add the desktop landing page", "Fix <b>escaping</b> in the log"]
+    with_log = site.build(history, out, None, None, site.REPO_URL, changelog=subjects).read_text(encoding="utf-8")
+    assert "No git history was available" not in with_log
+    assert "<li>Add the desktop landing page</li>" in with_log
+    assert "Fix &lt;b&gt;escaping&lt;/b&gt; in the log" in with_log and "<b>escaping</b>" not in with_log
+    _check_html(with_log)
+
+
+def test_recent_commits_never_raises(site, monkeypatch):
+    def boom(*args, **kwargs):
+        raise OSError("git is not installed")
+    monkeypatch.setattr(site.subprocess, "run", boom)
+    assert site.recent_commits() == []
+
+
+def test_wallpaper_is_an_inline_svg_tile(site, page):
+    assert site.LIGHT_TILE.startswith('url("data:image/svg+xml,') and "%23" in site.LIGHT_TILE
+    assert len(site.LIGHT_TILE) < 4096 and len(site.DARK_TILE) < 4096
+    assert site.LIGHT_TILE == site.grass_tile(["#6E8F4F", "#7FA35B", "#5C7A40", "#8DB06A"], ".8")  # deterministic
+    assert "--tile:" + site.LIGHT_TILE in page and "--tile:" + site.DARK_TILE in page
