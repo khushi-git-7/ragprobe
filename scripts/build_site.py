@@ -174,7 +174,7 @@ def grass_tile(colors: List[str], opacity: str) -> str:
         "<g fill='none' stroke-width='1.6' stroke-linecap='round' opacity='" + opacity + "'>"
         + "".join(paths) + "</g></svg>"
     )
-    encoded = svg.replace("#", "%23").replace("<", "%3C").replace(">", "%3E")
+    encoded = svg.replace("#", "%23").replace("<", "%3C").replace(">", "%3E").replace(" ", "%20")
     return 'url("data:image/svg+xml,' + encoded + '")'
 
 
@@ -239,6 +239,7 @@ svg{max-width:100%}
 /* ---- windows ---- */
 .win{position:relative;background:var(--win);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow:hidden;margin:0 auto 26px;width:100%;max-width:1180px}
 .win.sub{max-width:860px}
+.win:focus{outline:none}
 .js .win:not(.open){display:none}
 @media (min-width:900px){.js .win.sub.open,.js .win.floating{position:absolute;margin:0;width:min(860px,80%)}.js .win.floating{max-width:none}}
 .win.max{position:fixed !important;top:56px !important;left:8px !important;right:8px !important;bottom:8px !important;width:auto !important;max-width:none;margin:0;z-index:250 !important;overflow:auto}
