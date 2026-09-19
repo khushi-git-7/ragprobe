@@ -29,7 +29,8 @@ from ragprobe.evaluation.evaluators import (
     refusal_behaviour,
 )
 from ragprobe.evaluation.judge import assess_faithfulness, grounding_check, judge_check
-from ragprobe.pipeline.rag import RagPipeline, RagResult
+from ragprobe.pipeline.rag import RagResult
+from ragprobe.targets import get_target
 
 SCHEMA_VERSION = 1
 
@@ -265,14 +266,20 @@ def run_suite(
     cases: Sequence[GoldenCase],
     config: ProbeConfig,
     base_dir: Optional[Path] = None,
-    pipeline: Optional[RagPipeline] = None,
+    pipeline: Optional[Any] = None,
     progress: Optional[Callable[[int, int, GoldenCase], None]] = None,
+    target: Optional[Any] = None,
 ) -> RunResult:
-    """Run the full golden set and return a ``RunResult``."""
+    """Run the full golden set against a target and return a ``RunResult``.
+
+    ``target`` is any ``ragprobe.targets.Target`` - the built-in pipeline by default,
+    or an HTTP service / Python callable when ``config.target`` says so. ``pipeline``
+    is the older name for the same parameter and still works.
+    """
     started = time.time()
     started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
 
-    pipeline = pipeline or RagPipeline(config, base_dir=base_dir)
+    pipeline = target or pipeline or get_target(config, base_dir=base_dir)
     pipeline.ingest()
 
     results: List[CaseResult] = []
@@ -311,8 +318,8 @@ def run_suite(
         config=config.to_dict(),
         config_fingerprint=config.fingerprint(),
         dataset_fingerprint=dataset_fingerprint(cases),
-        provider=pipeline.provider.name,
-        deterministic=pipeline.provider.deterministic,
+        provider=pipeline.provider_name,
+        deterministic=pipeline.deterministic,
         pipeline_stats=pipeline.stats(),
         started_at=started_at,
         duration_seconds=time.time() - started,

@@ -54,6 +54,7 @@ before merge, not after.*
 - [The problem](#the-problem)
 - [What RAGProbe does](#what-ragprobe-does)
 - [Quickstart](#quickstart)
+- [Testing your own RAG](#testing-your-own-rag)
 - [The regression workflow](#the-regression-workflow)
 - [Architecture](#architecture)
 - [Design decisions](#design-decisions)
@@ -137,6 +138,61 @@ pytest
 
 If you prefer not to install the package, `python -m ragprobe` works the same way
 with `src/` on `PYTHONPATH`.
+
+## Testing your own RAG
+
+The bundled pipeline is a reference implementation. The harness is built to test
+*yours*. Point it at a running service or at a Python entry point and the same golden
+set, retrieval metrics, evaluators, baseline and regression gate apply unchanged:
+
+```bash
+# A RAG service behind an HTTP endpoint
+ragprobe run --target http://localhost:8000/ask
+
+# A Python function or class in your own codebase (imported from --root)
+ragprobe run --target myapp.rag:answer
+
+# ...and gate it in CI exactly like the built-in pipeline
+ragprobe baseline --target http://localhost:8000/ask
+ragprobe diff     --target http://localhost:8000/ask
+```
+
+**HTTP contract.** RAGProbe POSTs `{"question": "..."}` and reads a JSON object back.
+Only `answer` is required; return `contexts` (the chunks your retriever used, with the
+stable ids your golden set names in `expected_chunks`) to get retrieval metrics:
+
+```json
+{"answer": "Full-time employees get 20 days.",
+ "contexts": [{"id": "handbook#paid-time-off", "text": "...", "score": 0.81}],
+ "refused": false}
+```
+
+Field names, the HTTP method, headers and extra body keys are configurable in
+`ragprobe.yaml`. Header values may reference environment variables; they are expanded
+per request and stored unexpanded, so a results file never contains a token:
+
+```yaml
+target:
+  kind: http
+  url: https://rag.internal/v1/answer
+  headers: {Authorization: "Bearer ${RAG_TOKEN}"}
+  question_field: query          # request body key (default: question)
+  answer_field: data.answer      # dotted paths into the response are fine
+  contexts_field: data.sources
+  extra_body: {top_k: 5}
+```
+
+**Python contract.** `target.entry` is `package.module:name`. A function receives the
+question and returns a string, a mapping in the shape above, or a `RagResult`. A class
+is instantiated once; its `ingest()`/`setup()` runs before the suite and its
+`answer()`/`query()`/`ask()` method answers each case. Chunk mappings accept the key
+spellings LangChain and LlamaIndex already emit (`page_content`, `metadata.source`,
+`content`, `similarity`...), so wrapping either is a few lines - see
+[`examples/`](examples/) for both.
+
+External targets are recorded as nondeterministic, which is what they are: the
+determinism flag in the results tells the diff to treat small score movements with
+appropriate suspicion.
 
 ## The regression workflow
 
@@ -760,12 +816,14 @@ ragprobe/
 │   │   ├── grounding.py        Offline faithfulness heuristic
 │   │   ├── judge.py            Heuristic + LLM judge orchestration
 │   │   └── runner.py           Runs the suite, builds results.json
+│   ├── targets/                Systems under test: builtin pipeline, HTTP service, Python entry point
 │   ├── regression/diff.py      Baseline comparison and the CI gate
 │   ├── reporting/              Terminal summary and self-contained HTML
 │   ├── dashboard/              Run-history analytics: metrics, insights, inline SVG, HTML
 │   ├── history.py              Append/load runs in reports/history/
 │   └── cli.py                  argparse entrypoint, exit-code contract
 ├── scripts/build_site.py       Landing page for GitHub Pages (stdlib only)
+├── examples/                   Wrapping a LangChain chain, a LlamaIndex engine, a FastAPI service
 ├── datasets/
 │   ├── docs/                   Five fictional sample documents
 │   └── golden_set.yaml         Sixteen cases across six categories
@@ -792,9 +850,6 @@ Ordered roughly by how much they would change what the tool can catch.
 - **Pluggable retrievers** (BM25 for a lexical baseline, a hybrid of the two) behind
   the same interface as the embedder, so retrieval strategies can be A/B'd with the
   same golden set.
-- **Adapter for an external pipeline.** A thin `LLMProvider`/`RagPipeline` shim that
-  wraps an HTTP endpoint, so RAGProbe can test a deployed service rather than only
-  the bundled pipeline.
 - **Per-category gates.** Fail on any regression in `security` while tolerating drift
   in `general`.
 - **Dataset generation helpers.** Draft candidate questions from corpus sections for a

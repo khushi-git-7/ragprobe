@@ -124,6 +124,47 @@ class EvaluationConfig:
 
 
 @dataclass
+class TargetConfig:
+    """What system is under test.
+
+    ``builtin`` is RAGProbe's own reference pipeline. ``http`` and ``python`` point the
+    harness at *your* RAG - a service behind an endpoint, or a Python callable - so the
+    same golden set, evaluators and regression gate apply to the thing you actually
+    ship. Header values may reference environment variables (``Bearer ${RAG_TOKEN}``);
+    they are expanded at request time and stored unexpanded, so a results file never
+    contains a secret.
+    """
+
+    kind: str = "builtin"  # "builtin" | "http" | "python"
+    url: str = ""  # http: endpoint that answers a question
+    entry: str = ""  # python: "package.module:callable" or "package.module:Class"
+    method: str = "POST"
+    headers: Dict[str, str] = field(default_factory=dict)
+    timeout: float = 60.0
+    question_field: str = "question"  # request body key carrying the question
+    answer_field: str = "answer"  # dotted path into the response
+    contexts_field: str = "contexts"  # dotted path to the retrieved chunks
+    refused_field: str = "refused"  # optional dotted path to a refusal flag
+    extra_body: Dict[str, Any] = field(default_factory=dict)
+
+    def validate(self) -> None:
+        if self.kind not in {"builtin", "http", "python"}:
+            raise ConfigError(
+                f"target.kind must be 'builtin', 'http' or 'python', got {self.kind!r}"
+            )
+        if self.kind == "http" and not self.url:
+            raise ConfigError("target.url is required when target.kind is 'http'")
+        if self.kind == "python" and ":" not in self.entry:
+            raise ConfigError(
+                "target.entry must look like 'package.module:callable' when target.kind is 'python'"
+            )
+        if self.method.upper() not in {"POST", "GET"}:
+            raise ConfigError(f"target.method must be POST or GET, got {self.method!r}")
+        if self.timeout <= 0:
+            raise ConfigError("target.timeout must be > 0")
+
+
+@dataclass
 class ProbeConfig:
     """Top-level configuration."""
 
@@ -133,6 +174,7 @@ class ProbeConfig:
     retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
     generation: GenerationConfig = field(default_factory=GenerationConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    target: TargetConfig = field(default_factory=TargetConfig)
 
     # ---------------------------------------------------------------- loading
 
@@ -144,6 +186,7 @@ class ProbeConfig:
             "retrieval": RetrievalConfig,
             "generation": GenerationConfig,
             "evaluation": EvaluationConfig,
+            "target": TargetConfig,
         }
         kwargs: Dict[str, Any] = {}
         for key, sub_cls in sections.items():
@@ -189,6 +232,7 @@ class ProbeConfig:
         self.retrieval.validate()
         self.generation.validate()
         self.evaluation.validate()
+        self.target.validate()
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)

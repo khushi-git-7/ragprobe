@@ -29,6 +29,7 @@ from ragprobe.config import ConfigError, ProbeConfig
 from ragprobe.dashboard import build_model, write_dashboard
 from ragprobe.evaluation.dataset import DatasetError, load_dataset
 from ragprobe.evaluation.runner import RunResult, run_suite
+from ragprobe.targets import TargetError, parse_target_spec
 from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, is_valid_run, load_history, merge_current
 from ragprobe.pipeline.loader import CorpusError
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
@@ -114,6 +115,9 @@ def _build_config(args: argparse.Namespace) -> ProbeConfig:
         overrides["generation.max_sentences"] = args.max_sentences
     if getattr(args, "no_judge", False):
         overrides["evaluation.judge_enabled"] = False
+    if getattr(args, "target", None):
+        for key, value in parse_target_spec(args.target).items():
+            overrides["target." + key] = value
     if overrides:
         config = config.apply_overrides(overrides)
     return config
@@ -158,9 +162,14 @@ def _execute_run(args: argparse.Namespace) -> RunResult:
     if not args.quiet:
         def progress(index: int, total: int, case) -> None:  # noqa: ANN001
             print(f"  [{index}/{total}] {case.id}", file=sys.stderr)
+        target = config.target
+        where = {
+            "http": f"against {target.url}",
+            "python": f"against {target.entry}",
+        }.get(target.kind, "against the built-in pipeline")
         print(
             f"RAGProbe {__version__}: running {len(cases)} case(s) "
-            f"from {dataset_path}",
+            f"from {dataset_path} {where}",
             file=sys.stderr,
         )
 
@@ -346,6 +355,11 @@ def _add_pipeline_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--root", help="project root that relative paths resolve against")
     parser.add_argument("--corpus", help="override corpus_dir")
     parser.add_argument("--dataset", help="override dataset_path")
+    parser.add_argument(
+        "--target", metavar="URL|module:name|builtin",
+        help="system under test: an HTTP endpoint, a Python entry point, or the built-in "
+        "pipeline (default: the 'target' block in the config, else builtin)",
+    )
     parser.add_argument("--top-k", type=int, help="override retrieval.top_k")
     parser.add_argument(
         "--provider",
@@ -506,7 +520,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (ConfigError, DatasetError, CorpusError, FileNotFoundError, InputError) as exc:
+    except (ConfigError, DatasetError, CorpusError, FileNotFoundError, InputError, TargetError) as exc:
         # Expected, actionable failures: print the message, not a traceback.
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE

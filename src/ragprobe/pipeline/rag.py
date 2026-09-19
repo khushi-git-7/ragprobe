@@ -83,7 +83,14 @@ class RagResult:
 
 
 class RagPipeline:
-    """ingest -> chunk -> embed -> retrieve -> answer."""
+    """ingest -> chunk -> embed -> retrieve -> answer.
+
+    This is the ``builtin`` target. It satisfies the ``ragprobe.targets.Target``
+    surface (``ingest``, ``answer``, ``stats``, ``provider``, ``provider_name``,
+    ``deterministic``) without inheriting from it, which keeps the import graph acyclic.
+    """
+
+    kind = "builtin"
 
     def __init__(
         self,
@@ -175,6 +182,14 @@ class RagPipeline:
         )
 
     # ------------------------------------------------------------------ info
+
+    @property
+    def provider_name(self) -> str:
+        return self.provider.name
+
+    @property
+    def deterministic(self) -> bool:
+        return self.provider.deterministic
 
     def stats(self) -> Dict[str, Any]:
         self._ensure_ingested()

@@ -23,3 +23,6 @@ Thumbs.db
 # Secrets - never commit an API key
 .env
 /site/
+
+# Local tooling
+.claude/
