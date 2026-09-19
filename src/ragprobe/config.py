@@ -65,6 +65,10 @@ class RetrievalConfig:
     top_k: int = 3
     min_score: float = 0.0
     model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    #: Where neural passage embeddings are cached between runs, relative to the
+    #: project root. Empty string disables the cache. Only backends that declare
+    #: ``cacheable`` (pre-trained models) use it; TF-IDF is refitted every run.
+    cache_dir: str = ".ragprobe/embeddings"
 
     def validate(self) -> None:
         if self.top_k <= 0:

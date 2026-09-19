@@ -519,7 +519,54 @@ def build_parser() -> argparse.ArgumentParser:
     )
     dashboard_parser.set_defaults(func=cmd_dashboard)
 
+    # import ---------------------------------------------------------------
+    import_parser = subparsers.add_parser(
+        "import", help="build a corpus and golden set from a public dataset (SQuAD 2.0)"
+    )
+    import_parser.add_argument("dataset_name", choices=["squad"], help="dataset to import")
+    import_parser.add_argument("--out", required=True, metavar="DIR", help="directory to write into")
+    import_parser.add_argument("--split", default="dev", choices=["dev", "train"], help="SQuAD split (default: dev)")
+    import_parser.add_argument("--source", help="local copy of the dataset JSON instead of downloading it")
+    import_parser.add_argument("--limit", type=int, default=100, help="number of questions (default: 100)")
+    import_parser.add_argument(
+        "--unanswerable-ratio", type=float, default=0.25,
+        help="fraction of questions that must be refused (default: 0.25)",
+    )
+    import_parser.add_argument("--articles", type=int, help="cap the number of articles in the corpus (default: all)")
+    import_parser.add_argument("--seed", type=int, default=7, help="sampling seed (default: 7)")
+    import_parser.set_defaults(func=cmd_import)
+
     return parser
+
+
+def cmd_import(args: argparse.Namespace) -> int:
+    """Turn a public dataset into a corpus + golden set + config directory."""
+    if args.dataset_name != "squad":
+        raise InputError(f"unknown dataset {args.dataset_name!r}; expected 'squad'")
+    from ragprobe.importers import squad
+
+    try:
+        data, source = squad.load_source(Path(args.source) if args.source else None, args.split)
+        documents, cases = squad.convert(
+            data,
+            limit=args.limit,
+            unanswerable_ratio=args.unanswerable_ratio,
+            seed=args.seed,
+            articles=args.articles,
+        )
+        out = squad.write_example(
+            Path(args.out), documents, cases, args.split, source,
+            args.seed, args.limit, args.unanswerable_ratio,
+        )
+    except squad.ImportError_ as exc:
+        raise InputError(str(exc)) from exc
+    refusals = sum(1 for case in cases if case.get("should_refuse"))
+    print(
+        f"imported {len(cases)} case(s) ({refusals} unanswerable) over "
+        f"{len(documents)} article(s) into {out}"
+    )
+    print(f"  next: ragprobe run --config {out / 'ragprobe.yaml'} --root {out} --html")
+    return EXIT_OK
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:

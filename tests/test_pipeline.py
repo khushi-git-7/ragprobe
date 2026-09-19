@@ -347,3 +347,76 @@ class TestEmbedderBaseQueryPath:
     def test_tfidf_query_path_equals_passage_path(self):
         embedder = HashingTfidfEmbedder(dim=64).fit(CORPUS)
         assert embedder.embed_query(CORPUS[0]) == embedder.embed(CORPUS[0])
+
+
+class TestEmbeddingCache:
+    """Cacheable (pre-trained) backends store passage vectors on disk between runs."""
+
+    class CountingEmbedder(HashingTfidfEmbedder):
+        name = "counting"
+        cacheable = True
+
+        def __init__(self):
+            super().__init__(dim=32)
+            self.batches = 0
+
+        def cache_key(self):
+            return "counting:v1"
+
+        def embed_many(self, texts):
+            self.batches += 1
+            return super().embed_many(texts)
+
+    def _pipeline(self, root, monkeypatch, project_root):
+        from ragprobe.config import ProbeConfig
+        from ragprobe.pipeline import embeddings as emb_mod
+        from ragprobe.pipeline.rag import RagPipeline
+
+        embedder = self.CountingEmbedder()
+        monkeypatch.setattr(emb_mod, "get_embedder", lambda cfg: embedder)
+        import ragprobe.pipeline.rag as rag_mod
+
+        monkeypatch.setattr(rag_mod, "get_embedder", lambda cfg: embedder)
+        cfg = ProbeConfig.from_dict({
+            "corpus_dir": str(project_root / "datasets" / "docs"),
+            "retrieval": {"cache_dir": "cache"},
+        })
+        return RagPipeline(cfg, base_dir=root), embedder
+
+    def test_second_ingest_hits_the_cache(self, tmp_path, monkeypatch, project_root):
+        first, embedder = self._pipeline(tmp_path, monkeypatch, project_root)
+        first.ingest()
+        assert first.embedding_cache_hit is False and embedder.batches == 1
+        assert list((tmp_path / "cache").glob("*.json"))
+
+        second, embedder2 = self._pipeline(tmp_path, monkeypatch, project_root)
+        second.ingest()
+        assert second.embedding_cache_hit is True and embedder2.batches == 0
+        assert second.stats()["embedding_cache_hit"] is True
+        # Cached vectors retrieve identically.
+        q = "How many days of paid time off?"
+        assert [c.chunk_id for c in first.retrieve(q)] == [c.chunk_id for c in second.retrieve(q)]
+
+    def test_cache_disabled_by_empty_dir(self, tmp_path, monkeypatch, project_root):
+        pipeline, embedder = self._pipeline(tmp_path, monkeypatch, project_root)
+        pipeline.config.retrieval.cache_dir = ""
+        pipeline.ingest()
+        assert pipeline.embedding_cache_hit is None and embedder.batches == 1
+        assert not (tmp_path / "cache").exists()
+
+    def test_tfidf_is_never_cached(self, tmp_path, project_root):
+        from ragprobe.config import ProbeConfig
+        from ragprobe.pipeline.rag import RagPipeline
+
+        cfg = ProbeConfig.from_dict({"corpus_dir": str(project_root / "datasets" / "docs"), "retrieval": {"cache_dir": "cache"}})
+        RagPipeline(cfg, base_dir=tmp_path).ingest()
+        assert not (tmp_path / "cache").exists()
+
+    def test_corrupt_cache_is_recomputed(self, tmp_path, monkeypatch, project_root):
+        first, _ = self._pipeline(tmp_path, monkeypatch, project_root)
+        first.ingest()
+        for path in (tmp_path / "cache").glob("*.json"):
+            path.write_text("{not json", encoding="utf-8")
+        second, embedder2 = self._pipeline(tmp_path, monkeypatch, project_root)
+        second.ingest()
+        assert second.embedding_cache_hit is False and embedder2.batches == 1

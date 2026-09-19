@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -155,6 +156,11 @@ class OpenAICompatibleProvider(LLMProvider):
                     raise ProviderHTTPError(last_error) from exc
                 wait = delay
             self.retries += 1
+            print(
+                f"  [{self.name}] {last_error.split(':', 1)[0]} - retrying in {wait:.0f}s "
+                f"(attempt {attempt}/{MAX_ATTEMPTS})",
+                file=sys.stderr,
+            )
             self._sleep(wait)
             delay = min(delay * 2, 60.0)
         raise ProviderHTTPError(last_error)  # pragma: no cover - loop always returns or raises
