@@ -211,6 +211,12 @@ jobs:
           fi
           report=$(find artifacts -name report.html | head -n 1)
           if [ -n "$report" ]; then cp "$report" site/report.html; fi
+          # The Playwright case study: its three recorded runs (TF-IDF, neural
+          # embedder, live Gemini) are committed with the example, so the
+          # dashboard over them is reproducible and never depends on a key.
+          mkdir -p site/case-study
+          ragprobe dashboard --root examples/playwright-docs --history-dir history             --out site/case-study/dashboard.html --title "RAGProbe - Playwright docs case study"
+          ragprobe report --results examples/playwright-docs/history/$(ls examples/playwright-docs/history | sort | tail -n 1)             --baseline examples/playwright-docs/baseline.json --out site/case-study/report.html             --title "Playwright docs - live model vs stub baseline" || true
           python scripts/build_site.py --history-dir reports/history --out site/index.html
           # Keep the store bounded: the newest 200 runs. File names start with
           # the sequence number, so a name sort is a time sort; mtimes here are

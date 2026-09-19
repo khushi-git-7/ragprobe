@@ -202,7 +202,7 @@ on the five fictional sample documents:
 
 | Example | Corpus | Questions | Baseline (TF-IDF + stub) |
 |---|---|---|---|
-| [`examples/playwright-docs/`](examples/playwright-docs/) | 59 Playwright guide pages (Apache-2.0), 841 chunks | 62 written the way QA engineers ask them, 4 unanswerable | pass 61.3%, hit rate@3 0.603, MRR 0.537 |
+| [`examples/playwright-docs/`](examples/playwright-docs/) | 59 Playwright guide pages (Apache-2.0), 841 chunks | 62 written the way QA engineers ask them, 4 unanswerable | pass 61.3%, hit rate@3 0.603, MRR 0.537 - and a [case study](docs/case-study.md) with a neural embedder and a live model |
 | [`examples/squad/`](examples/squad/) | SQuAD 2.0 dev: 35 Wikipedia articles (CC BY-SA 4.0), 1,204 paragraphs | 120 sampled, 30 unanswerable | pass 55.8%, hit rate@3 0.844, MRR 0.763 |
 
 ```bash
@@ -221,6 +221,8 @@ ragprobe import squad --out examples/squad --limit 120 --unanswerable-ratio 0.25
 
 The Playwright corpus is fetched and normalised by `scripts/fetch_playwright_docs.py`
 at a pinned upstream revision. Both are committed, so CI needs no network.
+
+The [case study](docs/case-study.md) walks through what the Playwright example found: three evaluator defects that only real text and a real model could expose, a retrieval-versus-generation attribution of every failure, and the gate refusing an embedder upgrade that improved every aggregate metric. Its three runs are committed under `examples/playwright-docs/history/` and published as a [dashboard](https://khushi-git-7.github.io/ragprobe/case-study/dashboard.html).
 
 Running on real documentation found a defect in the harness on the first day: the
 citation extractor treated every bracketed span as a citation, so markdown links in
@@ -704,6 +706,17 @@ Exit codes: `0` success, `1` a gate failed, `2` usage error, bad config or a mis
 
 Configuration lives in `ragprobe.yaml`. Every value is hashed into the run's config
 fingerprint; unknown keys are rejected at load time.
+
+### `ragprobe rescore` and `ragprobe import`
+
+`ragprobe rescore --results reports/results.json --out reports/rescored.json` re-runs
+every evaluator over the answers and retrieved chunks saved in a results file, with
+no model calls. Use it after fixing an evaluator or re-tuning a threshold to measure
+the evaluator change on its own; live answers are expensive and nondeterministic,
+and re-generating them would confound the comparison. The LLM judge is not re-run.
+
+`ragprobe import squad --out DIR` builds a corpus, golden set and config from SQuAD
+2.0 (see [Real data](#real-data)).
 
 ## Reports
 

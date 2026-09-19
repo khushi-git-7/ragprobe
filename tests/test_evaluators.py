@@ -182,6 +182,15 @@ class TestCitations:
             "test_ui_mode#opening-ui-mode", "docs#split~2", "docs#dup-2",
         ]
 
+    def test_several_ids_in_one_bracket(self):
+        """Live models cite ``[doc#a, doc#b]`` when two sources support a sentence."""
+        answer = "Set workers in the config [test_parallel#limit-workers, ci#workers]; see [x#y;z#w~2]."
+        assert extract_citations(answer) == [
+            "test_parallel#limit-workers", "ci#workers", "x#y", "z#w~2",
+        ]
+        result = citation_present(answer, ["test_parallel#limit-workers", "ci#workers", "x#y", "z#w~2"])
+        assert result.passed, result.detail
+
     def test_markdown_link_is_not_a_fabricated_citation(self):
         result = citation_present("See [the guide](./x.md). [doc#a]", ["doc#a"])
         assert result.passed, result.detail

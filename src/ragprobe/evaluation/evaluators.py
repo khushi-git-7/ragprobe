@@ -42,7 +42,11 @@ REFUSAL_PATTERNS: Sequence[str] = (
 # split suffix or a ``-2`` duplicate-heading suffix. It must not be followed by
 # ``(``, which would make it a markdown link. Anything looser turns every markdown
 # link and every ``[Note]`` in a real corpus into a "fabricated citation".
-_CITATION_RE = re.compile(r"\[([A-Za-z0-9_.\-]+#[A-Za-z0-9_\-~.]+)\](?!\()")
+_CHUNK_ID = r"[A-Za-z0-9_.\-]+#[A-Za-z0-9_\-~.]+"
+# One bracket may carry several ids - ``[doc#a, doc#b]`` is how models cite when two
+# sources support one sentence - so the group captures the whole list.
+_CITATION_RE = re.compile(r"\[(" + _CHUNK_ID + r"(?:\s*[,;]\s*" + _CHUNK_ID + r")*)\](?!\()")
+_CITATION_SPLIT_RE = re.compile(r"\s*[,;]\s*")
 
 
 @dataclass
@@ -213,10 +217,10 @@ def extract_citations(answer: str) -> List[str]:
     seen: Set[str] = set()
     result: List[str] = []
     for match in _CITATION_RE.findall(answer or ""):
-        candidate = match.strip()
-        if candidate and candidate not in seen:
-            seen.add(candidate)
-            result.append(candidate)
+        for candidate in _CITATION_SPLIT_RE.split(match.strip()):
+            if candidate and candidate not in seen:
+                seen.add(candidate)
+                result.append(candidate)
     return result
 
 
