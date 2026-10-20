@@ -902,6 +902,41 @@ ragprobe/
 └── ragprobe.yaml               Default configuration
 ```
 
+## Security testing
+
+Beyond answer quality, RAGProbe can test how a RAG/LLM application stands up to the
+attacks in the [OWASP Top 10 for LLMs](https://genai.owasp.org/) - prompt injection,
+system-prompt and data leakage, indirect injection through retrieved documents, and
+agent tool-misuse - and measure how much each defence actually helps.
+
+```
+$ ragprobe security run --md
+
+RAGProbe security suite
+----------------------------------------------------
+  victim    : simulated (gullible-v1) [deterministic]
+  attacks   : 12   seed 7   corpus 96a5159bd413
+
+  defence         ASR          95% CI   utility   blocked
+  none            92%       0.65-0.99       60%      0/12
+  layered         17%       0.05-0.45       60%      5/12
+
+  scorecard (defence: layered)
+    LLM01  Prompt Injection                    100% ->  67%   D
+    LLM02  Sensitive Information Disclosure    100% ->   0%   A
+    LLM06  Excessive Agency                    100% ->   0%   A
+    LLM07  System Prompt Leakage               100% ->   0%   A
+    LLM08  Vector and Embedding Weaknesses      50% ->   0%   A
+```
+
+It runs offline and deterministically by default (a gullible simulated victim that
+tests the harness and the code-level defences), or against a live model
+(`--victim live`, any OpenAI-compatible endpoint). Success is scored by planted
+canaries and a string oracle - not a second model's judgement - and the whole thing
+gates in CI: `--fail-over 0.2` exits non-zero when the best defence still lets more
+than 20% of attacks through. See [docs/security.md](docs/security.md) for the threat
+model, the oracles, and how defences and detectors are measured.
+
 ## Roadmap
 
 Ordered roughly by how much they would change what the tool can catch.

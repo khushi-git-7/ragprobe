@@ -105,7 +105,14 @@ class OpenAICompatibleProvider(LLMProvider):
         return urllib.request.urlopen(request, timeout=timeout)
 
     def _headers(self) -> Dict[str, str]:
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        # A browser-style User-Agent is required: some endpoints front their API
+        # with a bot filter (Gemini and Groq return a Cloudflare 1010 block to the
+        # default urllib agent).
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; ragprobe/0.1)",
+        }
         if self.api_key:
             headers["Authorization"] = "Bearer " + self.api_key
         return headers
@@ -164,6 +171,43 @@ class OpenAICompatibleProvider(LLMProvider):
             self._sleep(wait)
             delay = min(delay * 2, 60.0)
         raise ProviderHTTPError(last_error)  # pragma: no cover - loop always returns or raises
+
+    def chat(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        max_tokens: int = 512,
+        temperature: float = 0.0,
+    ) -> Dict[str, Any]:
+        """One raw chat turn, tool calls included. Used by the security suite.
+
+        Unlike :meth:`_complete` a content-filter stop is *returned*, not raised:
+        when a provider's safety layer blocks an attack, that is a result to record.
+        """
+        body: Dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if tools:
+            body["tools"] = tools
+            body["tool_choice"] = "auto"
+        payload = self._post("/chat/completions", body)
+        try:
+            choice = payload["choices"][0]
+            message = choice.get("message") or {}
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ProviderHTTPError(f"unexpected response shape: {json.dumps(payload)[:200]}") from exc
+        content = message.get("content")
+        if isinstance(content, list):
+            content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+        return {
+            "content": str(content or ""),
+            "tool_calls": message.get("tool_calls") or [],
+            "finish_reason": choice.get("finish_reason"),
+            "usage": payload.get("usage") or {},
+        }
 
     # -------------------------------------------------------------- answering
 
