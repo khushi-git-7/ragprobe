@@ -255,3 +255,16 @@ def test_detector_eval_by_language_runs(tmp_path):
     report = run_detector_eval(data, ["heuristic"], by_language=True)
     assert "attack_language_distribution" in report
     assert "by_language" in report["detectors"][0]
+
+
+# ------------------------------------------------------ CI gate
+
+def test_min_reduction_gate_exit_codes(tmp_path):
+    from ragprobe.cli import main
+    out = str(tmp_path / "s.json")
+    # Layered cuts the simulated attack-success rate by well over half -> passes.
+    assert main(["security", "run", "--defenses", "none,layered",
+                 "--min-reduction", "0.5", "--out", out]) == 0
+    # Demanding a 99.9% cut from a prompt-only defence must fail the gate.
+    assert main(["security", "run", "--defenses", "none,hardened",
+                 "--min-reduction", "0.999", "--out", out]) == 1

@@ -584,6 +584,9 @@ def build_parser() -> argparse.ArgumentParser:
                          help="also write a Markdown scorecard report")
     sec_run.add_argument("--fail-over", type=float, metavar="ASR",
                          help="exit 1 if the best defence's attack-success rate exceeds this")
+    sec_run.add_argument("--min-reduction", type=float, metavar="FRACTION",
+                         help="exit 1 if the best defence does not cut the undefended "
+                              "attack-success rate by at least this fraction (e.g. 0.5)")
     sec_run.set_defaults(func=cmd_security_run)
 
     sec_eval = sec_sub.add_parser(
@@ -656,12 +659,22 @@ def cmd_security_run(args: argparse.Namespace) -> int:
         Path(args.md).write_text(render_markdown(results), encoding="utf-8")
         print(f"  wrote {args.md}")
 
+    by_defense = results["summary"]["by_defense"]
     if args.fail_over is not None:
         card = scorecard(results)
         worst = max((r["asr_defended"] for r in card["rows"]), default=0.0)
         if worst > args.fail_over:
             print(f"\nGATE FAILED: best-defence attack-success rate {worst:.2f} "
                   f"exceeds the limit of {args.fail_over:.2f}", file=sys.stderr)
+            return EXIT_GATE_FAILED
+    if args.min_reduction is not None and by_defense:
+        undefended = max(b["asr"] for b in by_defense.values())
+        best = min(b["asr"] for b in by_defense.values())
+        reduction = (undefended - best) / undefended if undefended else 1.0
+        if reduction < args.min_reduction:
+            print(f"\nGATE FAILED: best defence cut attack-success by only "
+                  f"{reduction*100:.0f}% ({undefended*100:.0f}% -> {best*100:.0f}%), "
+                  f"below the required {args.min_reduction*100:.0f}%", file=sys.stderr)
             return EXIT_GATE_FAILED
     return EXIT_OK
 
