@@ -44,6 +44,12 @@ neural = [
 pdf = [
     "pypdf>=3.0",
 ]
+# The transformer prompt-injection detector (security suite). Pulls in torch, so
+# it is opt-in: the heuristic detector is the default and needs nothing.
+ml = [
+    "transformers>=4.40",
+    "torch>=2.0",
+]
 
 [project.scripts]
 ragprobe = "ragprobe.cli:main"

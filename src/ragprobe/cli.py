@@ -32,6 +32,7 @@ from ragprobe.evaluation.runner import RunResult, rescore, run_suite
 from ragprobe.targets import TargetError, parse_target_spec
 from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, is_valid_run, load_history, merge_current
 from ragprobe.pipeline.loader import CorpusError
+from ragprobe.providers import get_provider
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
 from ragprobe.reporting.html import write_report
 from ragprobe.reporting.terminal import render_diff_summary, render_gate, render_run_summary
@@ -554,7 +555,93 @@ def build_parser() -> argparse.ArgumentParser:
     import_parser.add_argument("--seed", type=int, default=7, help="sampling seed (default: 7)")
     import_parser.set_defaults(func=cmd_import)
 
+    # security -------------------------------------------------------------
+    security_parser = subparsers.add_parser(
+        "security",
+        help="run the LLM security suite (prompt injection, leakage, agent misuse)",
+    )
+    sec_sub = security_parser.add_subparsers(dest="security_command", required=True)
+
+    sec_run = sec_sub.add_parser("run", help="run attacks x defences and score them")
+    sec_run.add_argument("--attacks", default="datasets/security/attacks.yaml",
+                         help="attack corpus YAML")
+    sec_run.add_argument("--root", help="project root that relative paths resolve against")
+    sec_run.add_argument("--corpus", default="datasets/docs", help="corpus for the RAG scenario")
+    sec_run.add_argument("--victim", default="simulated", choices=["simulated", "live"],
+                         help="simulated (offline, deterministic) or live (an API model)")
+    sec_run.add_argument("--provider", default="openai",
+                         help="live victim provider: openai (default), anthropic")
+    sec_run.add_argument("--model", help="live victim model id")
+    sec_run.add_argument("--base-url", help="live victim endpoint (OpenAI-compatible)")
+    sec_run.add_argument("--defenses", default="none,layered",
+                         help="comma-separated defences or presets (default: none,layered)")
+    sec_run.add_argument("--vectors", help="limit to these attack vectors (user,document,tool)")
+    sec_run.add_argument("--trials", type=_positive_int, default=1,
+                         help="trials per cell for a live victim (default: 1)")
+    sec_run.add_argument("--seed", type=int, default=7, help="canary seed (default: 7)")
+    sec_run.add_argument("--out", default="reports/security.json", help="results JSON output")
+    sec_run.add_argument("--md", nargs="?", const="reports/security.md",
+                         help="also write a Markdown scorecard report")
+    sec_run.add_argument("--fail-over", type=float, metavar="ASR",
+                         help="exit 1 if the best defence's attack-success rate exceeds this")
+    sec_run.set_defaults(func=cmd_security_run)
+
     return parser
+
+
+def cmd_security_run(args: argparse.Namespace) -> int:
+    """Run the security suite and gate on the best defence's attack-success rate."""
+    from ragprobe.security.report import render_markdown, render_terminal, scorecard
+    from ragprobe.security.suite import run_suite
+    from ragprobe.security.victims import get_victim
+
+    base_dir = Path(args.root) if args.root else Path.cwd()
+    if args.victim == "live":
+        gen = ProbeConfig().generation
+        if args.model:
+            gen.model = args.model
+        if args.base_url:
+            gen.base_url = args.base_url
+        provider = get_provider(gen, override=args.provider)
+        victim = get_victim("live", provider=provider)
+    else:
+        victim = get_victim("simulated")
+
+    vectors = [v.strip() for v in args.vectors.split(",")] if args.vectors else None
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+
+    def progress(done: int, total: int) -> None:
+        if not sys.stderr.isatty():
+            return
+        print(f"\r  running {done}/{total} trials", end="", file=sys.stderr)
+
+    try:
+        results = run_suite(
+            Path(args.attacks), victim, defenses=defenses, trials=args.trials,
+            seed=args.seed, base_dir=base_dir, corpus_dir=args.corpus,
+            vectors=vectors, progress=progress,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+    if sys.stderr.isatty():
+        print("", file=sys.stderr)
+
+    _write_json(Path(args.out), results)
+    print(render_terminal(results))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(results), encoding="utf-8")
+        print(f"  wrote {args.md}")
+
+    if args.fail_over is not None:
+        card = scorecard(results)
+        worst = max((r["asr_defended"] for r in card["rows"]), default=0.0)
+        if worst > args.fail_over:
+            print(f"\nGATE FAILED: best-defence attack-success rate {worst:.2f} "
+                  f"exceeds the limit of {args.fail_over:.2f}", file=sys.stderr)
+            return EXIT_GATE_FAILED
+    return EXIT_OK
 
 
 def cmd_rescore(args: argparse.Namespace) -> int:
