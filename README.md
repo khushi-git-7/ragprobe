@@ -6,9 +6,10 @@
 **An evaluation and regression-testing harness for RAG pipelines and LLM features.**
 
 **Live dashboard:** <https://khushi-git-7.github.io/ragprobe/> - the landing page, with
-the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html) and the latest
-[regression report](https://khushi-git-7.github.io/ragprobe/report.html) rebuilt from
-the run history on every push to `main`.
+the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html), the latest
+[regression report](https://khushi-git-7.github.io/ragprobe/report.html) and the
+[security scorecard](https://khushi-git-7.github.io/ragprobe/security.html) rebuilt
+from the run history on every push to `main`.
 
 RAGProbe treats a prompt change the way a good engineering team treats a code change:
 it runs a golden test set against a known-good baseline, produces a diff of exactly
