@@ -608,6 +608,17 @@ def build_parser() -> argparse.ArgumentParser:
     sec_import.add_argument("--out", default="datasets/security/deepset", help="directory to write into")
     sec_import.set_defaults(func=cmd_security_import_deepset)
 
+    sec_pkg = sec_sub.add_parser(
+        "packages", help="audit a model for hallucinated package recommendations (LLM09)"
+    )
+    sec_pkg.add_argument("--model", default="groq-qwen",
+                         help="model shortname to audit (see security/models.py)")
+    sec_pkg.add_argument("--out", default="reports/package_audit.json", help="results JSON output")
+    sec_pkg.add_argument("--md", nargs="?", const="reports/package_audit.md",
+                         help="also write a Markdown report")
+    sec_pkg.add_argument("--max-tokens", type=int, default=400, help="answer length cap")
+    sec_pkg.set_defaults(func=cmd_security_packages)
+
     return parser
 
 
@@ -693,6 +704,53 @@ def cmd_security_detector_eval(args: argparse.Namespace) -> int:
     if args.md:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+# Minimal free-model map for the package audit (kept local so this command stands
+# alone). provider -> (base_url, key environment variable).
+_PKG_MODELS = {
+    "groq-qwen": ("https://api.groq.com/openai/v1", "qwen/qwen3.8-27b", "GROQ_API_KEY"),
+    "groq-gptoss": ("https://api.groq.com/openai/v1", "openai/gpt-oss-20b", "GROQ_API_KEY"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai",
+               "gemini-flash-latest", "GEMINI_API_KEY"),
+}
+
+
+def cmd_security_packages(args: argparse.Namespace) -> int:
+    """Audit a model for hallucinated (non-existent) package recommendations."""
+    import os
+
+    from ragprobe.security.packages import PyPIChecker, render_markdown, run_package_audit
+
+    if args.model not in _PKG_MODELS:
+        raise InputError(f"unknown model {args.model!r}; expected one of {', '.join(_PKG_MODELS)}")
+    base_url, model_id, key_env = _PKG_MODELS[args.model]
+    key = os.environ.get(key_env)
+    if not key:
+        raise InputError(f"no API key for {args.model}: set {key_env}")
+
+    from ragprobe.providers.openai_compat import OpenAICompatibleProvider
+    provider = OpenAICompatibleProvider(model=model_id, base_url=base_url, api_key=key)
+
+    def ask(prompt: str) -> str:
+        return provider.chat([{"role": "user", "content": prompt}],
+                             max_tokens=args.max_tokens).get("content", "")
+
+    def progress(done: int, total: int) -> None:
+        if sys.stderr.isatty():
+            print(f"\r  asking {done}/{total}", end="", file=sys.stderr)
+
+    audit = run_package_audit(ask, PyPIChecker(), model_name=args.model, progress=progress).to_dict()
+    if sys.stderr.isatty():
+        print("", file=sys.stderr)
+    _write_json(Path(args.out), audit)
+    print(render_markdown(audit))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(audit), encoding="utf-8")
         print(f"  wrote {args.md}")
     return EXIT_OK
 

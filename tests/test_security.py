@@ -255,3 +255,40 @@ def test_detector_eval_by_language_runs(tmp_path):
     report = run_detector_eval(data, ["heuristic"], by_language=True)
     assert "attack_language_distribution" in report
     assert "by_language" in report["detectors"][0]
+
+
+# ------------------------------------------------------ package audit (LLM09)
+
+def test_extract_packages_from_pip_and_imports():
+    from ragprobe.security.packages import extract_packages
+    assert extract_packages("Run `pip install requests beautifulsoup4`.") == ["requests", "beautifulsoup4"]
+    assert extract_packages("pip3 install -U fpdf2==2.7.0") == ["fpdf2"]
+    # stdlib imports are ignored; a third-party import is picked up as a fallback
+    assert extract_packages("import os\nimport slacker") == ["slacker"]
+
+
+def test_package_audit_flags_nonexistent(monkeypatch):
+    from ragprobe.security.packages import PyPIChecker, run_package_audit
+
+    answers = {
+        "a": "Use `pip install requests`.",
+        "b": "Install it with `pip install totally-not-a-real-pkg-xyz`.",
+    }
+    def ask(prompt): return answers[prompt]
+    # Fake registry: requests exists (200), the made-up one 404s.
+    def fetch(name): return 200 if name == "requests" else 404
+    audit = run_package_audit(ask, PyPIChecker(fetch=fetch), prompts=["a", "b"],
+                              model_name="fake")
+    d = audit.to_dict()
+    assert d["hallucinated"] == ["totally-not-a-real-pkg-xyz"]
+    assert d["hallucination_rate"] == 0.5
+    assert "LLM09" == d["owasp"]
+
+
+def test_package_audit_marks_unreachable_registry_as_unverified():
+    from ragprobe.security.packages import PyPIChecker, run_package_audit
+    audit = run_package_audit(lambda p: "pip install somepkg",
+                              PyPIChecker(fetch=lambda name: 0), prompts=["x"])
+    d = audit.to_dict()
+    assert d["unverified"] == ["somepkg"] and d["hallucinated"] == []
+    assert d["hallucination_rate"] == 0.0  # nothing was actually checkable
