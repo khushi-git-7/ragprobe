@@ -82,6 +82,15 @@ RULES: Tuple[Rule, ...] = (
     _r("jailbreak_persona", 3.0,
        r"\b(DAN|do anything now|developer mode|jailbreak|jailbroken|unfiltered|no restrictions|"
        r"without (any )?(restrictions|filters|limits))\b"),
+    _r("role_assignment", 2.0,
+       # "you are X, whose only rule is ..." / "as X, output ..." - a named persona
+       # given a rule or a command. Catches role-play framings that dodge "now".
+       r"\byou(?:'re| are)\s+[\"']?[A-Z][\w-]*[\"']?[^.\n]{0,40}?\b(whose|only)\s+(rule|job|task|purpose|goal)"
+       r"|\bas\s+[\"']?[A-Z][\w-]*[\"']?,?\s+(output|print|say|reply|repeat|respond|echo|write)\b"),
+    _r("mode_header", 2.0,
+       # Fake privileged modes an attacker invents to sound authoritative.
+       r"\b(system override|developer mode|diagnostics?\s+mode|debug mode|maintenance mode|"
+       r"admin mode|god mode|sudo mode|override enabled|diagnostics enabled)\b"),
     # --- probing the system prompt ---------------------------------------------
     _r("prompt_probe", 2.0,
        r"\b(system prompt|initial prompt|hidden prompt|your (instructions|prompt|rules|guidelines|configuration|directives)"
@@ -114,6 +123,11 @@ RULES: Tuple[Rule, ...] = (
     _r("encoding_request", 1.0,
        r"\b(base64|rot13|hexadecimal|in hex|reversed?|backwards|spell (it|out)|letter by letter"
        r"|one character at a time)\b"),
+    _r("echo_token", 1.5,
+       # "echo/print/output the token/code/following ..." - demanding the model emit
+       # an attacker-chosen string, the proof-of-control move.
+       r"\b(echo|print|output|repeat|emit|return)\b[^.\n]{0,30}\b(token|code|marker|string|"
+       r"phrase|word|following|these two|both)\b"),
     _r("shouting", 1.0, r"\b(IMPORTANT|URGENT|ACHTUNG|ATTENTION|WICHTIG|NOTE TO SELF)\b", 0),
 )
 

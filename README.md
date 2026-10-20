@@ -6,9 +6,10 @@
 **An evaluation and regression-testing harness for RAG pipelines and LLM features.**
 
 **Live dashboard:** <https://khushi-git-7.github.io/ragprobe/> - the landing page, with
-the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html) and the latest
-[regression report](https://khushi-git-7.github.io/ragprobe/report.html) rebuilt from
-the run history on every push to `main`.
+the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html), the latest
+[regression report](https://khushi-git-7.github.io/ragprobe/report.html) and the
+[security scorecard](https://khushi-git-7.github.io/ragprobe/security.html) rebuilt
+from the run history on every push to `main`.
 
 RAGProbe treats a prompt change the way a good engineering team treats a code change:
 it runs a golden test set against a known-good baseline, produces a diff of exactly
@@ -947,7 +948,10 @@ tests the harness and the code-level defences), or against a live model
 canaries and a string oracle - not a second model's judgement - and the whole thing
 gates in CI: `--fail-over 0.2` exits non-zero when the best defence still lets more
 than 20% of attacks through. See [docs/security.md](docs/security.md) for the threat
-model, the oracles, and how defences and detectors are measured.
+model, the oracles, and how defences and detectors are measured, and
+[docs/FINDINGS.md](docs/FINDINGS.md) for a short write-up of what the suite actually
+found - including that injection detectors catch far fewer German attacks than
+English ones.
 
 ## Roadmap
 

@@ -582,8 +582,13 @@ def build_parser() -> argparse.ArgumentParser:
     sec_run.add_argument("--out", default="reports/security.json", help="results JSON output")
     sec_run.add_argument("--md", nargs="?", const="reports/security.md",
                          help="also write a Markdown scorecard report")
+    sec_run.add_argument("--html", nargs="?", const="reports/security.html",
+                         help="also write a self-contained HTML report")
     sec_run.add_argument("--fail-over", type=float, metavar="ASR",
                          help="exit 1 if the best defence's attack-success rate exceeds this")
+    sec_run.add_argument("--min-reduction", type=float, metavar="FRACTION",
+                         help="exit 1 if the best defence does not cut the undefended "
+                              "attack-success rate by at least this fraction (e.g. 0.5)")
     sec_run.set_defaults(func=cmd_security_run)
 
     sec_eval = sec_sub.add_parser(
@@ -602,11 +607,39 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown table")
     sec_eval.set_defaults(func=cmd_security_detector_eval)
 
+    sec_compare = sec_sub.add_parser(
+        "compare", help="attack several models with the same suite and compare them"
+    )
+    sec_compare.add_argument("--models", default="groq-qwen,groq-gptoss",
+                             help="comma-separated model shortnames (see security/models.py)")
+    sec_compare.add_argument("--attacks", default="datasets/security/attacks.yaml")
+    sec_compare.add_argument("--root", help="project root that relative paths resolve against")
+    sec_compare.add_argument("--corpus", default="datasets/docs")
+    sec_compare.add_argument("--defenses", default="none,layered")
+    sec_compare.add_argument("--vectors", help="limit to these attack vectors")
+    sec_compare.add_argument("--trials", type=_positive_int, default=1,
+                             help="trials per cell per model (default: 1)")
+    sec_compare.add_argument("--seed", type=int, default=7)
+    sec_compare.add_argument("--out", default="reports/security_compare.json")
+    sec_compare.add_argument("--md", nargs="?", const="reports/security_compare.md")
+    sec_compare.set_defaults(func=cmd_security_compare)
+
     sec_import = sec_sub.add_parser(
         "import-deepset", help="download the deepset/prompt-injections benchmark"
     )
     sec_import.add_argument("--out", default="datasets/security/deepset", help="directory to write into")
     sec_import.set_defaults(func=cmd_security_import_deepset)
+
+    sec_pkg = sec_sub.add_parser(
+        "packages", help="audit a model for hallucinated package recommendations (LLM09)"
+    )
+    sec_pkg.add_argument("--model", default="groq-qwen",
+                         help="model shortname to audit (see security/models.py)")
+    sec_pkg.add_argument("--out", default="reports/package_audit.json", help="results JSON output")
+    sec_pkg.add_argument("--md", nargs="?", const="reports/package_audit.md",
+                         help="also write a Markdown report")
+    sec_pkg.add_argument("--max-tokens", type=int, default=400, help="answer length cap")
+    sec_pkg.set_defaults(func=cmd_security_packages)
 
     return parser
 
@@ -655,13 +688,27 @@ def cmd_security_run(args: argparse.Namespace) -> int:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(results), encoding="utf-8")
         print(f"  wrote {args.md}")
+    if args.html:
+        from ragprobe.security.report_html import write_report
+        write_report(results, Path(args.html))
+        print(f"  wrote {args.html}")
 
+    by_defense = results["summary"]["by_defense"]
     if args.fail_over is not None:
         card = scorecard(results)
         worst = max((r["asr_defended"] for r in card["rows"]), default=0.0)
         if worst > args.fail_over:
             print(f"\nGATE FAILED: best-defence attack-success rate {worst:.2f} "
                   f"exceeds the limit of {args.fail_over:.2f}", file=sys.stderr)
+            return EXIT_GATE_FAILED
+    if args.min_reduction is not None and by_defense:
+        undefended = max(b["asr"] for b in by_defense.values())
+        best = min(b["asr"] for b in by_defense.values())
+        reduction = (undefended - best) / undefended if undefended else 1.0
+        if reduction < args.min_reduction:
+            print(f"\nGATE FAILED: best defence cut attack-success by only "
+                  f"{reduction*100:.0f}% ({undefended*100:.0f}% -> {best*100:.0f}%), "
+                  f"below the required {args.min_reduction*100:.0f}%", file=sys.stderr)
             return EXIT_GATE_FAILED
     return EXIT_OK
 
@@ -693,6 +740,85 @@ def cmd_security_detector_eval(args: argparse.Namespace) -> int:
     if args.md:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_compare(args: argparse.Namespace) -> int:
+    """Attack several models with the same suite and write a comparison."""
+    from ragprobe.security.compare import compare_models, render_markdown
+
+    models = [m.strip() for m in args.models.split(",") if m.strip()]
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    vectors = [v.strip() for v in args.vectors.split(",")] if args.vectors else None
+    base_dir = Path(args.root) if args.root else Path.cwd()
+
+    def progress(name: str) -> None:
+        if sys.stderr.isatty():
+            print(f"  attacking {name} ...", file=sys.stderr)
+
+    try:
+        report = compare_models(
+            Path(args.attacks), models, defenses=defenses, trials=args.trials,
+            seed=args.seed, base_dir=base_dir, corpus_dir=args.corpus, vectors=vectors,
+            progress=progress,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+# Minimal free-model map for the package audit (kept local so this command stands
+# alone). provider -> (base_url, key environment variable).
+_PKG_MODELS = {
+    "groq-qwen": ("https://api.groq.com/openai/v1", "qwen/qwen3.8-27b", "GROQ_API_KEY"),
+    "groq-gptoss": ("https://api.groq.com/openai/v1", "openai/gpt-oss-20b", "GROQ_API_KEY"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai",
+               "gemini-flash-latest", "GEMINI_API_KEY"),
+}
+
+
+def cmd_security_packages(args: argparse.Namespace) -> int:
+    """Audit a model for hallucinated (non-existent) package recommendations."""
+    import os
+
+    from ragprobe.security.packages import PyPIChecker, render_markdown, run_package_audit
+
+    if args.model not in _PKG_MODELS:
+        raise InputError(f"unknown model {args.model!r}; expected one of {', '.join(_PKG_MODELS)}")
+    base_url, model_id, key_env = _PKG_MODELS[args.model]
+    key = os.environ.get(key_env)
+    if not key:
+        raise InputError(f"no API key for {args.model}: set {key_env}")
+
+    from ragprobe.providers.openai_compat import OpenAICompatibleProvider
+    provider = OpenAICompatibleProvider(model=model_id, base_url=base_url, api_key=key)
+
+    def ask(prompt: str) -> str:
+        return provider.chat([{"role": "user", "content": prompt}],
+                             max_tokens=args.max_tokens).get("content", "")
+
+    def progress(done: int, total: int) -> None:
+        if sys.stderr.isatty():
+            print(f"\r  asking {done}/{total}", end="", file=sys.stderr)
+
+    audit = run_package_audit(ask, PyPIChecker(), model_name=args.model, progress=progress).to_dict()
+    if sys.stderr.isatty():
+        print("", file=sys.stderr)
+    _write_json(Path(args.out), audit)
+    print(render_markdown(audit))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(audit), encoding="utf-8")
         print(f"  wrote {args.md}")
     return EXIT_OK
 
