@@ -8,6 +8,7 @@ Everything runs offline against the stub provider.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -72,9 +73,12 @@ class TestRunCommand:
         content = html.read_text(encoding="utf-8")
         assert content.lstrip().startswith("<!DOCTYPE html>")
         assert "<style>" in content
-        # No external resource may be referenced, or the report breaks offline.
-        for marker in ("http://", "https://", "cdn."):
-            assert marker not in content, f"report references an external resource: {marker}"
+        # No external resource may be fetched, or the report breaks offline;
+        # only the repo nav link is allowed to point off-page.
+        assert "cdn." not in content
+        external = [u for u in re.findall(r'(?:src|href)="([^"]+)"', content)
+                    if u.startswith("http") and "github.com/khushi-git-7/ragprobe" not in u]
+        assert external == [], f"report references external resources: {external}"
 
     def test_fail_under_gate_trips(self, workspace, tmp_path):
         out = tmp_path / "results.json"
@@ -338,8 +342,10 @@ class TestDashboardCommand:
         content = out.read_text(encoding="utf-8")
         assert "No baseline to compare against" in content
         assert '<section id="trends"' in content
-        for marker in ("http://", "https://", "cdn."):
-            assert marker not in content
+        assert "cdn." not in content
+        external = [u for u in re.findall(r'(?:src|href)="([^"]+)"', content)
+                    if u.startswith("http") and "github.com/khushi-git-7/ragprobe" not in u]
+        assert external == []
         assert out.stat().st_size < 2 * 1024 * 1024
 
     def test_renders_the_regression_panel_with_a_baseline(self, workspace, tmp_path):

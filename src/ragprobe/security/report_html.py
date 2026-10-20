@@ -13,8 +13,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Mapping
 
+from ragprobe import webui
 from ragprobe.security.attacks import OWASP
 from ragprobe.security.report import scorecard
+
+REPO_URL = "https://github.com/khushi-git-7/ragprobe"
 
 GRADE_TONE = {"A": "pass", "B": "pass", "C": "warn", "D": "fail", "F": "fail"}
 
@@ -73,10 +76,6 @@ tr:last-child td{border-bottom:none}td.n,th.n{text-align:right;font-variant-nume
 @media(max-width:620px){.cards{grid-template-columns:1fr}.bigstat .to{font-size:42px}}
 """
 
-_JS = ("(function(){try{var t=localStorage.getItem('ragprobe-theme');"
-       "if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();")
-
-
 def esc(text: Any) -> str:
     return (str(text).replace("&", "&amp;").replace("<", "&lt;")
             .replace(">", "&gt;").replace('"', "&quot;"))
@@ -101,11 +100,15 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
     p: List[str] = []
     p.append("<!doctype html><html lang='en' data-theme='dark'><head><meta charset='utf-8'>")
     p.append("<meta name='viewport' content='width=device-width,initial-scale=1'>")
-    p.append(f"<title>{esc(title)}</title><style>{_CSS}</style><script>{_JS}</script>")
-    p.append("</head><body><div class='bgfx'></div><div class='wrap'>")
+    p.append(f"<title>{esc(title)}</title>")
+    p.append(f"<style>{_CSS}{webui.NAV_CSS}{webui.REVEAL_CSS}</style>")
+    p.append(f"<script>{webui.THEME_BOOT}</script>")
+    p.append("</head><body><div class='bgfx'></div>")
+    p.append(webui.top_nav("security", REPO_URL))
+    p.append("<div class='wrap'>")
 
     # hero
-    p.append("<div class='hero'><span class='eyebrow'>Security report</span>")
+    p.append("<div class='hero reveal'><span class='eyebrow'>Security report</span>")
     p.append(f"<h1>{esc(title)}</h1>")
     p.append(f"<p class='muted'>{results['attack_count']} attacks &middot; victim "
              f"<b>{esc(victim['name'])}</b>"
@@ -123,10 +126,15 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
 
     # kpi
     reduction = worst[1]["asr"] - best[1]["asr"]
-    p.append("<div class='cards'>"
-             f"<div class='stat'><div class='k'>No defence</div><div class='v'>{_pct(worst[1]['asr'])}</div></div>"
-             f"<div class='stat'><div class='k'>Best defence</div><div class='v'>{_pct(best[1]['asr'])}</div></div>"
-             f"<div class='stat'><div class='k'>Attacks stopped</div><div class='v'>{_pct(reduction)}</div></div>"
+
+    def _cv(frac: float) -> str:  # a count-up percentage
+        return (f"<span data-count='{round(max(0.0, min(1.0, frac)) * 100)}' "
+                "data-suffix='%'>0</span>")
+
+    p.append("<div class='cards reveal'>"
+             f"<div class='stat'><div class='k'>No defence</div><div class='v'>{_cv(worst[1]['asr'])}</div></div>"
+             f"<div class='stat'><div class='k'>Best defence</div><div class='v'>{_cv(best[1]['asr'])}</div></div>"
+             f"<div class='stat'><div class='k'>Attacks stopped</div><div class='v'>{_cv(reduction)}</div></div>"
              "</div>")
 
     # OWASP scorecard
@@ -134,7 +142,7 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
     p.append(f"<p class='muted'>Grade = attack-success under the <code>{esc(card['defense'])}</code> "
              "defence (A = almost nothing gets through). The meter shows how much of the undefended "
              "attack-success it removes.</p>")
-    p.append("<div class='grid'>")
+    p.append("<div class='grid reveal'>")
     for row in card["rows"]:
         tone = GRADE_TONE.get(row["grade"], "warn")
         undef = row["asr_undefended"]
@@ -151,7 +159,7 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
     p.append("<h2>Defences compared</h2>")
     p.append("<p class='muted'>Attack-success per defence, with its 95% confidence interval and what it "
              "costs the real user.</p>")
-    p.append("<table><tr><th>Defence</th><th>Attack-success</th><th class='n'>95% CI</th>"
+    p.append("<table class='reveal'><tr><th>Defence</th><th>Attack-success</th><th class='n'>95% CI</th>"
              "<th class='n'>Utility kept</th><th class='n'>Blocked early</th></tr>")
     for name, block in by_defense.items():
         tone = "good" if block["asr"] <= 0.2 else "bad" if block["asr"] >= 0.6 else "mid"
@@ -173,7 +181,7 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
             continue
         label = "with no defence" if dname == "none" else f"with the {dname} defence"
         p.append(f"<h2>Every attack, {esc(label)}</h2>")
-        p.append("<table><tr><th>Attack</th><th>OWASP</th><th>Scenario</th><th>Outcome</th><th>Stopped by</th></tr>")
+        p.append("<table class='reveal'><tr><th>Attack</th><th>OWASP</th><th>Scenario</th><th>Outcome</th><th>Stopped by</th></tr>")
         for t in rows:
             chip = ("<span class='chip fail'>got through</span>" if t["success"]
                     else "<span class='chip pass'>blocked</span>")
@@ -183,6 +191,7 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
         p.append("</table>")
 
     p.append(f"<p class='foot'>Generated by RAGProbe &middot; {esc(results.get('created',''))}</p>")
+    p.append(f"<script>{webui.CHROME_JS}</script>")
     p.append("</div></body></html>")
     return "".join(p)
 

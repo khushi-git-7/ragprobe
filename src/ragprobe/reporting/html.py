@@ -14,6 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, List, Mapping, Optional
 
+from ragprobe import webui
 from ragprobe.regression.diff import (
     STATUS_DEGRADED,
     STATUS_FLAT,
@@ -290,7 +291,7 @@ def _render_diff_section(diff: DiffReport, gate=None) -> str:
         parts.append(f'<div class="banner warn">{esc(warning)}</div>')
 
     parts.append(
-        '<div class="cards">'
+        '<div class="cards reveal">'
         + _card("Regressed", str(counts[STATUS_REGRESSED]), "fail" if counts[STATUS_REGRESSED] else "")
         + _card("Degraded", str(counts[STATUS_DEGRADED]))
         + _card("Improved", str(counts[STATUS_IMPROVED]), "pass" if counts[STATUS_IMPROVED] else "")
@@ -369,7 +370,7 @@ def render_report(
     )
 
     cards = (
-        '<div class="cards">'
+        '<div class="cards reveal">'
         + _card("Cases", str(summary.get("total", 0)))
         + _card("Passed", str(summary.get("passed", 0)), "pass")
         + _card("Failed", str(summary.get("failed", 0)), "fail" if summary.get("failed") else "")
@@ -417,11 +418,13 @@ def render_report(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(title)}</title>
-<style>{_CSS}</style>
+<style>{_CSS}{webui.NAV_CSS}{webui.REVEAL_CSS}</style>
+<script>{webui.THEME_BOOT}</script>
 </head>
 <body>
+{webui.top_nav("report", "https://github.com/khushi-git-7/ragprobe")}
 <div class="wrap">
-<header class="page">
+<header class="page reveal">
   <h1>{esc(title)}</h1>
   <p class="sub">Evaluation and regression report for a RAG pipeline.</p>
   <div class="meta">
@@ -434,12 +437,12 @@ def render_report(
   </div>
 </header>
 {determinism_note}
-<h2>Summary</h2>
+<h2 class="reveal">Summary</h2>
 {cards}
-<h2>Retrieval metrics</h2>
-{retrieval_table}
+<h2 class="reveal">Retrieval metrics</h2>
+<div class="reveal">{retrieval_table}</div>
 {'<h2>By category</h2><table><thead><tr><th>Category</th><th class="num">Passed</th><th class="num">Pass rate</th><th class="num">Mean score</th></tr></thead><tbody>' + category_rows + '</tbody></table>' if category_rows else ''}
-<h2>Cases</h2>
+<h2 class="reveal">Cases</h2>
 {filter_buttons}
 {''.join(_render_case(case) for case in cases)}
 {diff_section}
@@ -449,6 +452,7 @@ def render_report(
 </footer>
 </div>
 <script>{_JS}</script>
+<script>{webui.CHROME_JS}</script>
 </body>
 </html>
 """

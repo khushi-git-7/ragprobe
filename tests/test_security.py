@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import codecs
+import re
 from pathlib import Path
 
 import pytest
@@ -311,7 +312,10 @@ def test_html_report_is_self_contained_and_wellformed(tmp_path):
 
     assert page.startswith("<!doctype html>")
     assert "OWASP scorecard" in page and "Defences compared" in page
-    assert "http://" not in page and "https://" not in page  # no external fetches
+    # nothing is fetched over the network: no external CSS/JS/img, only the repo nav link
+    external = [u for u in re.findall(r'(?:src|href)="([^"]+)"', page)
+                if u.startswith("http") and "github.com/khushi-git-7/ragprobe" not in u]
+    assert external == []
     assert "cdn" not in page.lower()
 
     class Balance(html.parser.HTMLParser):

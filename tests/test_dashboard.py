@@ -565,8 +565,13 @@ class TestRenderDashboard:
         assert page.lstrip().startswith("<!DOCTYPE html>")
         for section in ("overview", "trends", "breakdown", "cases", "regression", "insights"):
             assert f'<section id="{section}"' in page
-        for marker in ("http://", "https://", "cdn.", "<link "):
+        for marker in ("cdn.", "<link "):
             assert marker not in page
+        # nothing is fetched over the network: only the repo nav link may be external
+        import re as _re
+        external = [u for u in _re.findall(r'(?:src|href)="([^"]+)"', page)
+                    if u.startswith("http") and "github.com/khushi-git-7/ragprobe" not in u]
+        assert external == []
         assert page.count("<svg") > 10
         # dark-first theming with an explicit light toggle
         assert "color-scheme: dark" in page and ':root[data-theme="light"]' in page
