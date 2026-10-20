@@ -26,64 +26,49 @@ from ragprobe.regression.diff import (
 from ragprobe.reporting.fragments import checks_table, chunk_list, esc, fmt_pct, fmt_score
 
 _CSS = """
+/* Dark-first, matching the landing page (the "E" design). Light is a toggle. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #07090d;
+  --surface: #0e1219;
+  --surface-2: #121823;
+  --border: #1c2430;
+  --text: #eef2f8;
+  --text-dim: #9aa6b6;
+  --accent: #ff5a1f;
+  --pass: #38e08a;
+  --pass-bg: rgba(56,224,138,.14);
+  --fail: #ff5a6a;
+  --fail-bg: rgba(255,90,106,.14);
+  --warn: #ffb547;
+  --warn-bg: rgba(255,181,71,.14);
+  --flat: #5f6b7c;
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f5f6f8;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --border: #d9dde3;
-  --text: #16191d;
-  --text-dim: #5c6570;
-  --accent: #2f5bd7;
-  --pass: #1a7f4b;
-  --pass-bg: #e6f4ec;
-  --fail: #c0392b;
-  --fail-bg: #fbeaea;
-  --warn: #9a6700;
-  --warn-bg: #fff6e0;
-  --flat: #6b7280;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
-:root:not([data-theme="light"]) { }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1216;
-    --surface: #171b21;
-    --surface-2: #1e242c;
-    --border: #2b323b;
-    --text: #e6e9ed;
-    --text-dim: #9aa4b1;
-    --accent: #7ea2ff;
-    --pass: #4ade80;
-    --pass-bg: #13301f;
-    --fail: #f87171;
-    --fail-bg: #331616;
-    --warn: #fbbf24;
-    --warn-bg: #332813;
-    --flat: #9aa4b1;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f1216;
-  --surface: #171b21;
-  --surface-2: #1e242c;
-  --border: #2b323b;
-  --text: #e6e9ed;
-  --text-dim: #9aa4b1;
-  --accent: #7ea2ff;
-  --pass: #4ade80;
-  --pass-bg: #13301f;
-  --fail: #f87171;
-  --fail-bg: #331616;
-  --warn: #fbbf24;
-  --warn-bg: #332813;
-  --flat: #9aa4b1;
+  --surface-2: #f6f7f9;
+  --border: #e3e6ea;
+  --text: #101418;
+  --text-dim: #55606d;
+  --accent: #e5490f;
+  --pass: #15a35b;
+  --pass-bg: #e1f5e9;
+  --fail: #e5484d;
+  --fail-bg: #fde7dc;
+  --warn: #c67b00;
+  --warn-bg: #fff2cc;
+  --flat: #8b95a1;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font);
   font-size: 15px;
   line-height: 1.55;
 }

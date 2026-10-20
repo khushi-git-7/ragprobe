@@ -568,7 +568,8 @@ class TestRenderDashboard:
         for marker in ("http://", "https://", "cdn.", "<link "):
             assert marker not in page
         assert page.count("<svg") > 10
-        assert "prefers-color-scheme: dark" in page and 'data-theme="dark"' in page
+        # dark-first theming with an explicit light toggle
+        assert "color-scheme: dark" in page and ':root[data-theme="light"]' in page
         assert_well_formed(page)
 
     def test_page_without_baseline_shows_empty_regression_state(self):
