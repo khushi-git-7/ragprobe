@@ -255,3 +255,34 @@ def test_detector_eval_by_language_runs(tmp_path):
     report = run_detector_eval(data, ["heuristic"], by_language=True)
     assert "attack_language_distribution" in report
     assert "by_language" in report["detectors"][0]
+
+
+# ------------------------------------------------------ HTML report
+
+def test_html_report_is_self_contained_and_wellformed(tmp_path):
+    import html.parser
+    from ragprobe.security.report_html import render
+    from ragprobe.security.suite import run_suite
+    from ragprobe.security.victims import get_victim
+
+    results = run_suite(ATTACKS, get_victim("simulated"), defenses=["none", "layered"],
+                        base_dir=ATTACKS.parent.parent.parent)
+    page = render(results, title="Test report")
+
+    assert page.startswith("<!doctype html>")
+    assert "OWASP scorecard" in page and "Defences compared" in page
+    assert "http://" not in page and "https://" not in page  # no external fetches
+    assert "cdn" not in page.lower()
+
+    class Balance(html.parser.HTMLParser):
+        depth = 0
+        VOID = {"meta", "br", "hr", "img", "input", "link"}
+        def handle_starttag(self, tag, attrs):
+            if tag not in self.VOID:
+                self.depth += 1
+        def handle_endtag(self, tag):
+            self.depth -= 1
+
+    parser = Balance()
+    parser.feed(page)
+    assert parser.depth == 0, "unbalanced HTML tags"
