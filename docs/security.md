@@ -90,6 +90,25 @@ every request.
   [deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections)
   test split, so a high block rate bought by flagging real users is visible.
 
+## Detector benchmark
+
+`ragprobe security detector-eval` scores injection detectors on the deepset test
+split and reports the full confusion matrix (recall, false-positive rate,
+precision, F1), because accuracy alone hides the two errors that matter. Three
+detectors are interchangeable behind one interface:
+
+- `heuristic` - weighted pattern rules, standard library only, runs on every
+  request for free. Its threshold is tuned on the *train* split (`--tune`), never
+  the test split.
+- `groq-guard` - Meta's Llama Prompt Guard 2, hosted on Groq's free tier and
+  reached over the API, so a real transformer detector needs no local install.
+- `protectai` - ProtectAI's DeBERTa-v3 classifier, run locally via the optional
+  `ragprobe[ml]` extra (CI or a notebook GPU; heavy for a laptop).
+
+The heuristic trades recall for precision - it catches the blatant English attacks
+with no false positives but misses paraphrased and non-English ones - which is
+exactly the gap the transformer detectors are measured against.
+
 A **scorecard** grades each OWASP category A-F from the residual ASR under the best
 defence - the number a team shipping the feature lives with.
 

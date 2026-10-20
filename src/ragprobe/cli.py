@@ -586,6 +586,26 @@ def build_parser() -> argparse.ArgumentParser:
                          help="exit 1 if the best defence's attack-success rate exceeds this")
     sec_run.set_defaults(func=cmd_security_run)
 
+    sec_eval = sec_sub.add_parser(
+        "detector-eval", help="benchmark injection detectors on the deepset test split"
+    )
+    sec_eval.add_argument("--data", default="datasets/security/deepset",
+                          help="directory with train.jsonl and test.jsonl")
+    sec_eval.add_argument("--detectors", default="heuristic",
+                          help="comma-separated: heuristic, groq-guard, protectai")
+    sec_eval.add_argument("--tune", action="store_true",
+                          help="tune the heuristic threshold on the train split")
+    sec_eval.add_argument("--out", default="reports/detector_eval.json", help="results JSON output")
+    sec_eval.add_argument("--md", nargs="?", const="reports/detector_eval.md",
+                          help="also write a Markdown table")
+    sec_eval.set_defaults(func=cmd_security_detector_eval)
+
+    sec_import = sec_sub.add_parser(
+        "import-deepset", help="download the deepset/prompt-injections benchmark"
+    )
+    sec_import.add_argument("--out", default="datasets/security/deepset", help="directory to write into")
+    sec_import.set_defaults(func=cmd_security_import_deepset)
+
     return parser
 
 
@@ -641,6 +661,45 @@ def cmd_security_run(args: argparse.Namespace) -> int:
             print(f"\nGATE FAILED: best-defence attack-success rate {worst:.2f} "
                   f"exceeds the limit of {args.fail_over:.2f}", file=sys.stderr)
             return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
+def cmd_security_detector_eval(args: argparse.Namespace) -> int:
+    """Benchmark one or more injection detectors on the deepset test split."""
+    from ragprobe.security.detector_eval import render_markdown, run_detector_eval
+
+    detectors = [d.strip() for d in args.detectors.split(",") if d.strip()]
+    data_dir = Path(args.data)
+    if not (data_dir / "test.jsonl").is_file():
+        raise InputError(
+            f"no test.jsonl in {data_dir}. Run: ragprobe security import-deepset --out {data_dir}"
+        )
+
+    def progress(name: str) -> None:
+        if sys.stderr.isatty():
+            print(f"  scoring with {name} ...", file=sys.stderr)
+
+    try:
+        report = run_detector_eval(data_dir, detectors, tune=args.tune, progress=progress)
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_import_deepset(args: argparse.Namespace) -> int:
+    """Download the deepset/prompt-injections dataset."""
+    from ragprobe.importers.deepset import import_deepset
+
+    counts = import_deepset(Path(args.out))
+    print(f"wrote {counts} to {args.out}")
     return EXIT_OK
 
 

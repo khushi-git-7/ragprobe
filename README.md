@@ -929,6 +929,18 @@ RAGProbe security suite
     LLM08  Vector and Embedding Weaknesses      50% ->   0%   A
 ```
 
+It also benchmarks prompt-injection **detectors** against each other on an
+independent labelled dataset:
+
+```
+$ ragprobe security detector-eval --detectors heuristic,groq-guard --tune
+```
+
+reports recall, false-positive rate, precision and F1 on the
+[deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections)
+test split for the built-in heuristic, Meta's Llama Prompt Guard 2 (hosted free on
+Groq), and ProtectAI's DeBERTa classifier (optional `ragprobe[ml]` extra).
+
 It runs offline and deterministically by default (a gullible simulated victim that
 tests the harness and the code-level defences), or against a live model
 (`--victim live`, any OpenAI-compatible endpoint). Success is scored by planted
