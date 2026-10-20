@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
 
-from ragprobe import __version__
+from ragprobe import __version__, webui
 from ragprobe.dashboard.analytics import (
     ATTRIBUTION_ERROR,
     ATTRIBUTION_RETRIEVAL,
@@ -72,52 +72,43 @@ SECTIONS = (
 
 # --------------------------------------------------------------------- styles
 
+REPO_URL = "https://github.com/khushi-git-7/ragprobe"
+
 _CSS = """
+/* Dark-first, matching the landing page (the "E" design). Light is a toggle. */
 :root {
-  --bg: #F3F4EF; --surface: #FFFFFF; --surface-2: #F3F4EF; --surface-3: #E5E7E0;
-  --border: #D0D1C9; --border-strong: #B6B7AF;
-  --text: #151515; --text-2: #4B4B4B; --text-3: #7A7A7A;
-  --accent: #1D4AFF; --accent-bg: #E3E9FF; --accent-ink: #ffffff;
-  --brand: #F54E00; --yellow: #F9BD2B; --purple: #B62AD9;
-  --series: #1D4AFF; --series-soft: rgba(29, 74, 255, 0.12);
-  --pass: #1E8A4C; --pass-fill: #36C46F; --pass-bg: #E1F5E9;
-  --fail: #D93F00; --fail-fill: #F54E00; --fail-bg: #FDE7DC;
-  --warn: #9A6600; --warn-fill: #F9BD2B; --warn-bg: #FFF2CC;
-  --flat: #7A7A7A; --flat-bg: #ECEDE7;
-  --grid: #E5E7E0; --axis: #C8CAC1; --track: #ECEDE7;
+  --bg: #07090d; --surface: #0e1219; --surface-2: #121823; --surface-3: #1b2230;
+  --border: #1c2430; --border-strong: #273243;
+  --text: #eef2f8; --text-2: #9aa6b6; --text-3: #5f6b7c;
+  --accent: #ff5a1f; --accent-2: #ffb547; --accent-bg: rgba(255,90,31,.16); --accent-ink: #0a0a0a;
+  --glow: rgba(255,90,31,.35); --navh: 62px;
+  --brand: #ff5a1f; --yellow: #ffb547; --purple: #bd8cff;
+  --series: #4f9bff; --series-soft: rgba(79,155,255,.16);
+  --pass: #38e08a; --pass-fill: #38e08a; --pass-bg: rgba(56,224,138,.14);
+  --fail: #ff5a6a; --fail-fill: #ff5a6a; --fail-bg: rgba(255,90,106,.14);
+  --warn: #ffb547; --warn-fill: #ffb547; --warn-bg: rgba(255,181,71,.14);
+  --flat: #5f6b7c; --flat-bg: #161d28;
+  --grid: #1c2430; --axis: #273243; --track: #161d28;
   --shadow: none;
-  --radius: 8px; --radius-sm: 6px;
-  --font: "Matter", "Inter", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", "Consolas", monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #151515; --surface: #1D1F27; --surface-2: #232429; --surface-3: #2B2C33;
-    --border: #3A3A3A; --border-strong: #4B4B4B;
-    --text: #EEEFE9; --text-2: #C9CAC3; --text-3: #8F8F8F;
-    --accent: #7A94FF; --accent-bg: #23305C; --accent-ink: #151515;
-    --series: #7A94FF; --series-soft: rgba(122, 148, 255, 0.16);
-    --pass: #5BD68C; --pass-fill: #36C46F; --pass-bg: #163524;
-    --fail: #FF7A45; --fail-fill: #F54E00; --fail-bg: #3E1A0B;
-    --warn: #F9BD2B; --warn-fill: #F9BD2B; --warn-bg: #3A2D0C;
-    --flat: #8F8F8F; --flat-bg: #2B2C33;
-    --grid: #2B2C33; --axis: #4B4B4B; --track: #2B2C33;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #151515; --surface: #1D1F27; --surface-2: #232429; --surface-3: #2B2C33;
-  --border: #3A3A3A; --border-strong: #4B4B4B;
-  --text: #EEEFE9; --text-2: #C9CAC3; --text-3: #8F8F8F;
-  --accent: #7A94FF; --accent-bg: #23305C; --accent-ink: #151515;
-  --series: #7A94FF; --series-soft: rgba(122, 148, 255, 0.16);
-  --pass: #5BD68C; --pass-fill: #36C46F; --pass-bg: #163524;
-  --fail: #FF7A45; --fail-fill: #F54E00; --fail-bg: #3E1A0B;
-  --warn: #F9BD2B; --warn-fill: #F9BD2B; --warn-bg: #3A2D0C;
-  --flat: #8F8F8F; --flat-bg: #2B2C33;
-  --grid: #2B2C33; --axis: #4B4B4B; --track: #2B2C33;
+  --radius: 14px; --radius-sm: 10px;
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
   color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f6f7f9; --surface-3: #eef0f3;
+  --border: #e3e6ea; --border-strong: #d5d9df;
+  --text: #101418; --text-2: #55606d; --text-3: #8b95a1;
+  --accent: #e5490f; --accent-2: #d98300; --accent-bg: #fbe7df; --accent-ink: #ffffff;
+  --glow: rgba(229,73,15,.18);
+  --brand: #e5490f; --yellow: #d98300; --purple: #8a4fd0;
+  --series: #2a78d6; --series-soft: rgba(42,120,214,.12);
+  --pass: #15a35b; --pass-fill: #36C46F; --pass-bg: #e1f5e9;
+  --fail: #e5484d; --fail-fill: #e5484d; --fail-bg: #fde7dc;
+  --warn: #c67b00; --warn-fill: #f9bd2b; --warn-bg: #fff2cc;
+  --flat: #8b95a1; --flat-bg: #eceef2;
+  --grid: #e9eaee; --axis: #c8cac1; --track: #e9eaee;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -141,11 +132,11 @@ p { margin: 0; }
 /* ---- shell ---- */
 .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
 .sidebar {
-  position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;
+  position: sticky; top: var(--navh); height: calc(100vh - var(--navh)); display: flex; flex-direction: column;
   background: var(--surface); border-right: 1px solid var(--border); padding: 14px 12px;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
-.brand .mark { width: 28px; height: 28px; border-radius: 7px; background: var(--brand); border: 1.5px solid #151515; display: inline-grid; place-items: center; flex: none; }
+.brand .mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #0a0a0a; font-weight: 900; display: inline-grid; place-items: center; flex: none; box-shadow: 0 0 20px -5px var(--glow); }
 .brand .mark svg { width: 16px; height: 16px; }
 .brand span.sub { color: var(--text-3); font-weight: 500; font-size: 13px; }
 .nav { display: flex; flex-direction: column; gap: 2px; }
@@ -170,7 +161,7 @@ p { margin: 0; }
 }
 .theme-btn:hover { background: var(--surface-2); }
 .main { padding: 0 32px 64px; min-width: 0; }
-.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 32px 16px; margin: 0 -32px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 32px 16px; margin: 0 -32px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: var(--navh); z-index: 5; }
 .topbar .title { display: flex; flex-direction: column; gap: 2px; }
 .topbar .title .muted { font-size: 13px; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -1093,10 +1084,7 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
         f'<span class="chip">Dataset <code>{esc(latest_point.dataset_fingerprint)}</code></span>'
         f'<span class="chip">Corpus <code>{esc(pipeline.get("documents"))} docs / {esc(pipeline.get("chunks"))} chunks</code></span>'
     )
-    logo = (
-        '<span class="mark"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 10 L5.5 6 L8 8.5 L12 3" fill="none" '
-        'stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
-    )
+    logo = '<span class="mark">R</span>' 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1105,9 +1093,10 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
 <title>{esc(title)}</title>
 <meta name="description" content="Evaluation history, trends, breakdowns and regression analysis for a RAG pipeline.">
 <script>{_THEME_BOOT}</script>
-<style>{_CSS}</style>
+<style>{_CSS}{webui.NAV_CSS}</style>
 </head>
 <body>
+{webui.top_nav("dashboard", REPO_URL, toggle=False)}
 <div class="app">
 <aside class="sidebar">
   <div class="brand">{logo}RAGProbe <span class="sub">Dashboard</span></div>

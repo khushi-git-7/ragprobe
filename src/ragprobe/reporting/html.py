@@ -14,6 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, List, Mapping, Optional
 
+from ragprobe import webui
 from ragprobe.regression.diff import (
     STATUS_DEGRADED,
     STATUS_FLAT,
@@ -26,64 +27,49 @@ from ragprobe.regression.diff import (
 from ragprobe.reporting.fragments import checks_table, chunk_list, esc, fmt_pct, fmt_score
 
 _CSS = """
+/* Dark-first, matching the landing page (the "E" design). Light is a toggle. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #07090d;
+  --surface: #0e1219;
+  --surface-2: #121823;
+  --border: #1c2430;
+  --text: #eef2f8;
+  --text-dim: #9aa6b6;
+  --accent: #ff5a1f;
+  --pass: #38e08a;
+  --pass-bg: rgba(56,224,138,.14);
+  --fail: #ff5a6a;
+  --fail-bg: rgba(255,90,106,.14);
+  --warn: #ffb547;
+  --warn-bg: rgba(255,181,71,.14);
+  --flat: #5f6b7c;
+  --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f5f6f8;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --border: #d9dde3;
-  --text: #16191d;
-  --text-dim: #5c6570;
-  --accent: #2f5bd7;
-  --pass: #1a7f4b;
-  --pass-bg: #e6f4ec;
-  --fail: #c0392b;
-  --fail-bg: #fbeaea;
-  --warn: #9a6700;
-  --warn-bg: #fff6e0;
-  --flat: #6b7280;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-}
-:root:not([data-theme="light"]) { }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1216;
-    --surface: #171b21;
-    --surface-2: #1e242c;
-    --border: #2b323b;
-    --text: #e6e9ed;
-    --text-dim: #9aa4b1;
-    --accent: #7ea2ff;
-    --pass: #4ade80;
-    --pass-bg: #13301f;
-    --fail: #f87171;
-    --fail-bg: #331616;
-    --warn: #fbbf24;
-    --warn-bg: #332813;
-    --flat: #9aa4b1;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f1216;
-  --surface: #171b21;
-  --surface-2: #1e242c;
-  --border: #2b323b;
-  --text: #e6e9ed;
-  --text-dim: #9aa4b1;
-  --accent: #7ea2ff;
-  --pass: #4ade80;
-  --pass-bg: #13301f;
-  --fail: #f87171;
-  --fail-bg: #331616;
-  --warn: #fbbf24;
-  --warn-bg: #332813;
-  --flat: #9aa4b1;
+  --surface-2: #f6f7f9;
+  --border: #e3e6ea;
+  --text: #101418;
+  --text-dim: #55606d;
+  --accent: #e5490f;
+  --pass: #15a35b;
+  --pass-bg: #e1f5e9;
+  --fail: #e5484d;
+  --fail-bg: #fde7dc;
+  --warn: #c67b00;
+  --warn-bg: #fff2cc;
+  --flat: #8b95a1;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font);
   font-size: 15px;
   line-height: 1.55;
 }
@@ -305,7 +291,7 @@ def _render_diff_section(diff: DiffReport, gate=None) -> str:
         parts.append(f'<div class="banner warn">{esc(warning)}</div>')
 
     parts.append(
-        '<div class="cards">'
+        '<div class="cards reveal">'
         + _card("Regressed", str(counts[STATUS_REGRESSED]), "fail" if counts[STATUS_REGRESSED] else "")
         + _card("Degraded", str(counts[STATUS_DEGRADED]))
         + _card("Improved", str(counts[STATUS_IMPROVED]), "pass" if counts[STATUS_IMPROVED] else "")
@@ -384,7 +370,7 @@ def render_report(
     )
 
     cards = (
-        '<div class="cards">'
+        '<div class="cards reveal">'
         + _card("Cases", str(summary.get("total", 0)))
         + _card("Passed", str(summary.get("passed", 0)), "pass")
         + _card("Failed", str(summary.get("failed", 0)), "fail" if summary.get("failed") else "")
@@ -432,11 +418,13 @@ def render_report(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(title)}</title>
-<style>{_CSS}</style>
+<style>{_CSS}{webui.NAV_CSS}{webui.REVEAL_CSS}</style>
+<script>{webui.THEME_BOOT}</script>
 </head>
 <body>
+{webui.top_nav("report", "https://github.com/khushi-git-7/ragprobe")}
 <div class="wrap">
-<header class="page">
+<header class="page reveal">
   <h1>{esc(title)}</h1>
   <p class="sub">Evaluation and regression report for a RAG pipeline.</p>
   <div class="meta">
@@ -449,12 +437,12 @@ def render_report(
   </div>
 </header>
 {determinism_note}
-<h2>Summary</h2>
+<h2 class="reveal">Summary</h2>
 {cards}
-<h2>Retrieval metrics</h2>
-{retrieval_table}
+<h2 class="reveal">Retrieval metrics</h2>
+<div class="reveal">{retrieval_table}</div>
 {'<h2>By category</h2><table><thead><tr><th>Category</th><th class="num">Passed</th><th class="num">Pass rate</th><th class="num">Mean score</th></tr></thead><tbody>' + category_rows + '</tbody></table>' if category_rows else ''}
-<h2>Cases</h2>
+<h2 class="reveal">Cases</h2>
 {filter_buttons}
 {''.join(_render_case(case) for case in cases)}
 {diff_section}
@@ -464,6 +452,7 @@ def render_report(
 </footer>
 </div>
 <script>{_JS}</script>
+<script>{webui.CHROME_JS}</script>
 </body>
 </html>
 """
