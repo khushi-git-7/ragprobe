@@ -129,6 +129,10 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
 
     # Scorecard.
     parts.append(f"<h2>OWASP scorecard &mdash; defence <code>{esc(card['defense'])}</code></h2>")
+    parts.append("<p class='sub'>The grade reflects the <b>defended</b> attack-success "
+                 "rate (with the <code>" + esc(card['defense']) + "</code> defence applied): "
+                 "A = essentially everything stopped, F = little stopped. The "
+                 "<i>Undefended</i> column is the same attack with no defence, for contrast.</p>")
     parts.append("<table><tr><th>OWASP</th><th>Risk</th><th class='num'>Undefended</th>"
                  "<th class='num'>Defended</th><th>Grade</th></tr>")
     for row in card["rows"]:
