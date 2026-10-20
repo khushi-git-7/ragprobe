@@ -556,6 +556,7 @@ def _menubar(dash_link: str, repo_url: str) -> str:
         ("#win-examples", "Examples", "examples"),
         ("#win-docs", "Docs", "docs"),
         (dash_link, "Dashboard", None),
+        ("security.html", "Security", None),
         (repo_url, "GitHub", None),
         ("#win-about", "More", "about"),
     ]
