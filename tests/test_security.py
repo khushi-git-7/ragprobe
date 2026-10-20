@@ -361,3 +361,14 @@ def test_package_audit_marks_unreachable_registry_as_unverified():
     d = audit.to_dict()
     assert d["unverified"] == ["somepkg"] and d["hallucinated"] == []
     assert d["hallucination_rate"] == 0.0  # nothing was actually checkable
+# ------------------------------------------------------ CI gate
+
+def test_min_reduction_gate_exit_codes(tmp_path):
+    from ragprobe.cli import main
+    out = str(tmp_path / "s.json")
+    # Layered cuts the simulated attack-success rate by well over half -> passes.
+    assert main(["security", "run", "--defenses", "none,layered",
+                 "--min-reduction", "0.5", "--out", out]) == 0
+    # Demanding a 99.9% cut from a prompt-only defence must fail the gate.
+    assert main(["security", "run", "--defenses", "none,hardened",
+                 "--min-reduction", "0.999", "--out", out]) == 1
