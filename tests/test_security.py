@@ -255,3 +255,43 @@ def test_detector_eval_by_language_runs(tmp_path):
     report = run_detector_eval(data, ["heuristic"], by_language=True)
     assert "attack_language_distribution" in report
     assert "by_language" in report["detectors"][0]
+
+
+# ------------------------------------------------------ model comparison
+
+def test_model_registry_resolves_and_rejects():
+    from ragprobe.security.models import resolve
+    spec = resolve("groq-qwen")
+    assert spec.key_env == "GROQ_API_KEY" and "groq" in spec.base_url
+    explicit = resolve("groq:llama-3.3-70b-versatile")
+    assert explicit.model == "llama-3.3-70b-versatile" and explicit.key_env == "GROQ_API_KEY"
+    with pytest.raises(ValueError):
+        resolve("no-such-model")
+
+
+def test_compare_errors_clearly_when_key_missing():
+    from ragprobe.security.compare import compare_models
+    with pytest.raises(ValueError) as exc:
+        compare_models(ATTACKS, ["groq-qwen"], defenses=["none"],
+                       get_key=lambda name: None)
+    assert "GROQ_API_KEY" in str(exc.value)
+
+
+def test_compare_runs_against_a_simulated_endpoint(monkeypatch):
+    # Point the "live" victim at the deterministic simulated model so the
+    # comparison plumbing is exercised offline, with no network and no key.
+    from ragprobe.security import compare as compare_mod
+    from ragprobe.security.victims import get_victim
+
+    def fake_build(spec, api_key, max_tokens=512):
+        v = get_victim("simulated")
+        v.name = spec.name
+        return v
+
+    monkeypatch.setattr(compare_mod, "build_victim", fake_build)
+    report = compare_mod.compare_models(
+        ATTACKS, ["groq-qwen", "groq-gptoss"], defenses=["none", "layered"],
+        get_key=lambda name: "x", base_dir=ATTACKS.parent.parent.parent)
+    assert len(report["models"]) == 2
+    md = compare_mod.render_markdown(report)
+    assert "Model security comparison" in md and "groq-qwen" in md

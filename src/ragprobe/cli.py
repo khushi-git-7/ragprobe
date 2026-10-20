@@ -602,6 +602,23 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown table")
     sec_eval.set_defaults(func=cmd_security_detector_eval)
 
+    sec_compare = sec_sub.add_parser(
+        "compare", help="attack several models with the same suite and compare them"
+    )
+    sec_compare.add_argument("--models", default="groq-qwen,groq-gptoss",
+                             help="comma-separated model shortnames (see security/models.py)")
+    sec_compare.add_argument("--attacks", default="datasets/security/attacks.yaml")
+    sec_compare.add_argument("--root", help="project root that relative paths resolve against")
+    sec_compare.add_argument("--corpus", default="datasets/docs")
+    sec_compare.add_argument("--defenses", default="none,layered")
+    sec_compare.add_argument("--vectors", help="limit to these attack vectors")
+    sec_compare.add_argument("--trials", type=_positive_int, default=1,
+                             help="trials per cell per model (default: 1)")
+    sec_compare.add_argument("--seed", type=int, default=7)
+    sec_compare.add_argument("--out", default="reports/security_compare.json")
+    sec_compare.add_argument("--md", nargs="?", const="reports/security_compare.md")
+    sec_compare.set_defaults(func=cmd_security_compare)
+
     sec_import = sec_sub.add_parser(
         "import-deepset", help="download the deepset/prompt-injections benchmark"
     )
@@ -684,6 +701,38 @@ def cmd_security_detector_eval(args: argparse.Namespace) -> int:
     try:
         report = run_detector_eval(data_dir, detectors, tune=args.tune,
                                    by_language=args.by_language, progress=progress)
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_compare(args: argparse.Namespace) -> int:
+    """Attack several models with the same suite and write a comparison."""
+    from ragprobe.security.compare import compare_models, render_markdown
+
+    models = [m.strip() for m in args.models.split(",") if m.strip()]
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    vectors = [v.strip() for v in args.vectors.split(",")] if args.vectors else None
+    base_dir = Path(args.root) if args.root else Path.cwd()
+
+    def progress(name: str) -> None:
+        if sys.stderr.isatty():
+            print(f"  attacking {name} ...", file=sys.stderr)
+
+    try:
+        report = compare_models(
+            Path(args.attacks), models, defenses=defenses, trials=args.trials,
+            seed=args.seed, base_dir=base_dir, corpus_dir=args.corpus, vectors=vectors,
+            progress=progress,
+        )
     except (ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from exc
 
