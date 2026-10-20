@@ -582,6 +582,8 @@ def build_parser() -> argparse.ArgumentParser:
     sec_run.add_argument("--out", default="reports/security.json", help="results JSON output")
     sec_run.add_argument("--md", nargs="?", const="reports/security.md",
                          help="also write a Markdown scorecard report")
+    sec_run.add_argument("--html", nargs="?", const="reports/security.html",
+                         help="also write a self-contained HTML report")
     sec_run.add_argument("--fail-over", type=float, metavar="ASR",
                          help="exit 1 if the best defence's attack-success rate exceeds this")
     sec_run.set_defaults(func=cmd_security_run)
@@ -672,6 +674,10 @@ def cmd_security_run(args: argparse.Namespace) -> int:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(results), encoding="utf-8")
         print(f"  wrote {args.md}")
+    if args.html:
+        from ragprobe.security.report_html import write_report
+        write_report(results, Path(args.html))
+        print(f"  wrote {args.html}")
 
     if args.fail_over is not None:
         card = scorecard(results)
