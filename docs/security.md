@@ -109,6 +109,22 @@ The heuristic trades recall for precision - it catches the blatant English attac
 with no false positives but misses paraphrased and non-English ones - which is
 exactly the gap the transformer detectors are measured against.
 
+### Why the overall recall is what it is: a per-language split
+
+`--by-language` breaks each detector's recall down by the language the attack is
+written in. The deepset test split is a mix of English and German attacks (plus a
+little Spanish), and the breakdown is the actual finding rather than a single
+aggregate number: detectors catch markedly fewer **German** attacks than English
+ones. This matches the published picture that LLM safety filters, trained and
+evaluated mostly on English, degrade on other languages - a real coverage gap for
+anyone deploying a filter in front of a multilingual user base.
+
+Language is labelled by a small, transparent stopword-and-diacritic classifier
+(`language.py`) covering the languages actually present in the dataset, not a
+black-box model - because the per-language claim is only as trustworthy as the
+labels behind it, and this one can be read and audited. The suite reports the
+language distribution alongside the recall so the split is legible.
+
 A **scorecard** grades each OWASP category A-F from the residual ASR under the best
 defence - the number a team shipping the feature lives with.
 

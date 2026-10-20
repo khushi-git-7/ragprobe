@@ -595,6 +595,8 @@ def build_parser() -> argparse.ArgumentParser:
                           help="comma-separated: heuristic, groq-guard, protectai")
     sec_eval.add_argument("--tune", action="store_true",
                           help="tune the heuristic threshold on the train split")
+    sec_eval.add_argument("--by-language", action="store_true",
+                          help="also break recall down by the language of each attack")
     sec_eval.add_argument("--out", default="reports/detector_eval.json", help="results JSON output")
     sec_eval.add_argument("--md", nargs="?", const="reports/detector_eval.md",
                           help="also write a Markdown table")
@@ -680,7 +682,8 @@ def cmd_security_detector_eval(args: argparse.Namespace) -> int:
             print(f"  scoring with {name} ...", file=sys.stderr)
 
     try:
-        report = run_detector_eval(data_dir, detectors, tune=args.tune, progress=progress)
+        report = run_detector_eval(data_dir, detectors, tune=args.tune,
+                                   by_language=args.by_language, progress=progress)
     except (ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from exc
 

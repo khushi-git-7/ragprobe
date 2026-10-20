@@ -88,6 +88,41 @@ def evaluate(detector: Detector, rows: Sequence[Dict], name: Optional[str] = Non
                    n=len(rows), **c)
 
 
+def _recall_by_language_from_flags(rows: Sequence[Dict],
+                                   flags: Sequence[bool]) -> Dict[str, Dict[str, object]]:
+    """Per-language recall on the attack rows, from an already-computed flag list.
+
+    Takes the flags rather than re-scoring so a networked detector is called once
+    per text, not once for the overall metric and again here.
+    """
+    from ragprobe.security.language import classify
+
+    groups: Dict[str, List[bool]] = {}
+    for row, flag in zip(rows, flags):
+        if int(row["label"]) == 1:
+            groups.setdefault(classify(row["text"]), []).append(flag)
+    out: Dict[str, Dict[str, object]] = {}
+    for language, caught in sorted(groups.items()):
+        out[language] = {
+            "attacks": len(caught),
+            "caught": sum(caught),
+            "recall": round(sum(caught) / len(caught), 4) if caught else 0.0,
+        }
+    return out
+
+
+def evaluate_with_flags(detector: Detector, rows: Sequence[Dict], name: Optional[str] = None,
+                        threshold: Optional[float] = None) -> "tuple[Metrics, List[bool]]":
+    """Score every row once; return the metrics and the raw flags for reuse."""
+    labels = [int(r["label"]) for r in rows]
+    flags = [v.flagged for v in detector.score_many([r["text"] for r in rows])]
+    c = _confusion(labels, flags)
+    metrics = Metrics(detector=name or detector.name,
+                      threshold=threshold if threshold is not None else getattr(detector, "threshold", 0.0),
+                      n=len(rows), **c)
+    return metrics, flags
+
+
 def tune_heuristic_threshold(train_rows: Sequence[Dict]) -> float:
     """Pick the heuristic score threshold that maximises F1 on the train split.
 
@@ -123,6 +158,7 @@ def run_detector_eval(
     data_dir: Path,
     detectors: Sequence[str],
     tune: bool = False,
+    by_language: bool = False,
     make_detector: Optional[Callable[[str, Optional[float]], Detector]] = None,
     progress: Optional[Callable[[str], None]] = None,
 ) -> Dict[str, object]:
@@ -141,10 +177,14 @@ def run_detector_eval(
             progress(name)
         threshold = tuned_threshold if (name == "heuristic" and tuned_threshold is not None) else None
         detector = factory(name, threshold)
-        results.append(evaluate(detector, test_rows, name=name, threshold=threshold).to_dict())
+        metrics, flags = evaluate_with_flags(detector, test_rows, name=name, threshold=threshold)
+        row = metrics.to_dict()
+        if by_language:
+            row["by_language"] = _recall_by_language_from_flags(test_rows, flags)
+        results.append(row)
 
     positives = sum(1 for r in test_rows if r["label"] == 1)
-    return {
+    report: Dict[str, object] = {
         "kind": "detector-eval",
         "dataset": "deepset/prompt-injections",
         "split": "test",
@@ -154,6 +194,11 @@ def run_detector_eval(
         "tuned_heuristic_threshold": tuned_threshold,
         "detectors": results,
     }
+    if by_language:
+        from ragprobe.security.language import distribution
+        report["attack_language_distribution"] = distribution(
+            [r for r in test_rows if r["label"] == 1])
+    return report
 
 
 def render_markdown(report: Dict[str, object]) -> str:
@@ -172,7 +217,28 @@ def render_markdown(report: Dict[str, object]) -> str:
     lines.append("Recall is the share of real attacks caught; the false-positive rate is the "
                  "share of benign inputs wrongly blocked. The heuristic threshold is tuned on "
                  "the train split; transformer detectors are scored at their documented default "
-                 "operating point (probability ≥ 0.5), so this compares each detector as it "
+                 "operating point (probability >= 0.5), so this compares each detector as it "
                  "would be deployed out of the box, not after per-dataset tuning.")
     lines.append("")
+
+    if any("by_language" in d for d in report["detectors"]):
+        from ragprobe.security.language import LANGUAGE_NAMES
+        dist = report.get("attack_language_distribution", {})
+        langs = sorted({lang for d in report["detectors"]
+                        for lang in d.get("by_language", {})},
+                       key=lambda l: -dist.get(l, 0))
+        lines.append("## Recall by attack language\n")
+        lines.append("Where the overall recall comes from: the same detectors, split by the "
+                     "language each attack is written in.\n")
+        header = "| Detector | " + " | ".join(
+            f"{LANGUAGE_NAMES.get(l, l)} (n={dist.get(l, 0)})" for l in langs) + " |"
+        lines.append(header)
+        lines.append("|---|" + "|".join("--:" for _ in langs) + "|")
+        for d in report["detectors"]:
+            cells = []
+            for lang in langs:
+                stat = d.get("by_language", {}).get(lang)
+                cells.append(f"{stat['recall']*100:.0f}%" if stat else "-")
+            lines.append(f"| `{d['detector']}` | " + " | ".join(cells) + " |")
+        lines.append("")
     return "\n".join(lines)
