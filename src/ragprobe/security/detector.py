@@ -188,9 +188,42 @@ class ProtectAIDetector(Detector):  # pragma: no cover - optional heavy dependen
         return verdicts
 
 
+class GroqPromptGuardDetector(Detector):
+    """Meta's Llama Prompt Guard 2, hosted on Groq's free tier.
+
+    Groq serves the classifier through the chat-completions API: the message
+    content comes back as a single probability in [0, 1] that the input is an
+    attack. This gives a real transformer detector with no local install - which
+    matters on a low-memory machine - at the cost of a network call per text.
+    """
+
+    name = "groq-guard"
+    DEFAULT_MODEL = "meta-llama/llama-prompt-guard-2-86m"
+    BASE_URL = "https://api.groq.com/openai/v1"
+
+    def __init__(self, threshold: float = 0.5, model: Optional[str] = None, provider=None) -> None:  # noqa: ANN001
+        self.threshold = threshold
+        self.model = model or self.DEFAULT_MODEL
+        if provider is None:
+            from ragprobe.providers.openai_compat import OpenAICompatibleProvider
+            provider = OpenAICompatibleProvider(model=self.model, base_url=self.BASE_URL)
+        self.provider = provider
+
+    def score(self, text: str) -> Verdict:
+        raw = self.provider.chat([{"role": "user", "content": text or ""}], max_tokens=10)
+        content = (raw.get("content") or "").strip()
+        try:
+            probability = float(content.split()[0]) if content else 0.0
+        except (ValueError, IndexError):
+            probability = 0.0
+        return Verdict(flagged=probability >= self.threshold, score=probability)
+
+
 def get_detector(name: str = "heuristic", threshold: Optional[float] = None) -> Detector:
     if name == "heuristic":
         return HeuristicDetector(DEFAULT_THRESHOLD if threshold is None else threshold)
     if name == "protectai":
         return ProtectAIDetector(0.5 if threshold is None else threshold)
-    raise ValueError(f"unknown detector {name!r}; expected 'heuristic' or 'protectai'")
+    if name == "groq-guard":
+        return GroqPromptGuardDetector(0.5 if threshold is None else threshold)
+    raise ValueError(f"unknown detector {name!r}; expected 'heuristic', 'protectai' or 'groq-guard'")
