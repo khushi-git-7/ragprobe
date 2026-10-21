@@ -103,6 +103,39 @@ def stats(runs: List[Dict[str, Any]]) -> Dict[str, str]:
     }
 
 
+def bench_stats() -> Optional[Dict[str, str]]:
+    """Read the committed benchmark catalogue for the landing page's facts.
+
+    Reads the JSONL directly (no import of the package) so the site builds with
+    only the standard library. Returns None if the catalogue is absent, in which
+    case the benchmark section is simply not shown.
+    """
+    path = Path(__file__).resolve().parents[1] / "datasets" / "bench" / "v1" / "attacks.jsonl"
+    if not path.is_file():
+        return None
+    import json
+
+    total = attacks = 0
+    owasp, langs = set(), set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        total += 1
+        if row.get("kind") == "attack":
+            attacks += 1
+        if row.get("owasp"):
+            owasp.add(row["owasp"])
+        if row.get("language") and row["language"] != "other":
+            langs.add(row["language"])
+    return {"total": str(total), "attacks": str(attacks), "probes": str(total - attacks),
+            "owasp": str(len(owasp)), "languages": str(len(langs))}
+
+
 def recent_commits(limit: int = 6) -> List[str]:
     """The last ``limit`` commit subjects, or an empty list when git is unavailable."""
     try:
@@ -383,6 +416,40 @@ def _defence() -> str:
     )
 
 
+def _benchmark(bs: Optional[Dict[str, str]], repo_url: str) -> str:
+    """The research-grade story: a frozen, tagged, reproducible benchmark."""
+    if not bs:
+        return ""
+    stat = (lambda n, l: '<div class="stat"><div class="n"><span data-count="' + esc(n)
+            + '">0</span></div><div class="l">' + l + "</div></div>")
+    cards = (stat(bs["total"], "tagged items")
+             + stat(bs["attacks"], "runnable attacks")
+             + stat(bs["owasp"], "OWASP risks")
+             + stat(bs["languages"], "languages"))
+    points = [
+        ("Checkable, not guessed", "Every runnable attack plants a secret canary, so success "
+         "is scored by an oracle — no human judgement, no LLM-as-referee."),
+        ("Tagged and split", "Each item carries its OWASP risk, technique, language, source and "
+         "licence, split into train / dev / test so detectors are reported only on held-out data."),
+        ("Reproducible by design", "Every run records a manifest — version, commit, model, seed, "
+         "and a fingerprint of the exact attacks — and caches model replies, so a number repeats exactly."),
+    ]
+    items = "".join(
+        '<div class="card"><div class="ic">' + _icon('<path d="M20 6 9 17l-5-5"/>') + "</div>"
+        '<h3>' + t + "</h3><p>" + d + "</p></div>" for t, d in points)
+    doc = repo_url.rstrip("/") + "/blob/main/datasets/bench/v1/datasheet.md"
+    return (
+        '<section id="benchmark" class="shell reveal">'
+        '<div class="shead"><span class="eyebrow">The benchmark</span>'
+        '<h2>Measured on a benchmark you can cite</h2>'
+        '<p class="lede">RAGProbe Bench v1 — a frozen, versioned attack set, not a handful of ad-hoc prompts.</p></div>'
+        '<div class="grid">' + cards + "</div>"
+        '<div class="row3">' + items + "</div>"
+        '<p style="margin-top:22px"><a class="btn ghost" href="' + esc(doc) + '">Read the datasheet →</a></p>'
+        "</section>"
+    )
+
+
 def _scorecard(security_href: Optional[str]) -> str:
     rows = [("Prompt Injection", "LLM01", "100% → 0%"), ("Sensitive Info Disclosure", "LLM02", "100% → 0%"),
             ("Excessive Agency", "LLM06", "100% → 0%"), ("System Prompt Leakage", "LLM07", "100% → 0%"),
@@ -496,6 +563,7 @@ def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: 
         + _nav()
         + _hero(numbers, repo_url, security_href, dashboard_href, report_href)
         + _what()
+        + _benchmark(bench_stats(), repo_url)
         + _finding()
         + _defence()
         + _scorecard(security_href)

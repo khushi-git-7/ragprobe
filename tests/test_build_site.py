@@ -149,6 +149,20 @@ def test_has_the_security_story_and_animation(site, tmp_path):
     assert "prefers-reduced-motion" in page
 
 
+def test_benchmark_section_is_data_driven_from_the_catalogue(site, tmp_path):
+    out = site.build(tmp_path / "missing", tmp_path / "site" / "index.html",
+                     None, None, site.REPO_URL)
+    page = out.read_text(encoding="utf-8")
+    bs = site.bench_stats()
+    assert bs is not None, "the committed Bench v1 catalogue should be readable"
+    assert 'id="benchmark"' in page
+    assert "Measured on a benchmark you can cite" in page
+    # the real catalogue totals appear as count-up targets
+    assert f'data-count="{bs["total"]}"' in page and f'data-count="{bs["attacks"]}"' in page
+    # the datasheet link stays inside the repo (no external fetch)
+    assert "datasets/bench/v1/datasheet.md" in page
+
+
 def test_hero_cta_leads_into_the_product_not_the_repo(site, tmp_path):
     out_dir = tmp_path / "site"
     out_dir.mkdir()
