@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml/badge.svg)](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml)
 [![Live dashboard](https://img.shields.io/badge/live-dashboard-2a5bd7)](https://khushi-git-7.github.io/ragprobe/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 
 **An evaluation and regression-testing harness for RAG pipelines and LLM features.**
 
