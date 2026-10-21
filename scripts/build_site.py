@@ -260,7 +260,27 @@ def _threats() -> str:
         for sx, sy, d in seeds)
 
 
-def _hero(numbers: Dict[str, str], repo_url: str) -> str:
+def _hero_cta(security_href: Optional[str], dashboard_href: Optional[str],
+              report_href: Optional[str]) -> str:
+    """The hero's buttons lead *into* the product, not out to the repo.
+
+    The primary action is the first live page that exists (the security
+    scorecard, then the dashboard, then the report); if none has been published
+    yet it scrolls to the on-page walkthrough. The repo lives in the top nav, so
+    a first visit is an invitation to look, not a detour to GitHub.
+    """
+    entry = next((h for h in (security_href, dashboard_href, report_href) if h), None)
+    if entry:
+        primary = ('<a class="btn" href="' + esc(entry) + '">See a live security scan &rarr;</a>')
+    else:
+        primary = '<a class="btn" href="#what">See how it works &darr;</a>'
+    return ('<div class="cta">' + primary
+            + '<a class="btn ghost" href="#start">Quickstart &darr;</a></div>')
+
+
+def _hero(numbers: Dict[str, str], repo_url: str,
+          security_href: Optional[str] = None, dashboard_href: Optional[str] = None,
+          report_href: Optional[str] = None) -> str:
     runs = numbers.get("runs", "0")
     scene = (
         '<div class="scene" aria-hidden="true"><div class="radar"></div><div class="radar r2"></div>'
@@ -281,9 +301,8 @@ def _hero(numbers: Dict[str, str], repo_url: str) -> str:
         '<h1>Ship AI features that <span class="hl">don’t get hacked</span>.</h1>'
         "<p>RAGProbe attacks your LLM app the way the OWASP Top 10 describes, proves every hit "
         "with planted secrets, and tells you which defences actually hold — then gates it in CI.</p>"
-        '<div class="cta"><a class="btn" href="' + esc(repo_url) + '">Explore the project</a>'
-        '<a class="btn ghost" href="#finding">See the finding ↓</a></div>'
-        '<div class="term"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i>'
+        + _hero_cta(security_href, dashboard_href, report_href)
+        + '<div class="term"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i>'
         '<i style="background:#28c840"></i></div><pre id="term"></pre></div>'
         "</div>" + scene + "</header>"
     )
@@ -475,7 +494,7 @@ def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: 
         "<title>" + esc(TITLE) + " — " + esc(TAGLINE) + "</title>"
         "<style>" + CSS + "</style></head><body><div class=\"bgfx\"></div>"
         + _nav()
-        + _hero(numbers, repo_url)
+        + _hero(numbers, repo_url, security_href, dashboard_href, report_href)
         + _what()
         + _finding()
         + _defence()

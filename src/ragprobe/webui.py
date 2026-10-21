@@ -24,6 +24,16 @@ SITE_LINKS: Sequence[Tuple[str, str, str]] = (
     ("report", "report.html", "Report"),
 )
 
+# The guided tour: the order a first-time visitor should walk the site, with a
+# one-line promise of what each page shows. Drives the "next step" bar so no page
+# is a dead end. (page-id, href, label, blurb)
+TOUR: Sequence[Tuple[str, str, str, str]] = (
+    ("overview", "index.html", "Overview", "what RAGProbe does"),
+    ("security", "security.html", "Security scorecard", "which attacks got through, and which defence stopped them"),
+    ("dashboard", "dashboard.html", "Trends dashboard", "how quality and safety move across runs"),
+    ("report", "report.html", "Quality report", "every test case for the latest run, in detail"),
+)
+
 
 def _esc(text: object) -> str:
     return (str(text).replace("&", "&amp;").replace("<", "&lt;")
@@ -80,6 +90,56 @@ NAV_CSS = """
 # visitor never sees a dark flash. The full wiring lives in CHROME_JS at body end.
 THEME_BOOT = ("(function(){try{var t=localStorage.getItem('ragprobe-theme');"
               "if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();")
+
+def page_flow(active: str, repo_url: str) -> str:
+    """A "where am I / what's next" bar for the bottom of a sub-page.
+
+    Turns four separate pages into one guided journey: it names the current step,
+    offers the previous one, and makes the next one the obvious primary action.
+    The last step points at the repo ("put it in your CI"), so the tour ends with
+    a call to adopt the tool rather than at a dead end.
+    """
+    steps = list(TOUR)
+    ids = [s[0] for s in steps]
+    if active not in ids:
+        return ""
+    i = ids.index(active)
+    pos = f"Step {i + 1} of {len(steps)}"
+    prev_html = ""
+    if i > 0:
+        _, href, label, _ = steps[i - 1]
+        prev_html = f'<a class="rpflow-prev" href="{_esc(href)}">← {_esc(label)}</a>'
+    if i < len(steps) - 1:
+        _, href, label, blurb = steps[i + 1]
+        next_html = (f'<a class="rpflow-next" href="{_esc(href)}">'
+                     f'<span class="rpflow-k">Next</span>'
+                     f'<span class="rpflow-l">{_esc(label)} →</span>'
+                     f'<span class="rpflow-b">{_esc(blurb)}</span></a>')
+    else:
+        next_html = (f'<a class="rpflow-next" href="{_esc(repo_url)}">'
+                     f'<span class="rpflow-k">You’re at the end</span>'
+                     f'<span class="rpflow-l">Put it in your CI →</span>'
+                     f'<span class="rpflow-b">add the security gate to your own pipeline</span></a>')
+    return ('<section class="rpflow"><div class="rpflow-in">'
+            f'<div class="rpflow-pos">{pos}</div>'
+            f'<div class="rpflow-row">{prev_html}{next_html}</div>'
+            "</div></section>")
+
+
+FLOW_CSS = """
+.rpflow{--_panel:var(--panel,var(--surface,#0e1219));--_bd:var(--border,#1c2430);--_bd2:var(--border-2,var(--border,#273243));--_ink:var(--ink,var(--text,#eef2f8));--_muted:var(--muted,var(--text-dim,#9aa6b6));--_faint:var(--faint,var(--text-3,#5f6b7c));--_acc:var(--accent,#ff5a1f);--_acc2:var(--accent-2,var(--accent,#ffb547));--_glow:var(--glow,rgba(255,90,31,.35));border-top:1px solid var(--_bd);margin-top:40px}
+.rpflow-in{max-width:960px;margin:0 auto;padding:28px 20px 10px}
+.rpflow-pos{font-family:var(--mono,monospace);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--_faint);margin-bottom:12px}
+.rpflow-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:12px}
+.rpflow-prev{display:inline-flex;align-items:center;padding:14px 18px;border-radius:12px;border:1px solid var(--_bd2);background:var(--_panel);color:var(--_ink);text-decoration:none;font-weight:600;font-size:14px}
+.rpflow-prev:hover{border-color:var(--_acc);color:var(--_acc)}
+.rpflow-next{margin-left:auto;display:flex;flex-direction:column;gap:2px;padding:14px 20px;border-radius:12px;text-decoration:none;background:linear-gradient(135deg,var(--_acc),var(--_acc2));color:#0a0a0a;box-shadow:0 10px 40px -12px var(--_glow);min-width:240px;transition:transform .15s,filter .15s}
+.rpflow-next:hover{filter:brightness(1.07);transform:translateY(-2px)}
+.rpflow-k{font-family:var(--mono,monospace);font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+.rpflow-l{font-weight:800;font-size:16px}
+.rpflow-b{font-size:12.5px;opacity:.85;font-weight:500}
+@media(max-width:560px){.rpflow-next{margin-left:0;width:100%}}
+"""
 
 # Scroll-reveal + count-up. Elements tagged .reveal rise in as they enter view;
 # a number tagged data-count ticks up to its value once revealed.
