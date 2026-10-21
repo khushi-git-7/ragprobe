@@ -641,6 +641,23 @@ def build_parser() -> argparse.ArgumentParser:
     sec_pkg.add_argument("--max-tokens", type=int, default=400, help="answer length cap")
     sec_pkg.set_defaults(func=cmd_security_packages)
 
+    sec_benign = sec_sub.add_parser(
+        "benign", help="measure each defence's false-block rate on harmless requests")
+    sec_benign.add_argument("--benign", default="datasets/security/benign.jsonl",
+                            help="JSONL of harmless requests")
+    sec_benign.add_argument("--defenses", default="none,hardened,detector,layered",
+                            help="comma-separated defences or presets to measure")
+    sec_benign.add_argument("--with-deepset", action="store_true",
+                            help="also include the real-world deepset benign rows")
+    sec_benign.add_argument("--deepset", default="datasets/security/deepset",
+                            help="directory with the deepset probes (for --with-deepset)")
+    sec_benign.add_argument("--out", default="reports/benign.json", help="results JSON output")
+    sec_benign.add_argument("--md", nargs="?", const="reports/benign.md",
+                            help="also write a Markdown report")
+    sec_benign.add_argument("--max-false-block", type=float, metavar="RATE",
+                            help="exit 1 if any defence's false-block rate exceeds this")
+    sec_benign.set_defaults(func=cmd_security_benign)
+
     # bench ----------------------------------------------------------------
     bench_parser = subparsers.add_parser(
         "bench", help="build and inspect the frozen, versioned attack benchmark (Bench v1)",
@@ -840,6 +857,38 @@ def cmd_security_packages(args: argparse.Namespace) -> int:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(audit), encoding="utf-8")
         print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_benign(args: argparse.Namespace) -> int:
+    """Measure how often each defence wrongly blocks harmless requests."""
+    from ragprobe.security.benign import (
+        deepset_benign,
+        false_block_rates,
+        load_benign,
+        render_markdown,
+    )
+
+    benign = load_benign(Path(args.benign))
+    if args.with_deepset:
+        benign = benign + deepset_benign(Path(args.deepset))
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    report = false_block_rates(defenses, benign)
+
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+
+    if args.max_false_block is not None:
+        worst = max((d["false_block_rate"] for d in report["defenses"]), default=0.0)
+        if worst > args.max_false_block:
+            print(f"\nGATE FAILED: a defence wrongly blocks {worst*100:.0f}% of benign "
+                  f"requests, above the limit of {args.max_false_block*100:.0f}%", file=sys.stderr)
+            return EXIT_GATE_FAILED
     return EXIT_OK
 
 
