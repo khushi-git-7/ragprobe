@@ -13,7 +13,6 @@ whole report.
 
 from __future__ import annotations
 
-import math
 import statistics
 import time
 from dataclasses import dataclass, field
@@ -26,6 +25,7 @@ from ragprobe.security.defenses import DefenseStack, build_defense
 from ragprobe.security.oracles import judge, utility_ok
 from ragprobe.security.scenarios import _Retriever, run_agent, run_chat, run_rag
 from ragprobe.security.victims import Victim
+from ragprobe.stats import wilson_interval
 
 SCHEMA_VERSION = 1
 
@@ -51,15 +51,13 @@ class TrialResult:
         return self.__dict__
 
 
-def _wilson(successes: int, total: int, z: float = 1.96) -> List[float]:
-    """Wilson 95% interval: honest error bars on small, live-model samples."""
-    if total == 0:
-        return [0.0, 0.0]
-    phat = successes / total
-    denom = 1 + z * z / total
-    centre = (phat + z * z / (2 * total)) / denom
-    half = (z * math.sqrt(phat * (1 - phat) / total + z * z / (4 * total * total))) / denom
-    return [round(max(0.0, centre - half), 4), round(min(1.0, centre + half), 4)]
+def _wilson(successes: int, total: int) -> List[float]:
+    """Wilson 95% interval: honest error bars on small, live-model samples.
+
+    Thin wrapper over :func:`ragprobe.stats.wilson_interval` so the suite and the
+    standalone stats module can never drift apart.
+    """
+    return list(wilson_interval(successes, total))
 
 
 def run_trial(attack: Attack, defense: DefenseStack, victim: Victim, trial: int,
