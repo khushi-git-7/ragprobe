@@ -678,6 +678,31 @@ def build_parser() -> argparse.ArgumentParser:
                              help="the benchmark JSONL to summarise")
     bench_stats.set_defaults(func=cmd_bench_stats)
 
+    bench_run = bench_sub.add_parser(
+        "run", help="run the benchmark's verifiable attacks and record a manifest")
+    bench_run.add_argument("--catalogue", default="datasets/bench/v1/attacks.jsonl",
+                           help="the benchmark JSONL to run")
+    bench_run.add_argument("--split", default="test", choices=["train", "dev", "test", "all"],
+                           help="which split to run (default: test, the held-out set)")
+    bench_run.add_argument("--victim", default="simulated", choices=["simulated", "live"],
+                           help="simulated (offline, deterministic) or live (an API model)")
+    bench_run.add_argument("--provider", default="openai", help="live victim provider")
+    bench_run.add_argument("--model", help="live victim model id")
+    bench_run.add_argument("--base-url", help="live victim endpoint (OpenAI-compatible)")
+    bench_run.add_argument("--defenses", default="none,layered",
+                           help="comma-separated defences or presets (default: none,layered)")
+    bench_run.add_argument("--trials", type=_positive_int, default=1,
+                           help="trials per cell for a live victim (default: 1)")
+    bench_run.add_argument("--seed", type=int, default=42, help="canary seed (default: 42)")
+    bench_run.add_argument("--cache", nargs="?", const="reports/bench_cache",
+                           help="cache model replies here so reruns are free and exact")
+    bench_run.add_argument("--root", help="project root that relative paths resolve against")
+    bench_run.add_argument("--corpus", default="datasets/docs", help="corpus for the RAG scenario")
+    bench_run.add_argument("--out", default="reports/bench_run.json", help="results JSON output")
+    bench_run.add_argument("--md", nargs="?", const="reports/bench_run.md",
+                           help="also write a Markdown report")
+    bench_run.set_defaults(func=cmd_bench_run)
+
     return parser
 
 
@@ -913,6 +938,45 @@ def cmd_bench_build(args: argparse.Namespace) -> int:
     print(f"  catalogue -> {out_dir / 'attacks.jsonl'}")
     print(f"  datasheet -> {out_dir / 'datasheet.md'}")
     print(f"  notice    -> {out_dir / 'NOTICE.md'}")
+    return EXIT_OK
+
+
+def cmd_bench_run(args: argparse.Namespace) -> int:
+    """Run the benchmark's verifiable attacks with a reproducibility manifest."""
+    from ragprobe.bench.run import render_markdown, run_bench
+    from ragprobe.security.victims import get_victim
+
+    base_dir = Path(args.root) if args.root else Path.cwd()
+    if args.victim == "live":
+        gen = ProbeConfig().generation
+        if args.model:
+            gen.model = args.model
+        if args.base_url:
+            gen.base_url = args.base_url
+        provider = get_provider(gen, override=args.provider)
+        victim = get_victim("live", provider=provider)
+    else:
+        victim = get_victim("simulated")
+
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    split = None if args.split == "all" else args.split
+    try:
+        result = run_bench(
+            Path(args.catalogue), victim, split=split, defenses=defenses,
+            trials=args.trials, seed=args.seed,
+            cache_dir=Path(args.cache) if args.cache else None,
+            base_dir=base_dir, corpus_dir=args.corpus,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+
+    _write_json(Path(args.out), result)
+    print(render_markdown(result))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(result), encoding="utf-8")
+        print(f"  wrote {args.md}")
     return EXIT_OK
 
 
