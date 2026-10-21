@@ -728,6 +728,12 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown leaderboard")
     bench_lb.set_defaults(func=cmd_bench_leaderboard)
 
+    # doctor ---------------------------------------------------------------
+    doctor_parser = subparsers.add_parser(
+        "doctor", help="check the install, datasets and API keys are in order")
+    doctor_parser.add_argument("--root", help="project root that relative paths resolve against")
+    doctor_parser.set_defaults(func=cmd_doctor)
+
     return parser
 
 
@@ -1012,6 +1018,15 @@ def cmd_bench_run(args: argparse.Namespace) -> int:
         Path(args.md).write_text(render_markdown(result), encoding="utf-8")
         print(f"  wrote {args.md}")
     return EXIT_OK
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    """Check the install, datasets and keys; exit non-zero only on real problems."""
+    from ragprobe.doctor import has_failures, render, run_checks
+
+    checks = run_checks(Path(args.root) if args.root else Path.cwd())
+    print(render(checks))
+    return EXIT_USAGE if has_failures(checks) else EXIT_OK
 
 
 def cmd_bench_leaderboard(args: argparse.Namespace) -> int:
