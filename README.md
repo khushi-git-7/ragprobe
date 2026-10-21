@@ -54,6 +54,7 @@ before merge, not after.*
 
 - [The problem](#the-problem)
 - [What RAGProbe does](#what-ragprobe-does)
+- [Security testing and the benchmark](#security-testing-and-the-benchmark)
 - [Quickstart](#quickstart)
 - [Testing your own RAG](#testing-your-own-rag)
 - [Real data](#real-data)
@@ -117,6 +118,37 @@ codebase already has.
 
 It ships with a small, honest RAG pipeline as the system under test and a fictional
 five-document corpus, so it works out of the box.
+
+## Security testing and the benchmark
+
+Alongside the quality harness, RAGProbe is an **LLM security scanner**. It attacks a
+chat, RAG or agent app the way the OWASP Top 10 for LLM Applications describes,
+proves every hit with a planted canary (so success is scored by an oracle, not a
+human or an LLM judge), compares which defences actually hold, and gates CI when a
+change makes security worse.
+
+The attacks come from **Bench v1**, a frozen, versioned benchmark where every item is
+tagged with its OWASP risk, technique, language, source and licence, split into
+train / dev / test. Runs are reproducible: `ragprobe bench run` records a manifest
+(version, commit, model, seed, a fingerprint of the exact attacks) and caches model
+replies, so a number repeats exactly. Every defence reports both the attacks it stops
+*and* the harmless requests it wrongly blocks, so over-blocking can't hide.
+
+- The method: [`docs/methodology.md`](docs/methodology.md) · the data:
+  [`datasets/bench/v1/datasheet.md`](datasets/bench/v1/datasheet.md) · the findings:
+  [`docs/FINDINGS.md`](docs/FINDINGS.md)
+
+### How it compares
+
+RAGProbe overlaps with excellent existing tools and takes a different emphasis. This
+is about focus, not quality — each of these is worth using.
+
+| | Emphasis |
+|---|---|
+| [garak](https://github.com/NVIDIA/garak) | A broad model-vulnerability scanner with many probes; scans a model in isolation. |
+| [PyRIT](https://github.com/Azure/PyRIT) | A red-teaming framework/library for orchestrating generative-AI risk assessments. |
+| [promptfoo](https://github.com/promptfoo/promptfoo) | Test-driven LLM evaluation with a red-team module, configured in YAML. |
+| **RAGProbe** | RAG- and agent-focused, with **checkable canary oracles** (deterministic success), a **defence comparison + regression gate** for CI, a **reproducible, licensed benchmark**, a **benign false-block** measurement, and a **multilingual safety-gap** finding — all free and offline by default. |
 
 ## Quickstart
 
