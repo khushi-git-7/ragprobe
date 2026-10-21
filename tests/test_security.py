@@ -179,6 +179,12 @@ def test_detector_eval_metrics_and_fpr(tmp_path):
     tuned = run_detector_eval(data, ["heuristic"], tune=True)["detectors"][0]
     assert tuned["false_positive_rate"] == 0.0
     assert tuned["precision"] == 1.0
+    # Recall and F1 now carry a bootstrap 95% interval that brackets the point.
+    lo, hi = row["recall_ci95"]
+    assert lo <= row["recall"] <= hi
+    assert "f1_ci95" in row
+    from ragprobe.security.detector_eval import render_markdown
+    assert "95% CI" in render_markdown(report)
 
 
 def test_metrics_confusion_math():
@@ -296,6 +302,15 @@ def test_compare_runs_against_a_simulated_endpoint(monkeypatch):
     assert len(report["models"]) == 2
     md = compare_mod.render_markdown(report)
     assert "Model security comparison" in md and "groq-qwen" in md
+    # a paired McNemar section is produced when two models are compared
+    assert "paired_mcnemar" in report
+    assert isinstance(report["paired_mcnemar"], list)
+    # both models are the same simulated victim here, so outcomes are identical:
+    # zero discordant pairs and a non-significant (p = 1.0) result
+    if report["paired_mcnemar"]:
+        row = report["paired_mcnemar"][0]
+        assert row["discordant"] == 0 and row["p_value"] == 1.0
+        assert "McNemar" in md
 
 
 # ------------------------------------------------------ HTML report

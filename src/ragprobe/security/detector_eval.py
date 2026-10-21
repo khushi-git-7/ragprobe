@@ -18,6 +18,34 @@ from typing import Callable, Dict, List, Optional, Sequence
 
 from ragprobe.importers.deepset import load_split
 from ragprobe.security.detector import RULES, Detector, HeuristicDetector, get_detector
+from ragprobe.stats import bootstrap_ci
+
+
+def _bootstrap_metrics(labels: Sequence[int], flags: Sequence[bool],
+                       seed: int = 0) -> Dict[str, List[float]]:
+    """Bootstrap 95% intervals for recall and F1 on a labelled set.
+
+    Recall and F1 have no clean closed form, so we resample the (label, flag)
+    pairs and recompute. Reported alongside the point estimate so a reader can
+    see how much of a detector gap is real given the test set's size.
+    """
+    items = list(zip((int(x) for x in labels), (bool(f) for f in flags)))
+
+    def recall(sample):
+        tp = sum(1 for y, f in sample if y == 1 and f)
+        pos = sum(1 for y, _ in sample if y == 1)
+        return tp / pos if pos else 0.0
+
+    def f1(sample):
+        tp = sum(1 for y, f in sample if y == 1 and f)
+        fp = sum(1 for y, f in sample if y == 0 and f)
+        fn = sum(1 for y, f in sample if y == 1 and not f)
+        prec = tp / (tp + fp) if (tp + fp) else 0.0
+        rec = tp / (tp + fn) if (tp + fn) else 0.0
+        return 2 * prec * rec / (prec + rec) if (prec + rec) else 0.0
+
+    return {"recall_ci95": list(bootstrap_ci(items, recall, seed=seed)),
+            "f1_ci95": list(bootstrap_ci(items, f1, seed=seed))}
 
 
 @dataclass
@@ -179,6 +207,8 @@ def run_detector_eval(
         detector = factory(name, threshold)
         metrics, flags = evaluate_with_flags(detector, test_rows, name=name, threshold=threshold)
         row = metrics.to_dict()
+        labels = [int(r["label"]) for r in test_rows]
+        row.update(_bootstrap_metrics(labels, flags))
         if by_language:
             row["by_language"] = _recall_by_language_from_flags(test_rows, flags)
         results.append(row)
@@ -208,13 +238,17 @@ def render_markdown(report: Dict[str, object]) -> str:
     if report.get("tuned_heuristic_threshold") is not None:
         lines.append(f"Heuristic threshold tuned on the train split: "
                      f"`{report['tuned_heuristic_threshold']}`.\n")
-    lines.append("| Detector | Recall (attacks caught) | False-positive rate | Precision | F1 | Accuracy |")
-    lines.append("|---|--:|--:|--:|--:|--:|")
+    lines.append("| Detector | Recall (attacks caught) | 95% CI | False-positive rate | Precision | F1 | Accuracy |")
+    lines.append("|---|--:|--:|--:|--:|--:|--:|")
     for d in report["detectors"]:
-        lines.append(f"| `{d['detector']}` | {d['recall']*100:.0f}% | {d['false_positive_rate']*100:.0f}% | "
+        ci = d.get("recall_ci95")
+        ci_txt = f"{ci[0]*100:.0f}-{ci[1]*100:.0f}%" if ci else "-"
+        lines.append(f"| `{d['detector']}` | {d['recall']*100:.0f}% | {ci_txt} | {d['false_positive_rate']*100:.0f}% | "
                      f"{d['precision']*100:.0f}% | {d['f1']:.2f} | {d['accuracy']*100:.0f}% |")
     lines.append("")
-    lines.append("Recall is the share of real attacks caught; the false-positive rate is the "
+    lines.append("Recall carries a bootstrap 95% interval (2000 resamples of the test set); a gap "
+                 "between two detectors is only a result if the intervals do not overlap. "
+                 "Recall is the share of real attacks caught; the false-positive rate is the "
                  "share of benign inputs wrongly blocked. The heuristic threshold is tuned on "
                  "the train split; transformer detectors are scored at their documented default "
                  "operating point (probability >= 0.5), so this compares each detector as it "
