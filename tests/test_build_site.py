@@ -149,6 +149,27 @@ def test_has_the_security_story_and_animation(site, tmp_path):
     assert "prefers-reduced-motion" in page
 
 
+def test_hero_cta_leads_into_the_product_not_the_repo(site, tmp_path):
+    out_dir = tmp_path / "site"
+    out_dir.mkdir()
+    (out_dir / "security.html").write_text("<html></html>", encoding="utf-8")
+    out = site.build(tmp_path / "missing", out_dir / "index.html", None, None,
+                     site.REPO_URL, security="security.html")
+    page = out.read_text(encoding="utf-8")
+    # the hero's primary button opens the live scan, and the old repo-dump CTA is gone
+    assert "See a live security scan" in page
+    assert "Explore the project" not in page
+    hero = page.split('class="term"')[0]  # everything up to the terminal in the hero
+    assert f'class="btn" href="{site.REPO_URL}"' not in hero  # repo is not the hero CTA
+
+
+def test_hero_without_any_published_page_falls_back_in_page(site, tmp_path):
+    out = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                     site.REPO_URL)
+    page = out.read_text(encoding="utf-8")
+    assert "See how it works" in page  # scrolls down, still not off to the repo
+
+
 def test_security_link_shown_when_file_present(site, tmp_path):
     out_dir = tmp_path / "site"
     out_dir.mkdir()
