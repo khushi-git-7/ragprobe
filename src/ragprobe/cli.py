@@ -707,6 +707,27 @@ def build_parser() -> argparse.ArgumentParser:
                            help="also write a Markdown report")
     bench_run.set_defaults(func=cmd_bench_run)
 
+    bench_lb = bench_sub.add_parser(
+        "leaderboard", help="run the benchmark against several models and rank them")
+    bench_lb.add_argument("--catalogue", default="datasets/bench/v1/attacks.jsonl",
+                          help="the benchmark JSONL to run")
+    bench_lb.add_argument("--models", default="groq-qwen,groq-gptoss",
+                          help="comma-separated model shortnames (see security/models.py)")
+    bench_lb.add_argument("--split", default="test", choices=["train", "dev", "test", "all"],
+                          help="which split to run (default: test)")
+    bench_lb.add_argument("--defenses", default="none,layered",
+                          help="comma-separated defences or presets (default: none,layered)")
+    bench_lb.add_argument("--trials", type=_positive_int, default=1, help="trials per cell")
+    bench_lb.add_argument("--seed", type=int, default=42, help="canary seed (default: 42)")
+    bench_lb.add_argument("--cache", nargs="?", const="reports/bench_cache",
+                          help="cache model replies here so reruns are free and resumable")
+    bench_lb.add_argument("--root", help="project root that relative paths resolve against")
+    bench_lb.add_argument("--corpus", default="datasets/docs", help="corpus for the RAG scenario")
+    bench_lb.add_argument("--out", default="reports/leaderboard.json", help="results JSON output")
+    bench_lb.add_argument("--md", nargs="?", const="reports/leaderboard.md",
+                          help="also write a Markdown leaderboard")
+    bench_lb.set_defaults(func=cmd_bench_leaderboard)
+
     return parser
 
 
@@ -989,6 +1010,40 @@ def cmd_bench_run(args: argparse.Namespace) -> int:
     if args.md:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(result), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_bench_leaderboard(args: argparse.Namespace) -> int:
+    """Run the benchmark against several models and rank them."""
+    from ragprobe.bench.leaderboard import render_markdown, run_leaderboard
+
+    base_dir = Path(args.root) if args.root else Path.cwd()
+    models = [m.strip() for m in args.models.split(",") if m.strip()]
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    split = None if args.split == "all" else args.split
+
+    def progress(name: str) -> None:
+        if sys.stderr.isatty():
+            print(f"\r  running {name} ...", end="", file=sys.stderr)
+
+    try:
+        report = run_leaderboard(
+            Path(args.catalogue), models, split=split, defenses=defenses,
+            trials=args.trials, seed=args.seed,
+            cache_dir=Path(args.cache) if args.cache else None,
+            base_dir=base_dir, corpus_dir=args.corpus, progress=progress)
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+    if sys.stderr.isatty():
+        print("", file=sys.stderr)
+
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
         print(f"  wrote {args.md}")
     return EXIT_OK
 
