@@ -315,6 +315,26 @@ def test_compare_runs_against_a_simulated_endpoint(monkeypatch):
 
 # ------------------------------------------------------ HTML report
 
+def test_false_block_column_appears_only_when_benign_is_attached():
+    from ragprobe.security.benign import false_block_rates, generate_benign
+    from ragprobe.security.report import render_markdown, render_terminal
+    from ragprobe.security.report_html import render as render_html
+    from ragprobe.security.suite import run_suite
+    from ragprobe.security.victims import get_victim
+
+    results = run_suite(ATTACKS, get_victim("simulated"), defenses=["none", "detector"],
+                        base_dir=ATTACKS.parent.parent.parent)
+    # without a benign eval, the renderers are unchanged (no false-block column)
+    assert "False-block" not in render_markdown(results)
+    assert "f-block" not in render_terminal(results)
+    assert "False-block" not in render_html(results)
+
+    results["benign"] = false_block_rates(["none", "detector"], generate_benign())
+    assert "False-block" in render_markdown(results)
+    assert "f-block" in render_terminal(results)
+    assert "False-block" in render_html(results)
+
+
 def test_html_report_is_self_contained_and_wellformed(tmp_path):
     import html.parser
     from ragprobe.security.report_html import render

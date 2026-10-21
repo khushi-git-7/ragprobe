@@ -589,6 +589,10 @@ def build_parser() -> argparse.ArgumentParser:
     sec_run.add_argument("--min-reduction", type=float, metavar="FRACTION",
                          help="exit 1 if the best defence does not cut the undefended "
                               "attack-success rate by at least this fraction (e.g. 0.5)")
+    sec_run.add_argument("--benign", nargs="?", const="datasets/security/benign.jsonl",
+                         metavar="JSONL",
+                         help="also measure each defence's false-block rate on harmless "
+                              "requests from this corpus (default: datasets/security/benign.jsonl)")
     sec_run.set_defaults(func=cmd_security_run)
 
     sec_eval = sec_sub.add_parser(
@@ -742,6 +746,15 @@ def cmd_security_run(args: argparse.Namespace) -> int:
         raise InputError(str(exc)) from exc
     if sys.stderr.isatty():
         print("", file=sys.stderr)
+
+    if getattr(args, "benign", None):
+        from ragprobe.security.benign import false_block_rates, load_benign
+        benign_path = base_dir / args.benign
+        if benign_path.is_file():
+            results["benign"] = false_block_rates(defenses, load_benign(benign_path))
+        else:
+            print(f"  (benign corpus not found at {benign_path}; skipping false-block)",
+                  file=sys.stderr)
 
     _write_json(Path(args.out), results)
     print(render_terminal(results))

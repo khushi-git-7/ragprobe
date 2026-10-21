@@ -157,16 +157,23 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
 
     # Defences compared
     p.append("<h2>Defences compared</h2>")
+    fb = {d["defense"]: d["false_block_rate"]
+          for d in (results.get("benign") or {}).get("defenses", [])}
     p.append("<p class='muted'>Attack-success per defence, with its 95% confidence interval and what it "
-             "costs the real user.</p>")
+             "costs the real user" + (" &mdash; including how often it wrongly blocks a harmless "
+             "request (false-block)." if fb else ".") + "</p>")
+    fb_head = "<th class='n'>False-block</th>" if fb else ""
     p.append("<table class='reveal'><tr><th>Defence</th><th>Attack-success</th><th class='n'>95% CI</th>"
-             "<th class='n'>Utility kept</th><th class='n'>Blocked early</th></tr>")
+             + fb_head + "<th class='n'>Utility kept</th><th class='n'>Blocked early</th></tr>")
     for name, block in by_defense.items():
         tone = "good" if block["asr"] <= 0.2 else "bad" if block["asr"] >= 0.6 else "mid"
         ci = f"{block['asr_ci95'][0]*100:.0f}&ndash;{block['asr_ci95'][1]*100:.0f}"
         util = "&ndash;" if block["utility_ok_rate"] is None else _pct(block["utility_ok_rate"])
+        fb_cell = ""
+        if fb:
+            fb_cell = f"<td class='n'>{_pct(fb[name]) if name in fb else '&ndash;'}</td>"
         p.append(f"<tr><td><code>{esc(name)}</code></td><td>{_bar(block['asr'], tone)}</td>"
-                 f"<td class='n'>{ci}</td><td class='n'>{util}</td>"
+                 f"<td class='n'>{ci}</td>{fb_cell}<td class='n'>{util}</td>"
                  f"<td class='n'>{block['blocked_pre']}/{block['trials']}</td></tr>")
     p.append("</table>")
 
