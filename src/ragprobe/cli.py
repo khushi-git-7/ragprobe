@@ -641,6 +641,26 @@ def build_parser() -> argparse.ArgumentParser:
     sec_pkg.add_argument("--max-tokens", type=int, default=400, help="answer length cap")
     sec_pkg.set_defaults(func=cmd_security_packages)
 
+    # bench ----------------------------------------------------------------
+    bench_parser = subparsers.add_parser(
+        "bench", help="build and inspect the frozen, versioned attack benchmark (Bench v1)",
+    )
+    bench_sub = bench_parser.add_subparsers(dest="bench_command", required=True)
+
+    bench_build = bench_sub.add_parser("build", help="rebuild the benchmark from its sources")
+    bench_build.add_argument("--root", default="datasets/bench",
+                             help="where the versioned dataset is written")
+    bench_build.add_argument("--attacks", default="datasets/security/attacks.yaml",
+                             help="seed attack corpus")
+    bench_build.add_argument("--deepset", default="datasets/security/deepset",
+                             help="directory with the deepset train/test probes")
+    bench_build.set_defaults(func=cmd_bench_build)
+
+    bench_stats = bench_sub.add_parser("stats", help="print a breakdown of the frozen benchmark")
+    bench_stats.add_argument("--catalogue", default="datasets/bench/v1/attacks.jsonl",
+                             help="the benchmark JSONL to summarise")
+    bench_stats.set_defaults(func=cmd_bench_stats)
+
     return parser
 
 
@@ -829,6 +849,37 @@ def cmd_security_import_deepset(args: argparse.Namespace) -> int:
 
     counts = import_deepset(Path(args.out))
     print(f"wrote {counts} to {args.out}")
+    return EXIT_OK
+
+
+def cmd_bench_build(args: argparse.Namespace) -> int:
+    """Rebuild the frozen benchmark from its sources and print the breakdown."""
+    from ragprobe.bench.build import VERSION, write_v1
+
+    summary = write_v1(root=Path(args.root), attacks_path=Path(args.attacks),
+                       deepset_dir=Path(args.deepset))
+    out_dir = Path(args.root) / VERSION
+    print(f"built Bench {VERSION}: {summary['total']} items "
+          f"({summary['attacks']} attacks, {summary['probes']} probes) -> {out_dir}")
+    print(f"  catalogue -> {out_dir / 'attacks.jsonl'}")
+    print(f"  datasheet -> {out_dir / 'datasheet.md'}")
+    print(f"  notice    -> {out_dir / 'NOTICE.md'}")
+    return EXIT_OK
+
+
+def cmd_bench_stats(args: argparse.Namespace) -> int:
+    """Summarise a frozen benchmark catalogue."""
+    from ragprobe.bench.dataset import load_jsonl, stats, validate_all
+
+    items = load_jsonl(Path(args.catalogue))
+    validate_all(items)
+    s = stats(items)
+    print(f"Bench catalogue: {s['total']} items "
+          f"({s['attacks']} attacks, {s['probes']} probes)")
+    for dim in ("by_owasp", "by_technique", "by_language", "by_source", "by_split"):
+        label = dim[3:].replace("_", " ")
+        pairs = ", ".join(f"{k}={v}" for k, v in s[dim].items())
+        print(f"  {label:10} {pairs}")
     return EXIT_OK
 
 
