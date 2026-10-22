@@ -765,6 +765,15 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument("--root", help="project root that relative paths resolve against")
     doctor_parser.set_defaults(func=cmd_doctor)
 
+    # demo -----------------------------------------------------------------
+    demo_parser = subparsers.add_parser(
+        "demo", help="a guided, offline walkthrough: scan a vulnerable app, add defences, rescan")
+    demo_parser.add_argument("--root", help="project root that relative paths resolve against")
+    demo_parser.add_argument("--attacks", default="datasets/security/attacks.yaml",
+                             help="attack corpus YAML")
+    demo_parser.add_argument("--out", help="also write the demo's results JSON here")
+    demo_parser.set_defaults(func=cmd_demo)
+
     return parser
 
 
@@ -1103,6 +1112,22 @@ def cmd_bench_run(args: argparse.Namespace) -> int:
         Path(args.md).write_text(render_markdown(result), encoding="utf-8")
         print(f"  wrote {args.md}")
     return EXIT_OK
+
+
+def cmd_demo(args: argparse.Namespace) -> int:
+    """Walk through scan -> defend -> rescan on the fictional Acme Helpdesk."""
+    from ragprobe.demo import passes, render, run_demo
+
+    base_dir = Path(args.root) if args.root else Path.cwd()
+    try:
+        report = run_demo(Path(args.attacks), base_dir=base_dir)
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+    print(render(report))
+    if args.out:
+        _write_json(Path(args.out), report)
+        print(f"  wrote {args.out}")
+    return EXIT_OK if passes(report) else EXIT_GATE_FAILED
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:

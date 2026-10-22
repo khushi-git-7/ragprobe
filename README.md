@@ -136,6 +136,7 @@ train / dev / test. Runs are reproducible: `ragprobe bench run` records a manife
 replies, so a number repeats exactly. Every defence reports both the attacks it stops
 *and* the harmless requests it wrongly blocks, so over-blocking can't hide.
 
+- New here? [`docs/quickstart.md`](docs/quickstart.md) gets you a first scan in five minutes, or just run `ragprobe demo`.
 - The method: [`docs/methodology.md`](docs/methodology.md) · the data:
   [`datasets/bench/v1/datasheet.md`](datasets/bench/v1/datasheet.md) · the findings:
   [`docs/FINDINGS.md`](docs/FINDINGS.md)
