@@ -94,7 +94,9 @@ def run_bench(
     if not selected:
         raise ValueError(f"no runnable attacks in {catalogue} for split={split!r}")
 
-    runner = CachingVictim(victim, cache_dir) if cache_dir else victim
+    # always wrapped: with a cache directory it replays replies, without one it still
+    # counts them, so cut-off replies are reported either way
+    runner = CachingVictim(victim, cache_dir)
     started = time.time()
     with tempfile.TemporaryDirectory() as tmp:
         yaml_path = _attacks_yaml(selected, Path(tmp) / "attacks.yaml")
@@ -121,6 +123,7 @@ def run_bench(
     }
     if cache_dir:
         manifest["cache"] = runner.stats()
+    manifest["truncated_replies"] = runner.truncated
 
     return {
         "kind": "bench-run",
@@ -148,6 +151,11 @@ def render_markdown(result: Dict[str, Any]) -> str:
         lo, hi = block["asr_ci95"]
         lines.append(f"| `{name}` | {block['asr']*100:.0f}% | "
                      f"{lo*100:.0f}&ndash;{hi*100:.0f}% | {block['trials']} |")
+    if m.get("truncated_replies"):
+        lines += ["", f"> **Warning:** {m['truncated_replies']} reply(ies) hit the model's token "
+                  "limit and came back cut off or empty. A reply like that is scored as "
+                  "\"no attack succeeded\", so these rates may be too low. Re-run with a larger "
+                  "`--max-tokens`."]
     lines += [
         "",
         "## Manifest",

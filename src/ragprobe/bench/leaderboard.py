@@ -138,6 +138,14 @@ def render_markdown(report: Dict[str, object]) -> str:
             lines.append(f"| `{t['leader']}` | `{t['other']}` | {t['attacks']} | "
                          f"{t['discordant']} | {t['p_value']:.4f} | {verdict} |")
         lines.append("")
+    cut = [(r["model"], r["manifest"].get("truncated_replies", 0)) for r in report["models"]]
+    cut = [(m, n) for m, n in cut if n]
+    if cut:
+        lines.append("> **Warning:** some replies hit the token limit and came back cut off or empty "
+                     "(" + ", ".join(f"`{m}`: {n}" for m, n in cut) + "). Those count as "
+                     "\"no attack succeeded\", so the rates for these models may be too low; "
+                     "re-run with a larger `--max-tokens`.")
+        lines.append("")
     notes = "; ".join(f"`{r['model']}` = {r['note']}" for r in report["models"] if r["note"])
     if notes:
         lines.append("> " + notes)
