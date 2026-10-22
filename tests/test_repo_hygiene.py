@@ -26,3 +26,11 @@ def test_security_policy_states_defensive_use():
 def test_changelog_mentions_the_benchmark():
     text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert "Bench v1" in text and "leaderboard" in text.lower()
+
+
+def test_quickstart_exists_and_only_uses_real_commands():
+    text = (ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8")
+    for command in ("ragprobe doctor", "ragprobe demo", "ragprobe security run"):
+        assert command in text
+    # PyPI is not published yet, so the quickstart must not promise it
+    assert "pip install ragprobe" not in text

@@ -33,6 +33,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   scorecard, dashboard and quality report sharing one shell, with a guided
   "next step" flow between them. No external scripts, styles or fonts.
 
+- **`ragprobe demo`** - a guided, offline walkthrough on a fictional, deliberately
+  vulnerable app (Acme Helpdesk): scan it (grade F), add defences step by step,
+  rescan (grade A), and check the false-block rate. Plus `docs/quickstart.md`.
+
 ### Project
 
 - `SECURITY.md`, `CONTRIBUTING.md`, this changelog, and a roadmap (`ROADMAP.md`).
