@@ -662,6 +662,18 @@ def build_parser() -> argparse.ArgumentParser:
                             help="exit 1 if any defence's false-block rate exceeds this")
     sec_benign.set_defaults(func=cmd_security_benign)
 
+    sec_mcp = sec_sub.add_parser(
+        "mcp", help="test MCP / tool-poisoning (description poisoning, rug-pull, cross-tool)")
+    sec_mcp.add_argument("--defenses", default="none,detector,tool-policy,layered",
+                         help="comma-separated defences or presets to measure")
+    sec_mcp.add_argument("--seed", type=int, default=7, help="canary seed (default: 7)")
+    sec_mcp.add_argument("--out", default="reports/mcp.json", help="results JSON output")
+    sec_mcp.add_argument("--md", nargs="?", const="reports/mcp.md",
+                         help="also write a Markdown report")
+    sec_mcp.add_argument("--fail-over", type=float, metavar="RATE",
+                         help="exit 1 if the best defence's exfiltration rate exceeds this")
+    sec_mcp.set_defaults(func=cmd_security_mcp)
+
     # bench ----------------------------------------------------------------
     bench_parser = subparsers.add_parser(
         "bench", help="build and inspect the frozen, versioned attack benchmark (Bench v1)",
@@ -926,6 +938,28 @@ def cmd_security_benign(args: argparse.Namespace) -> int:
         if worst > args.max_false_block:
             print(f"\nGATE FAILED: a defence wrongly blocks {worst*100:.0f}% of benign "
                   f"requests, above the limit of {args.max_false_block*100:.0f}%", file=sys.stderr)
+            return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
+def cmd_security_mcp(args: argparse.Namespace) -> int:
+    """Run the MCP / tool-poisoning scenarios and gate on the best defence."""
+    from ragprobe.security.mcp import render_markdown, run_mcp
+
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    report = run_mcp(defenses=defenses, seed=args.seed)
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    if args.fail_over is not None:
+        best = min((b["asr"] for b in report["by_defense"].values()), default=0.0)
+        if best > args.fail_over:
+            print(f"\nGATE FAILED: best-defence exfiltration rate {best:.2f} exceeds "
+                  f"the limit of {args.fail_over:.2f}", file=sys.stderr)
             return EXIT_GATE_FAILED
     return EXIT_OK
 
