@@ -156,14 +156,14 @@ def recent_commits(limit: int = 6) -> List[str]:
 CSS = """
 :root{
   --bg:#07090d;--panel:#0e1219;--panel-2:#121823;--border:#1c2430;--border-2:#273243;
-  --ink:#eef2f8;--muted:#9aa6b6;--faint:#5f6b7c;--accent:#ff5a1f;--accent-2:#ffb547;--glow:rgba(255,90,31,.35);
+  --ink:#eef2f8;--muted:#9aa6b6;--faint:#7d8898;--accent:#ff5a1f;--accent-text:#ff5a1f;--accent-2:#ffb547;--glow:rgba(255,90,31,.35);
   --good:#38e08a;--bad:#ff5a6a;--s1:#4f9bff;--s2:#ff7a45;--track:#161d28;
   --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;--mono:"JetBrains Mono","SF Mono","Consolas",monospace;
   color-scheme:dark;
 }
 :root[data-theme="light"]{
   --bg:#f5f6f8;--panel:#fff;--panel-2:#f6f7f9;--border:#e3e6ea;--border-2:#d5d9df;
-  --ink:#101418;--muted:#55606d;--faint:#8b95a1;--accent:#e5490f;--accent-2:#d98300;--glow:rgba(229,73,15,.18);
+  --ink:#101418;--muted:#55606d;--faint:#5f6a77;--accent:#e5490f;--accent-text:#c93f09;--accent-2:#d98300;--glow:rgba(229,73,15,.18);
   --good:#15a35b;--bad:#e5484d;--s1:#2a78d6;--s2:#eb6834;--track:#e9eaee;color-scheme:light;
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -174,7 +174,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font
 h1,h2,h3{letter-spacing:-.03em;line-height:1.05;margin:0;font-weight:800}
 a{color:inherit;text-decoration:none}
 .mono{font-family:var(--mono)}
-.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);font-weight:600}
 .bgfx{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(900px 500px at 70% -10%,var(--glow),transparent 60%),radial-gradient(700px 500px at 0 10%,rgba(79,155,255,.10),transparent 55%)}
 .bgfx::after{content:"";position:absolute;inset:-100px;opacity:.45;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:54px 54px;-webkit-mask-image:radial-gradient(circle at 60% 0,#000,transparent 72%);mask-image:radial-gradient(circle at 60% 0,#000,transparent 72%);animation:drift 22s linear infinite}
 @keyframes drift{to{transform:translate(54px,54px)}}
@@ -190,7 +190,7 @@ nav .links a:hover{background:var(--panel);color:var(--ink)}
 .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0a0a0a;box-shadow:0 10px 40px -12px var(--glow);transition:filter .15s,transform .15s}
 .btn:hover{filter:brightness(1.07);transform:translateY(-2px)}
 .btn.ghost{background:transparent;border-color:var(--border-2);color:var(--ink);box-shadow:none}
-.btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent-text)}
 .hero{padding:88px 0 60px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
 .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border-2);background:var(--panel);border-radius:999px;padding:6px 13px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
 .pill .d{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good);animation:blink 1.6s ease-in-out infinite}
@@ -217,7 +217,7 @@ nav .links a:hover{background:var(--panel);color:var(--ink)}
 .term .tb{display:flex;gap:7px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--panel-2)}
 .term .tb i{width:11px;height:11px;border-radius:50%}
 .term pre{margin:0;padding:16px 18px;font-family:var(--mono);font-size:13px;line-height:1.7;min-height:150px;overflow-x:auto}
-.term .c{color:var(--accent)}.term .g{color:var(--good)}.term .m{color:var(--faint)}.term .r{color:var(--bad)}
+.term .c{color:var(--accent-text)}.term .g{color:var(--good)}.term .m{color:var(--faint)}.term .r{color:var(--bad)}
 .cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;animation:cur 1s step-end infinite}
 @keyframes cur{50%{opacity:0}}
 section{padding:70px 0;border-top:1px solid var(--border)}
@@ -228,7 +228,7 @@ section h2{font-size:38px;margin:12px 0 12px}section .lede{color:var(--muted);fo
 .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .card{border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:24px;transition:transform .18s,border-color .18s}
 .card:hover{transform:translateY(-6px);border-color:var(--accent)}
-.card .ic{width:46px;height:46px;border-radius:13px;background:var(--panel-2);border:1px solid var(--border-2);display:grid;place-items:center;color:var(--accent);margin-bottom:16px}
+.card .ic{width:46px;height:46px;border-radius:13px;background:var(--panel-2);border:1px solid var(--border-2);display:grid;place-items:center;color:var(--accent-text);margin-bottom:16px}
 .card h3{font-size:19px;margin-bottom:7px}.card p{color:var(--muted);font-size:14.5px;margin:0}
 .figure{border:1px solid var(--border-2);border-radius:20px;background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:28px}
 .figure .cap{font-weight:750;font-size:17px}.figure .sub{color:var(--muted);font-size:13.5px;margin:2px 0 18px}
@@ -258,7 +258,7 @@ section h2{font-size:38px;margin:12px 0 12px}section .lede{color:var(--muted);fo
 .risk.in .meter i{width:var(--w)}
 .risk .ms{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);margin-top:7px;font-family:var(--mono)}
 .copy{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--border-2);background:var(--panel);border-radius:12px;padding:12px 16px;font-family:var(--mono);font-size:14px;cursor:pointer;color:var(--ink)}
-.copy:hover{border-color:var(--accent)}.copy .k{color:var(--accent)}
+.copy:hover{border-color:var(--accent)}.copy .k{color:var(--accent-text)}
 footer{padding:76px 0;border-top:1px solid var(--border);text-align:center}
 footer h2{font-size:34px;margin-bottom:22px}footer .fl{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
 footer p{color:var(--faint);font-size:13px;font-family:var(--mono)}

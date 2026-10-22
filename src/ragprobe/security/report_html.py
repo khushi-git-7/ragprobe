@@ -23,11 +23,11 @@ GRADE_TONE = {"A": "pass", "B": "pass", "C": "warn", "D": "fail", "F": "fail"}
 
 _CSS = """
 :root{--bg:#07090d;--panel:#0e1219;--panel-2:#121823;--border:#1c2430;--border-2:#273243;
---ink:#eef2f8;--muted:#9aa6b6;--faint:#5f6b7c;--accent:#ff5a1f;--accent-2:#ffb547;--glow:rgba(255,90,31,.35);
+--ink:#eef2f8;--muted:#9aa6b6;--faint:#7d8898;--accent:#ff5a1f;--accent-text:#ff5a1f;--accent-2:#ffb547;--glow:rgba(255,90,31,.35);
 --good:#38e08a;--warn:#ffb547;--bad:#ff5a6a;--track:#161d28;
 --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;--mono:"JetBrains Mono","SF Mono","Consolas",monospace;color-scheme:dark}
 :root[data-theme="light"]{--bg:#f5f6f8;--panel:#fff;--panel-2:#f6f7f9;--border:#e3e6ea;--border-2:#d5d9df;
---ink:#101418;--muted:#55606d;--faint:#8b95a1;--accent:#e5490f;--accent-2:#d98300;--glow:rgba(229,73,15,.18);
+--ink:#101418;--muted:#55606d;--faint:#5f6a77;--accent:#e5490f;--accent-text:#c93f09;--accent-2:#d98300;--glow:rgba(229,73,15,.18);
 --good:#15a35b;--warn:#c67b00;--bad:#e5484d;--track:#e9eaee;color-scheme:light}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 *{box-sizing:border-box}
@@ -39,7 +39,7 @@ h1,h2{letter-spacing:-.02em;margin:0;font-weight:800}h2{font-size:20px;margin:40
 .muted{color:var(--muted);font-size:14px;margin:4px 0 14px}
 .hero{margin:26px 0 8px;border:1px solid var(--border-2);border-radius:22px;padding:28px;position:relative;overflow:hidden;
   background:linear-gradient(180deg,var(--panel),var(--panel-2))}
-.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);font-weight:600}
 .hero h1{font-size:26px;margin:10px 0 8px}
 .bigstat{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:14px}
 .bigstat .from{font-size:34px;font-weight:800;color:var(--bad);text-decoration:line-through;opacity:.7}

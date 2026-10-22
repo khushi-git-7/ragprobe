@@ -71,17 +71,17 @@ def top_nav(active: str, repo_url: str,
 # The shell styles. Colours come through fallback chains so one block fits every
 # page regardless of whether it names its surface --panel or --surface, etc.
 NAV_CSS = """
-.rpnav{--_bg:var(--bg,#07090d);--_panel:var(--panel,var(--surface,#0e1219));--_bd:var(--border,#1c2430);--_bd2:var(--border-2,var(--border,#273243));--_ink:var(--ink,var(--text,#eef2f8));--_muted:var(--muted,var(--text-dim,#9aa6b6));--_acc:var(--accent,#ff5a1f);--_acc2:var(--accent-2,var(--accent,#ffb547));--_glow:var(--glow,rgba(255,90,31,.35));position:sticky;top:0;z-index:60;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--_bg) 74%,transparent);border-bottom:1px solid var(--_bd)}
+.rpnav{--_bg:var(--bg,#07090d);--_panel:var(--panel,var(--surface,#0e1219));--_bd:var(--border,#1c2430);--_bd2:var(--border-2,var(--border,#273243));--_ink:var(--ink,var(--text,#eef2f8));--_muted:var(--muted,var(--text-dim,#9aa6b6));--_acc:var(--accent,#ff5a1f);--_act:var(--accent-text,var(--accent,#ff5a1f));--_acc2:var(--accent-2,var(--accent,#ffb547));--_glow:var(--glow,rgba(255,90,31,.35));position:sticky;top:0;z-index:60;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--_bg) 74%,transparent);border-bottom:1px solid var(--_bd)}
 .rpnav-in{max-width:1120px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:18px;height:62px}
 .rplogo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;color:var(--_ink);text-decoration:none;letter-spacing:-.02em}
 .rpmark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--_acc),var(--_acc2));color:#0a0a0a;display:grid;place-items:center;font-weight:900;font-size:16px;box-shadow:0 0 24px -4px var(--_glow)}
 .rplinks{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end}
 .rplinks a{padding:8px 13px;border-radius:9px;color:var(--_muted);font-weight:500;font-size:14.5px;text-decoration:none;transition:background .15s,color .15s}
 .rplinks a:hover{background:var(--_panel);color:var(--_ink)}
-.rplinks a.on{color:var(--_acc);background:color-mix(in srgb,var(--_acc) 12%,transparent)}
+.rplinks a.on{color:var(--_act);background:color-mix(in srgb,var(--_acc) 12%,transparent)}
 .rplinks a.ext::after{content:"\\2197";font-size:11px;opacity:.6;margin-left:3px}
 .rptg{width:36px;height:36px;border-radius:10px;border:1px solid var(--_bd2);background:var(--_panel);color:var(--_ink);cursor:pointer;display:grid;place-items:center;flex:none}
-.rptg:hover{border-color:var(--_acc);color:var(--_acc)}
+.rptg:hover{border-color:var(--_acc);color:var(--_act)}
 :root[data-theme="light"] .rptg .moon{display:none}:root:not([data-theme="light"]) .rptg .sun{display:none}
 @media(max-width:560px){.rplinks a{padding:7px 9px;font-size:13px}.rpnav-in{gap:10px}}
 """
@@ -127,12 +127,12 @@ def page_flow(active: str, repo_url: str) -> str:
 
 
 FLOW_CSS = """
-.rpflow{--_panel:var(--panel,var(--surface,#0e1219));--_bd:var(--border,#1c2430);--_bd2:var(--border-2,var(--border,#273243));--_ink:var(--ink,var(--text,#eef2f8));--_muted:var(--muted,var(--text-dim,#9aa6b6));--_faint:var(--faint,var(--text-3,#5f6b7c));--_acc:var(--accent,#ff5a1f);--_acc2:var(--accent-2,var(--accent,#ffb547));--_glow:var(--glow,rgba(255,90,31,.35));border-top:1px solid var(--_bd);margin-top:40px}
+.rpflow{--_panel:var(--panel,var(--surface,#0e1219));--_bd:var(--border,#1c2430);--_bd2:var(--border-2,var(--border,#273243));--_ink:var(--ink,var(--text,#eef2f8));--_muted:var(--muted,var(--text-dim,#9aa6b6));--_faint:var(--faint,var(--text-3,#7d8898));--_acc:var(--accent,#ff5a1f);--_act:var(--accent-text,var(--accent,#ff5a1f));--_acc2:var(--accent-2,var(--accent,#ffb547));--_glow:var(--glow,rgba(255,90,31,.35));border-top:1px solid var(--_bd);margin-top:40px}
 .rpflow-in{max-width:960px;margin:0 auto;padding:28px 20px 10px}
 .rpflow-pos{font-family:var(--mono,monospace);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--_faint);margin-bottom:12px}
 .rpflow-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:12px}
 .rpflow-prev{display:inline-flex;align-items:center;padding:14px 18px;border-radius:12px;border:1px solid var(--_bd2);background:var(--_panel);color:var(--_ink);text-decoration:none;font-weight:600;font-size:14px}
-.rpflow-prev:hover{border-color:var(--_acc);color:var(--_acc)}
+.rpflow-prev:hover{border-color:var(--_acc);color:var(--_act)}
 .rpflow-next{margin-left:auto;display:flex;flex-direction:column;gap:2px;padding:14px 20px;border-radius:12px;text-decoration:none;background:linear-gradient(135deg,var(--_acc),var(--_acc2));color:#0a0a0a;box-shadow:0 10px 40px -12px var(--_glow);min-width:240px;transition:transform .15s,filter .15s}
 .rpflow-next:hover{filter:brightness(1.07);transform:translateY(-2px)}
 .rpflow-k{font-family:var(--mono,monospace);font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.75}

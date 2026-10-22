@@ -36,6 +36,7 @@ _CSS = """
   --text: #eef2f8;
   --text-dim: #9aa6b6;
   --accent: #ff5a1f;
+  --accent-text: #ff5a1f;
   --pass: #38e08a;
   --pass-bg: rgba(56,224,138,.14);
   --fail: #ff5a6a;
@@ -55,6 +56,7 @@ _CSS = """
   --text: #101418;
   --text-dim: #55606d;
   --accent: #e5490f;
+  --accent-text: #c93f09;
   --pass: #15a35b;
   --pass-bg: #e1f5e9;
   --fail: #e5484d;
@@ -104,7 +106,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-fam
 .pill.degraded { background: var(--warn-bg); color: var(--warn); }
 .pill.improved { background: var(--pass-bg); color: var(--pass); }
 .pill.flat { background: var(--surface-2); color: var(--flat); }
-.pill.new { background: var(--surface-2); color: var(--accent); }
+.pill.new { background: var(--surface-2); color: var(--accent-text); }
 .pill.removed { background: var(--warn-bg); color: var(--warn); }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .filters button {
