@@ -98,3 +98,73 @@ class TestCommittedBaseline:
         for defence in ("none", "layered"):
             assert committed["summary"]["by_defense"][defence]["asr"] == \
                    fresh["summary"]["by_defense"][defence]["asr"]
+
+
+# ----------------------------------------------- cut-off replies must not look like safety
+
+from ragprobe.security.victims import Reply, Victim
+
+
+class _CutOffVictim(Victim):
+    """A reasoning model that spends its whole token budget thinking and says nothing."""
+    name = "cutoff"
+    deterministic = True
+
+    def respond(self, messages, tools=None):
+        return Reply(content="", finish_reason="length", output_tokens=512)
+
+
+class TestTruncation:
+    def test_cut_off_replies_are_counted_in_the_manifest(self):
+        res = run_bench(CAT, _CutOffVictim(), split="test", defenses=["none"], base_dir=ROOT)
+        assert res["manifest"]["truncated_replies"] > 0
+        # the hazard being guarded: an empty reply scores as "no attack worked"
+        assert res["summary"]["by_defense"]["none"]["asr"] == 0.0
+
+    def test_the_report_warns_that_the_rates_may_be_too_low(self):
+        res = run_bench(CAT, _CutOffVictim(), split="test", defenses=["none"], base_dir=ROOT)
+        md = render_markdown(res)
+        assert "Warning" in md and "token limit" in md and "--max-tokens" in md
+
+    def test_a_normal_run_has_no_warning(self):
+        res = _run()
+        assert res["manifest"]["truncated_replies"] == 0
+        assert "Warning" not in render_markdown(res)
+
+    def test_replayed_cut_off_replies_are_still_counted(self, tmp_path):
+        cache = tmp_path / "c"
+        run_bench(CAT, _CutOffVictim(), split="test", defenses=["none"], base_dir=ROOT, cache_dir=cache)
+        again = run_bench(CAT, _CutOffVictim(), split="test", defenses=["none"], base_dir=ROOT, cache_dir=cache)
+        assert again["manifest"]["cache"]["misses"] == 0       # replayed from cache ...
+        assert again["manifest"]["truncated_replies"] > 0      # ... and still reported
+
+    def test_a_corrupt_cache_entry_counts_as_one_miss_not_a_hit_and_a_miss(self, tmp_path):
+        cv = CachingVictim(get_victim("simulated"), tmp_path / "c")
+        msgs = [{"role": "user", "content": "hello"}]
+        (tmp_path / "c" / (cv._key(msgs, None) + ".json")).write_text("not json", encoding="utf-8")
+        cv.respond(msgs)
+        assert cv.stats() == {"hits": 0, "misses": 1}
+
+    def test_the_leaderboard_warns_per_model(self):
+        from ragprobe.bench.leaderboard import render_markdown as lb_markdown
+        from ragprobe.bench.leaderboard import run_leaderboard
+
+        def build(spec, key, max_tokens=512):
+            v = _CutOffVictim()
+            v.name = spec.name
+            return v
+
+        report = run_leaderboard(CAT, ["groq-qwen"], split="test", defenses=["none"], base_dir=ROOT,
+                                 get_key=lambda e: "x", build=build)
+        md = lb_markdown(report)
+        assert "Warning" in md and "groq-qwen" in md
+
+    def test_the_command_line_warns_and_accepts_a_token_budget(self, capsys):
+        from ragprobe.cli import _warn_if_truncated, build_parser
+
+        _warn_if_truncated([0, 0])
+        assert capsys.readouterr().err == ""
+        _warn_if_truncated([2, 1])
+        assert "3 reply" in capsys.readouterr().err
+        for cmd in (["bench", "run"], ["bench", "leaderboard"]):
+            assert build_parser().parse_args(cmd + ["--max-tokens", "2048"]).max_tokens == 2048

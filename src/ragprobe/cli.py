@@ -739,6 +739,9 @@ def build_parser() -> argparse.ArgumentParser:
     bench_run.add_argument("--trials", type=_positive_int, default=1,
                            help="trials per cell for a live victim (default: 1)")
     bench_run.add_argument("--seed", type=int, default=42, help="canary seed (default: 42)")
+    bench_run.add_argument("--max-tokens", type=_positive_int, default=512,
+                           help="reply length cap for a live victim (default: 512); raise it "
+                                "for reasoning models, which can spend it all thinking")
     bench_run.add_argument("--cache", nargs="?", const="reports/bench_cache",
                            help="cache model replies here so reruns are free and exact")
     bench_run.add_argument("--root", help="project root that relative paths resolve against")
@@ -760,6 +763,9 @@ def build_parser() -> argparse.ArgumentParser:
                           help="comma-separated defences or presets (default: none,layered)")
     bench_lb.add_argument("--trials", type=_positive_int, default=1, help="trials per cell")
     bench_lb.add_argument("--seed", type=int, default=42, help="canary seed (default: 42)")
+    bench_lb.add_argument("--max-tokens", type=_positive_int, default=512,
+                          help="reply length cap per model (default: 512); raise it for "
+                               "reasoning models, which can spend it all thinking")
     bench_lb.add_argument("--cache", nargs="?", const="reports/bench_cache",
                           help="cache model replies here so reruns are free and resumable")
     bench_lb.add_argument("--root", help="project root that relative paths resolve against")
@@ -1109,6 +1115,15 @@ def cmd_bench_build(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _warn_if_truncated(counts) -> None:
+    """Say so loudly when replies were cut off at the token limit (they score as safe)."""
+    total = sum(counts)
+    if total:
+        print(f"WARNING: {total} reply(ies) hit the token limit and were cut off or empty; they "
+              "are scored as 'no attack succeeded', so the rates may be too low. "
+              "Re-run with a larger --max-tokens.", file=sys.stderr)
+
+
 def cmd_bench_run(args: argparse.Namespace) -> int:
     """Run the benchmark's verifiable attacks with a reproducibility manifest."""
     from ragprobe.bench.run import render_markdown, run_bench
@@ -1122,7 +1137,7 @@ def cmd_bench_run(args: argparse.Namespace) -> int:
         if args.base_url:
             gen.base_url = args.base_url
         provider = get_provider(gen, override=args.provider)
-        victim = get_victim("live", provider=provider)
+        victim = get_victim("live", provider=provider, max_tokens=args.max_tokens)
     else:
         victim = get_victim("simulated")
 
@@ -1139,6 +1154,7 @@ def cmd_bench_run(args: argparse.Namespace) -> int:
         raise InputError(str(exc)) from exc
 
     _write_json(Path(args.out), result)
+    _warn_if_truncated([result["manifest"].get("truncated_replies", 0)])
     print(render_markdown(result))
     print(f"  wrote {args.out}")
     if args.md:
@@ -1191,13 +1207,15 @@ def cmd_bench_leaderboard(args: argparse.Namespace) -> int:
             Path(args.catalogue), models, split=split, defenses=defenses,
             trials=args.trials, seed=args.seed,
             cache_dir=Path(args.cache) if args.cache else None,
-            base_dir=base_dir, corpus_dir=args.corpus, progress=progress)
+            base_dir=base_dir, corpus_dir=args.corpus, max_tokens=args.max_tokens,
+            progress=progress)
     except (ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from exc
     if sys.stderr.isatty():
         print("", file=sys.stderr)
 
     _write_json(Path(args.out), report)
+    _warn_if_truncated([m["manifest"].get("truncated_replies", 0) for m in report["models"]])
     print(render_markdown(report))
     print(f"  wrote {args.out}")
     if args.md:
