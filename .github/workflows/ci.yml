@@ -264,9 +264,12 @@ jobs:
           # building it first left the live site without those links. Offline,
           # against the deterministic simulated victim, so no key is needed and
           # the numbers are stable.
-          ragprobe security run --defenses none,layered --benign --html site/security.html \n            --out reports/security.json || echo "security page skipped"
-          ragprobe security lab --html site/lab.html --out reports/lab.json \n            || echo "attack lab page skipped"
-          python scripts/build_site.py --history-dir reports/history --out site/index.html \n            --lab-json reports/lab.json
+          ragprobe security run --defenses none,layered --benign --html site/security.html \
+            --out reports/security.json || echo "security page skipped"
+          ragprobe security lab --html site/lab.html --out reports/lab.json \
+            || echo "attack lab page skipped"
+          python scripts/build_site.py --history-dir reports/history --out site/index.html \
+            --lab-json reports/lab.json
           # Keep the store bounded: the newest 200 runs. File names start with
           # the sequence number, so a name sort is a time sort; mtimes here are
           # all "now".
