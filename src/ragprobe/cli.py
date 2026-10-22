@@ -684,6 +684,15 @@ def build_parser() -> argparse.ArgumentParser:
                         help="also write a Markdown report")
     sec_mt.set_defaults(func=cmd_security_multiturn)
 
+    sec_obf = sec_sub.add_parser(
+        "obfuscation", help="measure detector evasion by obfuscation, and normalization's fix")
+    sec_obf.add_argument("--detector", default="heuristic",
+                         help="detector to test (heuristic, groq-guard, protectai)")
+    sec_obf.add_argument("--out", default="reports/obfuscation.json", help="results JSON output")
+    sec_obf.add_argument("--md", nargs="?", const="reports/obfuscation.md",
+                         help="also write a Markdown report")
+    sec_obf.set_defaults(func=cmd_security_obfuscation)
+
     # bench ----------------------------------------------------------------
     bench_parser = subparsers.add_parser(
         "bench", help="build and inspect the frozen, versioned attack benchmark (Bench v1)",
@@ -1007,6 +1016,22 @@ def cmd_security_multiturn(args: argparse.Namespace) -> int:
 
     defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
     report = run_multiturn(defenses=defenses, seed=args.seed)
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_obfuscation(args: argparse.Namespace) -> int:
+    """Measure how obfuscation evades a detector, and that normalizing restores it."""
+    from ragprobe.security.detector import get_detector
+    from ragprobe.security.obfuscation import evaluate, render_markdown
+
+    report = evaluate(get_detector(args.detector))
     _write_json(Path(args.out), report)
     print(render_markdown(report))
     print(f"  wrote {args.out}")
