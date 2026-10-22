@@ -37,6 +37,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   vulnerable app (Acme Helpdesk): scan it (grade F), add defences step by step,
   rescan (grade A), and check the false-block rate. Plus `docs/quickstart.md`.
 
+- **Attack lab page** (`ragprobe security lab`) - the demo, poisoned tools, multi-turn
+  attacks and hidden injections on one page of the site, built from real runs and
+  reporting where the defences fall short. Added to the top menu and the guided tour.
+
+### Fixed
+
+- The live landing page's main button said "See a live security scan" but opened the
+  dashboard, its menu had no links into the product pages, and the whole menu vanished
+  on a phone. Cause: CI built the landing page before the pages it links to existed.
+  The pages are now built first, the button label follows its target, and the product
+  links stay visible on small screens.
+
 ### Project
 
 - `SECURITY.md`, `CONTRIBUTING.md`, this changelog, and a roadmap (`ROADMAP.md`).

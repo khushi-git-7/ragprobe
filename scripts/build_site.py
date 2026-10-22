@@ -262,20 +262,34 @@ section h2{font-size:38px;margin:12px 0 12px}section .lede{color:var(--muted);fo
 footer{padding:76px 0;border-top:1px solid var(--border);text-align:center}
 footer h2{font-size:34px;margin-bottom:22px}footer .fl{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
 footer p{color:var(--faint);font-size:13px;font-family:var(--mono)}
-@media (max-width:860px){.hero{grid-template-columns:1fr;padding-top:52px}.hero h1{font-size:42px}.row3,.row2,.two{grid-template-columns:1fr}.statrow{grid-template-columns:1fr 1fr}nav .links{display:none}.scene{height:300px}}
+@media (max-width:860px){.hero{grid-template-columns:1fr;padding-top:52px}.hero h1{font-size:42px}.row3,.row2,.two{grid-template-columns:1fr}.statrow{grid-template-columns:1fr 1fr}nav .links a.a{display:none}nav .links a{padding:7px 9px;font-size:13px}.scene{height:300px}}@media (max-width:480px){.logo .lt{display:none}nav .links a.p2{display:none}}
 """
 
 
 # ---------------------------------------------------------------------------
 # fragments
 # ---------------------------------------------------------------------------
-def _nav() -> str:
-    links = [("#what", "What it does"), ("#finding", "The finding"),
-             ("#defence", "Defences"), ("#gate", "Regression gate"),
-             ("#start", "Quickstart"), (REPO_URL, "GitHub")]
-    items = "".join('<a href="' + esc(h) + '">' + esc(t) + "</a>" for h, t in links)
+def _nav(security_href: Optional[str] = None, lab_href: Optional[str] = None,
+         dashboard_href: Optional[str] = None) -> str:
+    """In-page anchors, then the product pages that exist, then GitHub.
+
+    Class ``a`` marks the anchors (hidden on a phone, where space is short), ``p`` the
+    product links (always shown) and ``p2`` the least important of them (also hidden on
+    the narrowest screens) - so a phone visitor still has a way into the product.
+    """
+    links = [("#what", "What it tests", "a"), ("#finding", "The finding", "a"),
+             ("#start", "Quickstart", "a")]
+    if security_href:
+        links.append((security_href, "Security", "p"))
+    if lab_href:
+        links.append((lab_href, "Attack lab", "p"))
+    if dashboard_href:
+        links.append((dashboard_href, "Dashboard", "p p2"))
+    links.append((REPO_URL, "GitHub", "a"))
+    items = "".join('<a class="' + c + '" href="' + esc(h) + '">' + esc(t) + "</a>"
+                    for h, t, c in links)
     return (
-        '<nav><div class="shell"><span class="logo"><span class="mark">R</span>RAGProbe</span>'
+        '<nav><div class="shell"><span class="logo"><span class="mark">R</span><span class="lt">RAGProbe</span></span>'
         '<span class="links">' + items + "</span>"
         '<button class="tg" id="tg" aria-label="Toggle theme">'
         '<svg class="moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>'
@@ -294,17 +308,19 @@ def _threats() -> str:
 
 
 def _hero_cta(security_href: Optional[str], dashboard_href: Optional[str],
-              report_href: Optional[str]) -> str:
+              report_href: Optional[str], lab_href: Optional[str] = None) -> str:
     """The hero's buttons lead *into* the product, not out to the repo.
 
-    The primary action is the first live page that exists (the security
-    scorecard, then the dashboard, then the report); if none has been published
-    yet it scrolls to the on-page walkthrough. The repo lives in the top nav, so
-    a first visit is an invitation to look, not a detour to GitHub.
+    The primary action is the first live page that exists, and its label says what that
+    page really is - a button that promises a security scan must not open the dashboard.
+    With no page published yet it scrolls to the on-page walkthrough. The repo lives in
+    the top nav, so a first visit is an invitation to look, not a detour to GitHub.
     """
-    entry = next((h for h in (security_href, dashboard_href, report_href) if h), None)
+    choices = [(security_href, "See a live security scan"), (lab_href, "Explore the attack lab"),
+               (dashboard_href, "Open the live dashboard"), (report_href, "Read the latest report")]
+    entry = next(((h, label) for h, label in choices if h), None)
     if entry:
-        primary = ('<a class="btn" href="' + esc(entry) + '">See a live security scan &rarr;</a>')
+        primary = '<a class="btn" href="' + esc(entry[0]) + '">' + entry[1] + " &rarr;</a>"
     else:
         primary = '<a class="btn" href="#what">See how it works &darr;</a>'
     return ('<div class="cta">' + primary
@@ -313,7 +329,7 @@ def _hero_cta(security_href: Optional[str], dashboard_href: Optional[str],
 
 def _hero(numbers: Dict[str, str], repo_url: str,
           security_href: Optional[str] = None, dashboard_href: Optional[str] = None,
-          report_href: Optional[str] = None) -> str:
+          report_href: Optional[str] = None, lab_href: Optional[str] = None) -> str:
     runs = numbers.get("runs", "0")
     scene = (
         '<div class="scene" aria-hidden="true"><div class="radar"></div><div class="radar r2"></div>'
@@ -334,7 +350,7 @@ def _hero(numbers: Dict[str, str], repo_url: str,
         '<h1>Ship AI features that <span class="hl">don’t get hacked</span>.</h1>'
         "<p>RAGProbe attacks your LLM app the way the OWASP Top 10 describes, proves every hit "
         "with planted secrets, and tells you which defences actually hold — then gates it in CI.</p>"
-        + _hero_cta(security_href, dashboard_href, report_href)
+        + _hero_cta(security_href, dashboard_href, report_href, lab_href)
         + '<div class="term"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i>'
         '<i style="background:#28c840"></i></div><pre id="term"></pre></div>'
         "</div>" + scene + "</header>"
@@ -450,6 +466,65 @@ def _benchmark(bs: Optional[Dict[str, str]], repo_url: str) -> str:
     )
 
 
+def lab_facts(path: Optional[Path]) -> Optional[Dict[str, Any]]:
+    """Headline numbers from a ``ragprobe security lab`` run (None if there isn't one).
+
+    The numbers on the landing page come from the run, never from this file, so the
+    page cannot drift from the code that produced them.
+    """
+    if path is None or not Path(path).is_file():
+        return None
+    import json
+
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+    facts = data.get("facts") if isinstance(data, dict) else None
+    return facts if isinstance(facts, dict) else None
+
+
+def _lab(lab_href: Optional[str], facts: Optional[Dict[str, Any]]) -> str:
+    """Attacks that do not look like attacks: tool poisoning, multi-turn, hidden text."""
+    def pct(x: Any) -> str:
+        return "{:.0f}%".format(float(x) * 100) if isinstance(x, (int, float)) else "&ndash;"
+
+    f = facts or {}
+    cards = [
+        (_icon('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>'),
+         "Poisoned tools", "The attacker's text hides in a tool description or a tool result and "
+         "tells the agent to leak data. A rule about what a tool may do stops it however it arrives.",
+         (pct(f.get("mcp_undefended")) + " &rarr; " + pct(f.get("mcp_policy"))) if f else "",
+         "data leaked: no defence &rarr; tool policy"),
+        (_icon('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/>'),
+         "Multi-turn chains", "Each message looks harmless; together they build the attack. "
+         "The layered defence stops the secret-leak chains but not all of the rest &mdash; an honest gap.",
+         (pct(f.get("multiturn_undefended")) + " &rarr; " + pct(f.get("multiturn_layered"))) if f else "",
+         "attacks that work: no defence &rarr; layered"),
+        (_icon('<path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M9.9 5.1A10 10 0 0 1 12 5c5 0 9 4 10 7a13 13 0 0 1-2.2 3.4M6.6 6.6A13 13 0 0 0 2 12c1 3 5 7 10 7a10 10 0 0 0 4.4-1"/>'),
+         "Hidden injections", "Invisible characters and look-alike letters hide the words from a "
+         "keyword detector. Cleaning the text first brings detection back.",
+         (pct(f.get("obfuscation_raw")) + " &rarr; " + pct(f.get("obfuscation_normalized"))) if f else "",
+         "caught on zero-width text: as received &rarr; cleaned"),
+    ]
+    body = ""
+    for ic, title, desc, big, cap in cards:
+        number = ('<div style="font-size:28px;font-weight:850;margin-top:12px">' + big + "</div>"
+                  '<div style="font-size:12.5px;color:var(--faint);font-family:var(--mono)">' + cap + "</div>"
+                  ) if big else ""
+        body += ('<div class="card"><div class="ic">' + ic + "</div><h3>" + title + "</h3><p>"
+                 + desc + "</p>" + number + "</div>")
+    more = ('<p style="margin-top:22px"><a class="btn ghost" href="' + esc(lab_href) +
+            '">Open the attack lab &rarr;</a></p>') if lab_href else ""
+    return (
+        '<section id="lab" class="shell reveal"><div class="shead"><span class="eyebrow">Beyond one prompt</span>'
+        "<h2>Attacks that don&rsquo;t look like attacks</h2>"
+        '<p class="lede">The numbers below come from a worst-case drill against a simulated victim, '
+        "rebuilt on every push &mdash; including where the defences fall short.</p></div>"
+        '<div class="row3">' + body + "</div>" + more + "</section>"
+    )
+
+
 def _scorecard(security_href: Optional[str]) -> str:
     rows = [("Prompt Injection", "LLM01", "100% → 0%"), ("Sensitive Info Disclosure", "LLM02", "100% → 0%"),
             ("Excessive Agency", "LLM06", "100% → 0%"), ("System Prompt Leakage", "LLM07", "100% → 0%"),
@@ -554,19 +629,21 @@ SCRIPT = """
 # ---------------------------------------------------------------------------
 def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: Optional[str],
            repo_url: str, changelog: Optional[List[str]] = None,
-           security_href: Optional[str] = None) -> str:
+           security_href: Optional[str] = None, lab_href: Optional[str] = None,
+           lab: Optional[Dict[str, Any]] = None) -> str:
     return (
         "<!doctype html><html lang=\"en\" data-theme=\"dark\"><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         "<title>" + esc(TITLE) + " — " + esc(TAGLINE) + "</title>"
         "<style>" + CSS + "</style></head><body><div class=\"bgfx\"></div>"
-        + _nav()
-        + _hero(numbers, repo_url, security_href, dashboard_href, report_href)
+        + _nav(security_href, lab_href, dashboard_href)
+        + _hero(numbers, repo_url, security_href, dashboard_href, report_href, lab_href)
         + _what()
         + _benchmark(bench_stats(), repo_url)
         + _finding()
         + _defence()
         + _scorecard(security_href)
+        + _lab(lab_href, lab)
         + _gate(numbers, dashboard_href, report_href)
         + _start(repo_url)
         + _footer(dashboard_href, security_href, repo_url)
@@ -575,7 +652,8 @@ def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: 
 
 
 def build(history_dir: Path, out: Path, dashboard: str, report: str, repo_url: str,
-          changelog: Optional[List[str]] = None, security: str = "security.html") -> Path:
+          changelog: Optional[List[str]] = None, security: str = "security.html",
+          lab: str = "lab.html", lab_json: Optional[Path] = None) -> Path:
     runs = load_runs(history_dir)
     numbers = stats(runs)
 
@@ -587,7 +665,8 @@ def build(history_dir: Path, out: Path, dashboard: str, report: str, repo_url: s
         return href if (out.parent / href).is_file() else None
 
     page = render(numbers, usable(dashboard), usable(report), repo_url,
-                  changelog=changelog, security_href=usable(security))
+                  changelog=changelog, security_href=usable(security),
+                  lab_href=usable(lab), lab=lab_facts(lab_json))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     return out
@@ -600,13 +679,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--dashboard", default="dashboard.html", help="href of the dashboard, relative to --out")
     parser.add_argument("--report", default="report.html", help="href of the latest report, relative to --out")
     parser.add_argument("--security", default="security.html", help="href of the security scorecard, relative to --out")
+    parser.add_argument("--lab", default="lab.html", help="href of the attack-lab page, relative to --out")
+    parser.add_argument("--lab-json", default="reports/lab.json",
+                        help="results of `ragprobe security lab`, for the landing page's headline numbers")
     parser.add_argument("--repo-url", default=REPO_URL, help="repository URL for the source links")
     parser.add_argument("--no-changelog", action="store_true", help="(kept for compatibility; unused)")
     args = parser.parse_args(argv)
 
     changelog = [] if args.no_changelog else recent_commits()
     out = build(Path(args.history_dir), Path(args.out), args.dashboard, args.report, args.repo_url,
-                changelog=changelog, security=args.security)
+                changelog=changelog, security=args.security,
+                lab=args.lab, lab_json=Path(args.lab_json))
     runs = len(load_runs(Path(args.history_dir)))
     print("site -> " + str(out) + " (" + str(runs) + " run(s) in history)")
     return 0
