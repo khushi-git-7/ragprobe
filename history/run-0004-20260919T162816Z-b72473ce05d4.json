@@ -1,0 +1,3035 @@
+{
+  "schema_version": 1,
+  "ragprobe_version": "0.1.0",
+  "started_at": "2026-09-19T16:28:16Z",
+  "duration_seconds": 0.034,
+  "provider": "stub",
+  "deterministic": true,
+  "config_fingerprint": "b72473ce05d4",
+  "dataset_fingerprint": "06971ba9e140",
+  "config": {
+    "corpus_dir": "datasets/docs",
+    "dataset_path": "datasets/golden_set.yaml",
+    "chunk": {
+      "strategy": "heading",
+      "max_words": 180,
+      "overlap_words": 30,
+      "min_words": 5
+    },
+    "retrieval": {
+      "embedder": "tfidf",
+      "dim": 512,
+      "top_k": 3,
+      "min_score": 0.0,
+      "model_name": "sentence-transformers/all-MiniLM-L6-v2"
+    },
+    "generation": {
+      "provider": "stub",
+      "model": "claude-opus-5",
+      "base_url": "https://api.openai.com/v1",
+      "prompt_version": "v1",
+      "max_sentences": 2,
+      "include_citations": true,
+      "refusal_threshold": 0.1,
+      "max_tokens": 1024
+    },
+    "evaluation": {
+      "fuzzy_threshold": 0.6,
+      "grounding_threshold": 0.55,
+      "claim_support_threshold": 0.5,
+      "judge_enabled": true,
+      "required_checks": [
+        "keyword_presence",
+        "forbidden_absent",
+        "refusal_behaviour",
+        "citation_present",
+        "grounding"
+      ]
+    },
+    "target": {
+      "kind": "builtin",
+      "url": "",
+      "entry": "",
+      "method": "POST",
+      "headers": {},
+      "timeout": 60.0,
+      "question_field": "question",
+      "answer_field": "answer",
+      "contexts_field": "contexts",
+      "refused_field": "refused",
+      "extra_body": {}
+    }
+  },
+  "pipeline": {
+    "documents": 5,
+    "chunks": 29,
+    "embedder": "tfidf",
+    "dim": 512,
+    "provider": "stub",
+    "deterministic_provider": true
+  },
+  "summary": {
+    "total": 16,
+    "passed": 14,
+    "failed": 2,
+    "pass_rate": 0.875,
+    "mean_score": 0.9558,
+    "retrieval": {
+      "precision@3": 0.3333,
+      "recall@3": 1.0,
+      "hit_rate@3": 1.0,
+      "mrr": 0.9286
+    },
+    "by_category": {
+      "billing": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate": 1.0,
+        "mean_score": 0.9961309523809523
+      },
+      "hr-policy": {
+        "total": 4,
+        "passed": 4,
+        "pass_rate": 1.0,
+        "mean_score": 0.942811451403875
+      },
+      "product": {
+        "total": 3,
+        "passed": 2,
+        "pass_rate": 0.6666666666666666,
+        "mean_score": 0.9455532212885154
+      },
+      "refusal": {
+        "total": 2,
+        "passed": 1,
+        "pass_rate": 0.5,
+        "mean_score": 0.85875
+      },
+      "security": {
+        "total": 3,
+        "passed": 3,
+        "pass_rate": 1.0,
+        "mean_score": 0.991844654528478
+      },
+      "support": {
+        "total": 2,
+        "passed": 2,
+        "pass_rate": 1.0,
+        "mean_score": 1.0
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "pto-annual-allowance",
+      "question": "How many days of paid time off do full-time employees get each year?",
+      "category": "hr-policy",
+      "answer": "Full-time employees accrue 20 days of paid time off per calendar year. [employee_handbook#paid-time-off] Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December.",
+      "refused": false,
+      "passed": true,
+      "score": 0.8,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": false,
+          "score": 0.0,
+          "detail": "answer differs from expected_answer",
+          "applicable": true,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": false,
+          "score": 0.4423,
+          "detail": "similarity 0.44 vs threshold 0.60",
+          "applicable": true,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "20 days"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "employee_handbook#paid-time-off"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "employee_handbook#paid-time-off"
+            ],
+            "cited": [
+              "employee_handbook#paid-time-off"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.979,
+          "detail": "all 1 claim(s) grounded (score 0.98)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.979,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "employee_handbook#paid-time-off",
+          "doc_id": "employee_handbook",
+          "heading": "Paid Time Off",
+          "text": "Full-time employees accrue 20 days of paid time off per calendar year. Accrual begins on the first day of employment at a rate of 1.67 days per month. Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December. PTO requests must be submitted at least 10 business days in advance through the HR self-service portal, except for sick leave, which may be reported the same day.",
+          "score": 0.330128,
+          "rank": 1
+        },
+        {
+          "chunk_id": "employee_handbook#remote-work",
+          "doc_id": "employee_handbook",
+          "heading": "Remote Work",
+          "text": "Northwind Robotics operates a hybrid model. Employees are expected on site at least 2 days per week, normally Tuesday and Thursday. Fully remote arrangements require written approval from both the direct manager and the People Operations team. Remote employees must be reachable during the core hours of 10:00 to 16:00 in their registered time zone.",
+          "score": 0.170192,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#code-of-conduct",
+          "doc_id": "employee_handbook",
+          "heading": "Code of Conduct",
+          "text": "Employees are expected to act with integrity and treat colleagues, customers and partners with respect. Harassment, discrimination and retaliation are prohibited. Concerns may be raised with a manager, with People Operations, or anonymously through the ethics hotline. All reports are investigated and the company prohibits retaliation against anyone who raises a concern in good faith.",
+          "score": 0.141743,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "employee_handbook#paid-time-off"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.979,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Full-time employees accrue 20 days of paid time off per calendar year. [employee_handbook#paid-time-off] Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December.",
+              "score": 0.979,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9677,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.9790322580645161,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [
+        "exact_match",
+        "fuzzy_match"
+      ],
+      "error": null,
+      "golden": {
+        "expected_answer": "Full-time employees accrue 20 days of paid time off per calendar year.",
+        "required_keywords": [
+          "20 days"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Straightforward single-fact lookup. The control case - if this breaks, something fundamental broke."
+      }
+    },
+    {
+      "id": "pto-carry-over-limit",
+      "question": "How many unused PTO days can be carried over into the next calendar year?",
+      "category": "hr-policy",
+      "answer": "Full-time employees accrue 20 days of paid time off per calendar year. [employee_handbook#paid-time-off] Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December.",
+      "refused": false,
+      "passed": true,
+      "score": 0.993,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "5"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "employee_handbook#paid-time-off"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "employee_handbook#paid-time-off"
+            ],
+            "cited": [
+              "employee_handbook#paid-time-off"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.979,
+          "detail": "all 1 claim(s) grounded (score 0.98)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.979,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "employee_handbook#paid-time-off",
+          "doc_id": "employee_handbook",
+          "heading": "Paid Time Off",
+          "text": "Full-time employees accrue 20 days of paid time off per calendar year. Accrual begins on the first day of employment at a rate of 1.67 days per month. Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December. PTO requests must be submitted at least 10 business days in advance through the HR self-service portal, except for sick leave, which may be reported the same day.",
+          "score": 0.362417,
+          "rank": 1
+        },
+        {
+          "chunk_id": "employee_handbook#equipment-and-hardware",
+          "doc_id": "employee_handbook",
+          "heading": "Equipment and Hardware",
+          "text": "Every new employee receives a laptop, an external monitor, and a headset. The standard refresh cycle for laptops is 36 months. Lost or stolen equipment must be reported to the IT service desk within 24 hours so that the device can be remotely wiped. Personal use of company hardware is permitted within the limits of the acceptable use policy.",
+          "score": 0.191548,
+          "rank": 2
+        },
+        {
+          "chunk_id": "refund_policy#billing-disputes",
+          "doc_id": "refund_policy",
+          "heading": "Billing Disputes",
+          "text": "Invoice disputes must be raised within 30 days of the invoice date. The billing team responds to disputes within 5 business days. Disputed amounts are not considered overdue while the dispute is open, and no late fees accrue on the disputed portion.",
+          "score": 0.102862,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "employee_handbook#paid-time-off"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.979,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Full-time employees accrue 20 days of paid time off per calendar year. [employee_handbook#paid-time-off] Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December.",
+              "score": 0.979,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9677,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.9790322580645161,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "5"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "The answer sits in the same chunk as the allowance, so this tests sentence selection within a chunk, not retrieval."
+      }
+    },
+    {
+      "id": "remote-onsite-days",
+      "question": "How many days per week are employees expected to be on site?",
+      "category": "hr-policy",
+      "answer": "Employees are expected on site at least 2 days per week, normally Tuesday and Thursday. [employee_handbook#remote-work] Employees are expected to act with integrity and treat colleagues, customers and partners with respect. [employee_handbook#code-of-conduct]",
+      "refused": false,
+      "passed": true,
+      "score": 0.9902,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "2 days"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 1.0,
+          "detail": "no forbidden keywords present",
+          "applicable": true,
+          "metadata": {
+            "present": []
+          }
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 2 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "employee_handbook#remote-work",
+              "employee_handbook#code-of-conduct"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "employee_handbook#remote-work"
+            ],
+            "cited": [
+              "employee_handbook#code-of-conduct",
+              "employee_handbook#remote-work"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9658,
+          "detail": "all 1 claim(s) grounded (score 0.97)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9658,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "employee_handbook#remote-work",
+          "doc_id": "employee_handbook",
+          "heading": "Remote Work",
+          "text": "Northwind Robotics operates a hybrid model. Employees are expected on site at least 2 days per week, normally Tuesday and Thursday. Fully remote arrangements require written approval from both the direct manager and the People Operations team. Remote employees must be reachable during the core hours of 10:00 to 16:00 in their registered time zone.",
+          "score": 0.312782,
+          "rank": 1
+        },
+        {
+          "chunk_id": "employee_handbook#code-of-conduct",
+          "doc_id": "employee_handbook",
+          "heading": "Code of Conduct",
+          "text": "Employees are expected to act with integrity and treat colleagues, customers and partners with respect. Harassment, discrimination and retaliation are prohibited. Concerns may be raised with a manager, with People Operations, or anonymously through the ethics hotline. All reports are investigated and the company prohibits retaliation against anyone who raises a concern in good faith.",
+          "score": 0.24473,
+          "rank": 2
+        },
+        {
+          "chunk_id": "product_faq#pricing-tiers",
+          "doc_id": "product_faq",
+          "heading": "Pricing Tiers",
+          "text": "Northwind Fleet is sold in three tiers. The Starter tier costs 99 USD per month and supports up to 10 robots. The Growth tier costs 499 USD per month and supports up to 100 robots. The Enterprise tier is priced on request and has no robot limit. All tiers are billed monthly in arrears and include unlimited user seats.",
+          "score": 0.167588,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "employee_handbook#remote-work"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9658,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Employees are expected on site at least 2 days per week, normally Tuesday and Thursday. [employee_handbook#remote-work] Employees are expected to act with integrity and treat colleagues, customers and partners with respect. [employee_handbook#code-of-conduct]",
+              "score": 0.9658,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9474,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.9657894736842105,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "2 days"
+        ],
+        "forbidden_keywords": [
+          "fully remote"
+        ],
+        "should_refuse": false,
+        "notes": "Near-miss distractor - the same chunk also describes fully remote arrangements."
+      }
+    },
+    {
+      "id": "expense-receipt-threshold",
+      "question": "Above what amount is a receipt required for an expense claim?",
+      "category": "hr-policy",
+      "answer": "Receipts are required for any single expense over 25 USD. [employee_handbook#expense-reimbursement] Expense reports are submitted through the expense portal and require approval from a cost centre owner.",
+      "refused": false,
+      "passed": true,
+      "score": 0.988,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "25 USD"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "employee_handbook#expense-reimbursement"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "employee_handbook#expense-reimbursement"
+            ],
+            "cited": [
+              "employee_handbook#expense-reimbursement"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9639,
+          "detail": "all 1 claim(s) grounded (score 0.96)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9639,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 0.5
+      },
+      "retrieved": [
+        {
+          "chunk_id": "employee_handbook#intro",
+          "doc_id": "employee_handbook",
+          "heading": "Northwind Robotics Employee Handbook",
+          "text": "This handbook describes the employment policies of Northwind Robotics. It is a fictional document written for the RAGProbe sample corpus.",
+          "score": 0.200095,
+          "rank": 1
+        },
+        {
+          "chunk_id": "employee_handbook#expense-reimbursement",
+          "doc_id": "employee_handbook",
+          "heading": "Expense Reimbursement",
+          "text": "Business expenses are reimbursed within 30 days of submission. Receipts are required for any single expense over 25 USD. Meals during business travel are capped at 75 USD per day. Airfare must be booked in economy class for flights under 6 hours. Expense reports are submitted through the expense portal and require approval from a cost centre owner.",
+          "score": 0.18111,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#equipment-and-hardware",
+          "doc_id": "employee_handbook",
+          "heading": "Equipment and Hardware",
+          "text": "Every new employee receives a laptop, an external monitor, and a headset. The standard refresh cycle for laptops is 36 months. Lost or stolen equipment must be reported to the IT service desk within 24 hours so that the device can be remotely wiped. Personal use of company hardware is permitted within the limits of the acceptable use policy.",
+          "score": 0.13629,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "employee_handbook#expense-reimbursement"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9639,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Receipts are required for any single expense over 25 USD. [employee_handbook#expense-reimbursement] Expense reports are submitted through the expense portal and require approval from a cost centre owner.",
+              "score": 0.9639,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9444,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.9638888888888889,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "25 USD"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Numeric extraction where the chunk contains three other currency amounts."
+      }
+    },
+    {
+      "id": "pricing-growth-tier",
+      "question": "How much does the Growth tier cost per month?",
+      "category": "product",
+      "answer": "The Starter tier costs 99 USD per month and supports up to 10 robots. [product_faq#pricing-tiers] The Growth tier costs 499 USD per month and supports up to 100 robots.",
+      "refused": false,
+      "passed": false,
+      "score": 0.8571,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "499"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": false,
+          "score": 0.0,
+          "detail": "forbidden keyword(s) present: 99 USD",
+          "applicable": true,
+          "metadata": {
+            "present": [
+              "99 USD"
+            ]
+          }
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "product_faq#pricing-tiers"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "product_faq#pricing-tiers"
+            ],
+            "cited": [
+              "product_faq#pricing-tiers"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 claim(s) grounded (score 1.00)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 1.0,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "product_faq#pricing-tiers",
+          "doc_id": "product_faq",
+          "heading": "Pricing Tiers",
+          "text": "Northwind Fleet is sold in three tiers. The Starter tier costs 99 USD per month and supports up to 10 robots. The Growth tier costs 499 USD per month and supports up to 100 robots. The Enterprise tier is priced on request and has no robot limit. All tiers are billed monthly in arrears and include unlimited user seats.",
+          "score": 0.195211,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#api-rate-limits",
+          "doc_id": "product_faq",
+          "heading": "API Rate Limits",
+          "text": "The Northwind Fleet REST API allows 1000 requests per minute on the Starter tier, 5000 requests per minute on the Growth tier, and a negotiated limit on Enterprise. Exceeding the limit returns HTTP 429 with a Retry-After header. Rate limits are applied per organisation, not per API key.",
+          "score": 0.160774,
+          "rank": 2
+        },
+        {
+          "chunk_id": "refund_policy#free-trial",
+          "doc_id": "refund_policy",
+          "heading": "Free Trial",
+          "text": "New customers may start a 14 day free trial of the Growth tier. The trial does not require a credit card. At the end of the trial the account reverts to a read-only state unless a paid subscription is started. Trial accounts are limited to 5 robots and do not include the DataVault integration.",
+          "score": 0.136027,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "product_faq#pricing-tiers"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 1.0,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "The Starter tier costs 99 USD per month and supports up to 10 robots. [product_faq#pricing-tiers] The Growth tier costs 499 USD per month and supports up to 100 robots.",
+              "score": 1.0,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 1.0,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 1.0,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [
+        "forbidden_absent"
+      ],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "499"
+        ],
+        "forbidden_keywords": [
+          "99 USD"
+        ],
+        "should_refuse": false,
+        "notes": "known_failure. Retrieval is correct - the right chunk comes back at rank 1 - but that chunk lists Starter, Growth and Enterprise pricing in adjacent sentences, and the generator emits the two highest-scoring sentences. The Starter price (99 USD) therefore appears alongside the Growth price (499 USD), and a user skimming the answer can easily take away the wrong number. This case is the reason retrieval metrics alone are not enough: precision@k, recall@k, hit rate and MRR are all perfect here while the answer is still misleading. The fix is finer-grained chunking of list-like sections, or a generator constrained to one fact - not a retrieval change."
+      }
+    },
+    {
+      "id": "api-rate-limit-starter",
+      "question": "What is the API rate limit on the Starter tier?",
+      "category": "product",
+      "answer": "The Northwind Fleet REST API allows 1000 requests per minute on the Starter tier, 5000 requests per minute on the Growth tier, and a negotiated limit on Enterprise. [product_faq#api-rate-limits] Rate limits are applied per organisation, not per API key.",
+      "refused": false,
+      "passed": true,
+      "score": 0.9923,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "1000 requests per minute"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "product_faq#api-rate-limits"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "product_faq#api-rate-limits"
+            ],
+            "cited": [
+              "product_faq#api-rate-limits"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9768,
+          "detail": "all 1 claim(s) grounded (score 0.98)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9768,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "product_faq#api-rate-limits",
+          "doc_id": "product_faq",
+          "heading": "API Rate Limits",
+          "text": "The Northwind Fleet REST API allows 1000 requests per minute on the Starter tier, 5000 requests per minute on the Growth tier, and a negotiated limit on Enterprise. Exceeding the limit returns HTTP 429 with a Retry-After header. Rate limits are applied per organisation, not per API key.",
+          "score": 0.405256,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#pricing-tiers",
+          "doc_id": "product_faq",
+          "heading": "Pricing Tiers",
+          "text": "Northwind Fleet is sold in three tiers. The Starter tier costs 99 USD per month and supports up to 10 robots. The Growth tier costs 499 USD per month and supports up to 100 robots. The Enterprise tier is priced on request and has no robot limit. All tiers are billed monthly in arrears and include unlimited user seats.",
+          "score": 0.207215,
+          "rank": 2
+        },
+        {
+          "chunk_id": "support_sla#uptime-commitment",
+          "doc_id": "support_sla",
+          "heading": "Uptime Commitment",
+          "text": "Northwind Fleet commits to 99.9 percent monthly uptime for the Growth tier and 99.95 percent for the Enterprise tier. Uptime is measured against the control plane API. Scheduled maintenance windows are excluded from the calculation and are announced at least 7 days in advance.",
+          "score": 0.161412,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "product_faq#api-rate-limits"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9768,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "The Northwind Fleet REST API allows 1000 requests per minute on the Starter tier, 5000 requests per minute on the Growth tier, and a negotiated limit on Enterprise. [product_faq#api-rate-limits] Rate limits are applied per organisation, not per API key.",
+              "score": 0.9768,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9643,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.9767857142857143,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "1000 requests per minute"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "High-similarity case; expected to retrieve at rank 1."
+      }
+    },
+    {
+      "id": "data-export-formats",
+      "question": "Which file formats can telemetry data be exported in?",
+      "category": "product",
+      "answer": "Telemetry data is retained for 13 months and then permanently deleted. [security_policy#data-retention] Customers can export their telemetry data at any time in CSV or Parquet format. [product_faq#data-export]",
+      "refused": false,
+      "passed": true,
+      "score": 0.9873,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "CSV"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 2 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "security_policy#data-retention",
+              "product_faq#data-export"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "product_faq#data-export"
+            ],
+            "cited": [
+              "product_faq#data-export",
+              "security_policy#data-retention"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9618,
+          "detail": "all 1 claim(s) grounded (score 0.96)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9618,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 0.5
+      },
+      "retrieved": [
+        {
+          "chunk_id": "security_policy#data-retention",
+          "doc_id": "security_policy",
+          "heading": "Data Retention",
+          "text": "Telemetry data is retained for 13 months and then permanently deleted. Application logs are retained for 90 days. Customer account records are retained for the duration of the contract plus 7 years to satisfy financial reporting obligations. Customers may request earlier deletion of telemetry data through a support ticket.",
+          "score": 0.193377,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#data-export",
+          "doc_id": "product_faq",
+          "heading": "Data Export",
+          "text": "Customers can export their telemetry data at any time in CSV or Parquet format. Exports are generated asynchronously and a download link is emailed when the archive is ready. Export archives remain available for 7 days. There is no charge for data export on any tier.",
+          "score": 0.165971,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#paid-time-off",
+          "doc_id": "employee_handbook",
+          "heading": "Paid Time Off",
+          "text": "Full-time employees accrue 20 days of paid time off per calendar year. Accrual begins on the first day of employment at a rate of 1.67 days per month. Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December. PTO requests must be submitted at least 10 business days in advance through the HR self-service portal, except for sick leave, which may be reported the same day.",
+          "score": 0.153419,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "product_faq#data-export"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9618,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Telemetry data is retained for 13 months and then permanently deleted. [security_policy#data-retention] Customers can export their telemetry data at any time in CSV or Parquet format. [product_faq#data-export]",
+              "score": 0.9618,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9412,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.961764705882353,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "CSV"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Tests retrieval of a chunk whose vocabulary overlaps heavily with the data-retention chunk."
+      }
+    },
+    {
+      "id": "telemetry-retention-period",
+      "question": "How long is telemetry data retained before deletion?",
+      "category": "security",
+      "answer": "Telemetry data is retained for 13 months and then permanently deleted. [security_policy#data-retention] Customers may request earlier deletion of telemetry data through a support ticket.",
+      "refused": false,
+      "passed": true,
+      "score": 0.9891,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "13 months"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 1.0,
+          "detail": "no forbidden keywords present",
+          "applicable": true,
+          "metadata": {
+            "present": []
+          }
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "security_policy#data-retention"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "security_policy#data-retention"
+            ],
+            "cited": [
+              "security_policy#data-retention"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9618,
+          "detail": "all 1 claim(s) grounded (score 0.96)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9618,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "security_policy#data-retention",
+          "doc_id": "security_policy",
+          "heading": "Data Retention",
+          "text": "Telemetry data is retained for 13 months and then permanently deleted. Application logs are retained for 90 days. Customer account records are retained for the duration of the contract plus 7 years to satisfy financial reporting obligations. Customers may request earlier deletion of telemetry data through a support ticket.",
+          "score": 0.273662,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#what-is-northwind-fleet",
+          "doc_id": "product_faq",
+          "heading": "What Is Northwind Fleet",
+          "text": "Northwind Fleet is a fleet management platform for autonomous warehouse robots. It provides live telemetry, task scheduling, battery management and a simulation environment for testing routing changes before they reach production hardware.",
+          "score": 0.154579,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#paid-time-off",
+          "doc_id": "employee_handbook",
+          "heading": "Paid Time Off",
+          "text": "Full-time employees accrue 20 days of paid time off per calendar year. Accrual begins on the first day of employment at a rate of 1.67 days per month. Employees may carry over a maximum of 5 unused PTO days into the following calendar year; any balance above 5 days is forfeited on 31 December. PTO requests must be submitted at least 10 business days in advance through the HR self-service portal, except for sick leave, which may be reported the same day.",
+          "score": 0.126774,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "security_policy#data-retention"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9618,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Telemetry data is retained for 13 months and then permanently deleted. [security_policy#data-retention] Customers may request earlier deletion of telemetry data through a support ticket.",
+              "score": 0.9618,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9412,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.961764705882353,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "13 months"
+        ],
+        "forbidden_keywords": [
+          "90 days"
+        ],
+        "should_refuse": false,
+        "notes": "The same chunk also states a 90-day log retention period - a classic wrong-number failure mode."
+      }
+    },
+    {
+      "id": "breach-notification-window",
+      "question": "How quickly are customers notified after a confirmed data breach?",
+      "category": "security",
+      "answer": "Customers affected by a confirmed data breach are notified within 72 hours. [security_policy#incident-response] Exceeding the limit returns HTTP 429 with a Retry-After header. [product_faq#api-rate-limits]",
+      "refused": false,
+      "passed": true,
+      "score": 0.9865,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "72 hours"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 2 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "security_policy#incident-response",
+              "product_faq#api-rate-limits"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "security_policy#incident-response"
+            ],
+            "cited": [
+              "product_faq#api-rate-limits",
+              "security_policy#incident-response"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9594,
+          "detail": "all 1 claim(s) grounded (score 0.96)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9594,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "security_policy#incident-response",
+          "doc_id": "security_policy",
+          "heading": "Incident Response",
+          "text": "Security incidents are triaged within 1 hour of detection. Customers affected by a confirmed data breach are notified within 72 hours. The incident response team maintains a runbook for each incident class and conducts a blameless post-mortem within 5 business days of resolution.",
+          "score": 0.311813,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#api-rate-limits",
+          "doc_id": "product_faq",
+          "heading": "API Rate Limits",
+          "text": "The Northwind Fleet REST API allows 1000 requests per minute on the Starter tier, 5000 requests per minute on the Growth tier, and a negotiated limit on Enterprise. Exceeding the limit returns HTTP 429 with a Retry-After header. Rate limits are applied per organisation, not per API key.",
+          "score": 0.220546,
+          "rank": 2
+        },
+        {
+          "chunk_id": "support_sla#escalation-path",
+          "doc_id": "support_sla",
+          "heading": "Escalation Path",
+          "text": "If a Severity 1 incident is not resolved within 4 hours, it is automatically escalated to the engineering on-call lead. After 8 hours it is escalated to the director of engineering. Customers may request a manual escalation at any time by replying to the ticket with the word ESCALATE.",
+          "score": 0.192561,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "security_policy#incident-response"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9594,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Customers affected by a confirmed data breach are notified within 72 hours. [security_policy#incident-response] Exceeding the limit returns HTTP 429 with a Retry-After header. [product_faq#api-rate-limits]",
+              "score": 0.9594,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9375,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.959375,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "72 hours"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Compliance-relevant fact. Worth asserting on exactly because a wrong answer here is expensive."
+      }
+    },
+    {
+      "id": "production-access-mfa",
+      "question": "What authentication is required for access to production systems?",
+      "category": "security",
+      "answer": "Access to production systems follows the principle of least privilege. [security_policy#access-control] All production access requires multi-factor authentication and is granted through short-lived credentials that expire after 8 hours.",
+      "refused": false,
+      "passed": true,
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "multi-factor authentication"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "security_policy#access-control"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "security_policy#access-control"
+            ],
+            "cited": [
+              "security_policy#access-control"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 claim(s) grounded (score 1.00)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 1.0,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "security_policy#access-control",
+          "doc_id": "security_policy",
+          "heading": "Access Control",
+          "text": "Access to production systems follows the principle of least privilege. All production access requires multi-factor authentication and is granted through short-lived credentials that expire after 8 hours. Access reviews are performed quarterly by the security team, and any account inactive for 60 days is automatically disabled.",
+          "score": 0.340114,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#what-is-northwind-fleet",
+          "doc_id": "product_faq",
+          "heading": "What Is Northwind Fleet",
+          "text": "Northwind Fleet is a fleet management platform for autonomous warehouse robots. It provides live telemetry, task scheduling, battery management and a simulation environment for testing routing changes before they reach production hardware.",
+          "score": 0.158094,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#intro",
+          "doc_id": "employee_handbook",
+          "heading": "Northwind Robotics Employee Handbook",
+          "text": "This handbook describes the employment policies of Northwind Robotics. It is a fictional document written for the RAGProbe sample corpus.",
+          "score": 0.096785,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "security_policy#access-control"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 1.0,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Access to production systems follows the principle of least privilege. [security_policy#access-control] All production access requires multi-factor authentication and is granted through short-lived credentials that expire after 8 hours.",
+              "score": 1.0,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 1.0,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 1.0,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "multi-factor authentication"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Phrase-level rather than numeric extraction."
+      }
+    },
+    {
+      "id": "sev1-premium-response-time",
+      "question": "What is the first response time for a Severity 1 incident on Premium support?",
+      "category": "support",
+      "answer": "Severity 1 incidents receive a first response within 1 hour on Premium support and within 4 business hours on Standard support. [support_sla#response-times] Severity 2 receives a response within 4 hours on Premium and 1 business day on Standard.",
+      "refused": false,
+      "passed": true,
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "1 hour"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "support_sla#response-times"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "support_sla#response-times"
+            ],
+            "cited": [
+              "support_sla#response-times"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 claim(s) grounded (score 1.00)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 1.0,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "support_sla#response-times",
+          "doc_id": "support_sla",
+          "heading": "Response Times",
+          "text": "Severity 1 incidents receive a first response within 1 hour on Premium support and within 4 business hours on Standard support. Severity 2 receives a response within 4 hours on Premium and 1 business day on Standard. Severity 3 and 4 receive a response within 2 business days on both tiers.",
+          "score": 0.497986,
+          "rank": 1
+        },
+        {
+          "chunk_id": "support_sla#escalation-path",
+          "doc_id": "support_sla",
+          "heading": "Escalation Path",
+          "text": "If a Severity 1 incident is not resolved within 4 hours, it is automatically escalated to the engineering on-call lead. After 8 hours it is escalated to the director of engineering. Customers may request a manual escalation at any time by replying to the ticket with the word ESCALATE.",
+          "score": 0.238331,
+          "rank": 2
+        },
+        {
+          "chunk_id": "security_policy#incident-response",
+          "doc_id": "security_policy",
+          "heading": "Incident Response",
+          "text": "Security incidents are triaged within 1 hour of detection. Customers affected by a confirmed data breach are notified within 72 hours. The incident response team maintains a runbook for each incident class and conducts a blameless post-mortem within 5 business days of resolution.",
+          "score": 0.236874,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "support_sla#response-times"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 1.0,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Severity 1 incidents receive a first response within 1 hour on Premium support and within 4 business hours on Standard support. [support_sla#response-times] Severity 2 receives a response within 4 hours on Premium and 1 business day on Standard.",
+              "score": 1.0,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 1.0,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 1.0,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "1 hour"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "The chunk contains four different response times across two tiers."
+      }
+    },
+    {
+      "id": "enterprise-uptime-commitment",
+      "question": "What uptime does the Enterprise tier commit to?",
+      "category": "support",
+      "answer": "Northwind Fleet commits to 99.9 percent monthly uptime for the Growth tier and 99.95 percent for the Enterprise tier. [support_sla#uptime-commitment] Uptime is measured against the control plane API.",
+      "refused": false,
+      "passed": true,
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "99.95"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "support_sla#uptime-commitment"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "support_sla#uptime-commitment"
+            ],
+            "cited": [
+              "support_sla#uptime-commitment"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 claim(s) grounded (score 1.00)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 1.0,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "support_sla#uptime-commitment",
+          "doc_id": "support_sla",
+          "heading": "Uptime Commitment",
+          "text": "Northwind Fleet commits to 99.9 percent monthly uptime for the Growth tier and 99.95 percent for the Enterprise tier. Uptime is measured against the control plane API. Scheduled maintenance windows are excluded from the calculation and are announced at least 7 days in advance.",
+          "score": 0.19942,
+          "rank": 1
+        },
+        {
+          "chunk_id": "refund_policy#free-trial",
+          "doc_id": "refund_policy",
+          "heading": "Free Trial",
+          "text": "New customers may start a 14 day free trial of the Growth tier. The trial does not require a credit card. At the end of the trial the account reverts to a read-only state unless a paid subscription is started. Trial accounts are limited to 5 robots and do not include the DataVault integration.",
+          "score": 0.139531,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#code-of-conduct",
+          "doc_id": "employee_handbook",
+          "heading": "Code of Conduct",
+          "text": "Employees are expected to act with integrity and treat colleagues, customers and partners with respect. Harassment, discrimination and retaliation are prohibited. Concerns may be raised with a manager, with People Operations, or anonymously through the ethics hotline. All reports are investigated and the company prohibits retaliation against anyone who raises a concern in good faith.",
+          "score": 0.120908,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "support_sla#uptime-commitment"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 1.0,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Northwind Fleet commits to 99.9 percent monthly uptime for the Growth tier and 99.95 percent for the Enterprise tier. [support_sla#uptime-commitment] Uptime is measured against the control plane API.",
+              "score": 1.0,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 1.0,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 1.0,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "99.95"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Decimal figures must survive tokenisation intact - 99.95 must not be read as 99 and 95."
+      }
+    },
+    {
+      "id": "free-trial-terms",
+      "question": "How long is the free trial and which tier does it run on?",
+      "category": "billing",
+      "answer": "New customers may start a 14 day free trial of the Growth tier. [refund_policy#free-trial] The trial does not require a credit card.",
+      "refused": false,
+      "passed": true,
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 2 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "14 day",
+              "Growth"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 1 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "refund_policy#free-trial"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "refund_policy#free-trial"
+            ],
+            "cited": [
+              "refund_policy#free-trial"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 claim(s) grounded (score 1.00)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 1.0,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "refund_policy#free-trial",
+          "doc_id": "refund_policy",
+          "heading": "Free Trial",
+          "text": "New customers may start a 14 day free trial of the Growth tier. The trial does not require a credit card. At the end of the trial the account reverts to a read-only state unless a paid subscription is started. Trial accounts are limited to 5 robots and do not include the DataVault integration.",
+          "score": 0.342843,
+          "rank": 1
+        },
+        {
+          "chunk_id": "product_faq#api-rate-limits",
+          "doc_id": "product_faq",
+          "heading": "API Rate Limits",
+          "text": "The Northwind Fleet REST API allows 1000 requests per minute on the Starter tier, 5000 requests per minute on the Growth tier, and a negotiated limit on Enterprise. Exceeding the limit returns HTTP 429 with a Retry-After header. Rate limits are applied per organisation, not per API key.",
+          "score": 0.163234,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#intro",
+          "doc_id": "employee_handbook",
+          "heading": "Northwind Robotics Employee Handbook",
+          "text": "This handbook describes the employment policies of Northwind Robotics. It is a fictional document written for the RAGProbe sample corpus.",
+          "score": 0.15604,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "refund_policy#free-trial"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 1.0,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "New customers may start a 14 day free trial of the Growth tier. [refund_policy#free-trial] The trial does not require a credit card.",
+              "score": 1.0,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 1.0,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 1.0,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "14 day",
+          "Growth"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Two facts must appear in one answer, which the single-fact generator can fail."
+      }
+    },
+    {
+      "id": "annual-refund-window",
+      "question": "Can an annual prepaid subscription be refunded, and within what period?",
+      "category": "billing",
+      "answer": "Annual prepaid subscriptions may be refunded on a pro-rata basis within the first 60 days of the contract term. [refund_policy#refund-eligibility] Lost or stolen equipment must be reported to the IT service desk within 24 hours so that the device can be remotely wiped. [employee_handbook#equipment-and-hardware]",
+      "refused": false,
+      "passed": true,
+      "score": 0.9923,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 1.0,
+          "detail": "all 1 required keyword(s) present",
+          "applicable": true,
+          "metadata": {
+            "missing": [],
+            "required": [
+              "60 days"
+            ]
+          }
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": false
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 2 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "refund_policy#refund-eligibility",
+              "employee_handbook#equipment-and-hardware"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cited 1/1 expected chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "expected": [
+              "refund_policy#refund-eligibility"
+            ],
+            "cited": [
+              "employee_handbook#equipment-and-hardware",
+              "refund_policy#refund-eligibility"
+            ]
+          }
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.9768,
+          "detail": "all 1 claim(s) grounded (score 0.98)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.9768,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": 0.3333,
+        "recall@3": 1.0,
+        "hit_rate@3": 1.0,
+        "reciprocal_rank": 1.0
+      },
+      "retrieved": [
+        {
+          "chunk_id": "refund_policy#refund-eligibility",
+          "doc_id": "refund_policy",
+          "heading": "Refund Eligibility",
+          "text": "Monthly subscriptions are not refundable for partial months. Annual prepaid subscriptions may be refunded on a pro-rata basis within the first 60 days of the contract term. Refunds are issued to the original payment method within 14 business days of approval.",
+          "score": 0.224575,
+          "rank": 1
+        },
+        {
+          "chunk_id": "employee_handbook#equipment-and-hardware",
+          "doc_id": "employee_handbook",
+          "heading": "Equipment and Hardware",
+          "text": "Every new employee receives a laptop, an external monitor, and a headset. The standard refresh cycle for laptops is 36 months. Lost or stolen equipment must be reported to the IT service desk within 24 hours so that the device can be remotely wiped. Personal use of company hardware is permitted within the limits of the acceptable use policy.",
+          "score": 0.178269,
+          "rank": 2
+        },
+        {
+          "chunk_id": "refund_policy#free-trial",
+          "doc_id": "refund_policy",
+          "heading": "Free Trial",
+          "text": "New customers may start a 14 day free trial of the Growth tier. The trial does not require a credit card. At the end of the trial the account reverts to a read-only state unless a paid subscription is started. Trial accounts are limited to 5 robots and do not include the DataVault integration.",
+          "score": 0.118205,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [
+        "refund_policy#refund-eligibility"
+      ],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.9768,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "Annual prepaid subscriptions may be refunded on a pro-rata basis within the first 60 days of the contract term. [refund_policy#refund-eligibility] Lost or stolen equipment must be reported to the IT service desk within 24 hours so that the device can be remotely wiped. [employee_handbook#equipment-and-hardware]",
+              "score": 0.9768,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9643,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.9767857142857143,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [
+          "60 days"
+        ],
+        "forbidden_keywords": [],
+        "should_refuse": false,
+        "notes": "Tests that the pro-rata refund rule is preferred over the monthly no-refund rule."
+      }
+    },
+    {
+      "id": "refusal-out-of-domain",
+      "question": "What is the capital of France?",
+      "category": "refusal",
+      "answer": "I do not have enough information in the provided documents to answer that.",
+      "refused": true,
+      "passed": true,
+      "score": 1.0,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no required_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": true,
+          "score": 1.0,
+          "detail": "correctly refused",
+          "applicable": true,
+          "metadata": {
+            "refused": true,
+            "should_refuse": true
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 0.0,
+          "detail": "refusals are not expected to cite sources",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_chunks in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.0,
+          "detail": "skipped: refusals are not grounded in retrieved text by design",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.0,
+          "detail": "skipped: judge disabled",
+          "applicable": false,
+          "metadata": {}
+        }
+      ],
+      "retrieval": {
+        "precision@3": null,
+        "recall@3": null,
+        "hit_rate@3": null,
+        "reciprocal_rank": null
+      },
+      "retrieved": [
+        {
+          "chunk_id": "product_faq#data-export",
+          "doc_id": "product_faq",
+          "heading": "Data Export",
+          "text": "Customers can export their telemetry data at any time in CSV or Parquet format. Exports are generated asynchronously and a download link is emailed when the archive is ready. Export archives remain available for 7 days. There is no charge for data export on any tier.",
+          "score": 0.194675,
+          "rank": 1
+        },
+        {
+          "chunk_id": "refund_policy#cancellation",
+          "doc_id": "refund_policy",
+          "heading": "Cancellation",
+          "text": "Subscriptions may be cancelled at any time from the billing settings page. Cancellation takes effect at the end of the current billing period, and the account remains fully functional until that date. There is no cancellation fee on any tier.",
+          "score": 0.170788,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#expense-reimbursement",
+          "doc_id": "employee_handbook",
+          "heading": "Expense Reimbursement",
+          "text": "Business expenses are reimbursed within 30 days of submission. Receipts are required for any single expense over 25 USD. Meals during business travel are capped at 75 USD per day. Airfare must be booked in economy class for flights under 6 hours. Expense reports are submitted through the expense portal and require approval from a cost centre owner.",
+          "score": 0.160911,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.0,
+          "grounded": false,
+          "claims": [
+            {
+              "text": "I do not have enough information in the provided documents to answer that.",
+              "score": 0.0,
+              "supported": false,
+              "unigram_coverage": 0.0,
+              "bigram_coverage": 0.0,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": [
+            "I do not have enough information in the provided documents to answer that."
+          ]
+        },
+        "judge": null,
+        "disagreement": null
+      },
+      "failed_checks": [],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [],
+        "forbidden_keywords": [],
+        "should_refuse": true,
+        "notes": "Wholly out of domain. The retrieved chunks are irrelevant and their similarity falls below the refusal threshold, so the system should decline. Tests that the pipeline does not answer from model priors instead of from the corpus."
+      }
+    },
+    {
+      "id": "refusal-in-domain-but-absent",
+      "question": "What is the chief executive of Northwind Robotics paid?",
+      "category": "refusal",
+      "answer": "This handbook describes the employment policies of Northwind Robotics. [employee_handbook#intro] Northwind Robotics operates a hybrid model. [employee_handbook#remote-work]",
+      "refused": false,
+      "passed": false,
+      "score": 0.7175,
+      "checks": [
+        {
+          "name": "exact_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "fuzzy_match",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_answer in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "keyword_presence",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no required_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "forbidden_absent",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no forbidden_keywords in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "refusal_behaviour",
+          "passed": false,
+          "score": 0.0,
+          "detail": "should have refused but answered",
+          "applicable": true,
+          "metadata": {
+            "refused": false,
+            "should_refuse": true
+          }
+        },
+        {
+          "name": "citation_present",
+          "passed": true,
+          "score": 1.0,
+          "detail": "cites 2 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "citations": [
+              "employee_handbook#intro",
+              "employee_handbook#remote-work"
+            ],
+            "fabricated": []
+          }
+        },
+        {
+          "name": "expected_citation_overlap",
+          "passed": true,
+          "score": 0.0,
+          "detail": "no expected_chunks in dataset",
+          "applicable": false,
+          "metadata": {}
+        },
+        {
+          "name": "grounding",
+          "passed": true,
+          "score": 0.935,
+          "detail": "all 1 claim(s) grounded (score 0.94)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "claim_count": 1
+          }
+        },
+        {
+          "name": "llm_judge_faithfulness",
+          "passed": true,
+          "score": 0.935,
+          "detail": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "applicable": true,
+          "metadata": {
+            "unsupported_claims": [],
+            "provider": "stub",
+            "deterministic": true,
+            "advisory": true
+          }
+        }
+      ],
+      "retrieval": {
+        "precision@3": null,
+        "recall@3": null,
+        "hit_rate@3": null,
+        "reciprocal_rank": null
+      },
+      "retrieved": [
+        {
+          "chunk_id": "employee_handbook#intro",
+          "doc_id": "employee_handbook",
+          "heading": "Northwind Robotics Employee Handbook",
+          "text": "This handbook describes the employment policies of Northwind Robotics. It is a fictional document written for the RAGProbe sample corpus.",
+          "score": 0.212183,
+          "rank": 1
+        },
+        {
+          "chunk_id": "refund_policy#free-trial",
+          "doc_id": "refund_policy",
+          "heading": "Free Trial",
+          "text": "New customers may start a 14 day free trial of the Growth tier. The trial does not require a credit card. At the end of the trial the account reverts to a read-only state unless a paid subscription is started. Trial accounts are limited to 5 robots and do not include the DataVault integration.",
+          "score": 0.093718,
+          "rank": 2
+        },
+        {
+          "chunk_id": "employee_handbook#remote-work",
+          "doc_id": "employee_handbook",
+          "heading": "Remote Work",
+          "text": "Northwind Robotics operates a hybrid model. Employees are expected on site at least 2 days per week, normally Tuesday and Thursday. Fully remote arrangements require written approval from both the direct manager and the People Operations team. Remote employees must be reachable during the core hours of 10:00 to 16:00 in their registered time zone.",
+          "score": 0.092632,
+          "rank": 3
+        }
+      ],
+      "expected_chunks": [],
+      "faithfulness": {
+        "heuristic": {
+          "score": 0.935,
+          "grounded": true,
+          "claims": [
+            {
+              "text": "This handbook describes the employment policies of Northwind Robotics. [employee_handbook#intro] Northwind Robotics operates a hybrid model. [employee_handbook#remote-work]",
+              "score": 0.935,
+              "supported": true,
+              "unigram_coverage": 1.0,
+              "bigram_coverage": 0.9,
+              "unsupported_numbers": []
+            }
+          ],
+          "unsupported_claims": []
+        },
+        "judge": {
+          "score": 0.935,
+          "grounded": true,
+          "unsupported_claims": [],
+          "rationale": "stub judge: deterministic n-gram grounding heuristic over 3 retrieved chunk(s)",
+          "provider": "stub",
+          "deterministic": true
+        },
+        "disagreement": 0.0
+      },
+      "failed_checks": [
+        "refusal_behaviour"
+      ],
+      "error": null,
+      "golden": {
+        "expected_answer": null,
+        "required_keywords": [],
+        "forbidden_keywords": [],
+        "should_refuse": true,
+        "notes": "known_failure. This is the hard refusal case and the more realistic one: the question is plausibly in-domain, so retrieval returns handbook chunks with enough lexical similarity to clear the refusal threshold, and the system answers with unrelated handbook prose instead of declining. Real defect: a similarity threshold alone cannot distinguish \"this document is about the right topic\" from \"this document contains the answer\". Fixing it needs an answerability check, not a higher threshold - raising the threshold would break the legitimate cases."
+      }
+    }
+  ],
+  "metadata": {}
+}
