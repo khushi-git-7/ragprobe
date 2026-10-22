@@ -191,3 +191,86 @@ def test_security_link_shown_when_file_present(site, tmp_path):
     out = site.build(tmp_path / "missing", out_dir / "index.html", None, None,
                      site.REPO_URL, security="security.html")
     assert 'href="security.html"' in out.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------- the site's flow
+
+def _site_with(tmp_path, *names):
+    out_dir = tmp_path / "site"
+    out_dir.mkdir()
+    for name in names:
+        (out_dir / name).write_text("<html></html>", encoding="utf-8")
+    return out_dir
+
+
+def test_hero_label_says_what_the_button_really_opens(site, tmp_path):
+    # the live-site bug: the button promised a security scan but opened the dashboard
+    out_dir = _site_with(tmp_path, "dashboard.html")
+    page = site.build(tmp_path / "missing", out_dir / "index.html", "dashboard.html", None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    cta = page.split('<div class="cta">')[1].split("</div>")[0]
+    assert 'href="dashboard.html"' in cta and "Open the live dashboard" in cta
+    assert "security scan" not in cta
+
+
+def test_hero_label_follows_the_first_page_that_exists(site, tmp_path):
+    out_dir = _site_with(tmp_path, "security.html", "lab.html", "dashboard.html")
+    page = site.build(tmp_path / "missing", out_dir / "index.html", "dashboard.html", None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    cta = page.split('<div class="cta">')[1].split("</div>")[0]
+    assert 'href="security.html"' in cta and "See a live security scan" in cta
+
+
+def test_nav_links_into_the_product_pages_that_exist(site, tmp_path):
+    out_dir = _site_with(tmp_path, "security.html", "lab.html", "dashboard.html")
+    page = site.build(tmp_path / "missing", out_dir / "index.html", "dashboard.html", None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    menu = page.split('<span class="links">')[1].split("</span>")[0]
+    for href in ("security.html", "lab.html", "dashboard.html"):
+        assert f'href="{href}"' in menu
+
+
+def test_nav_has_no_dead_links_when_pages_are_missing(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    menu = page.split('<span class="links">')[1].split("</span>")[0]
+    for href in ("security.html", "lab.html", "dashboard.html"):
+        assert href not in menu
+
+
+def test_phone_keeps_a_way_into_the_product(site, tmp_path):
+    # the live-site bug: below 860px the whole menu was hidden
+    css = site.CSS
+    assert "nav .links{display:none}" not in css
+    assert "nav .links a.a{display:none}" in css      # only the in-page anchors go
+
+
+def test_lab_section_quotes_the_real_run(site, tmp_path):
+    import json
+
+    lab_json = tmp_path / "lab.json"
+    lab_json.write_text(json.dumps({"facts": {
+        "mcp_undefended": 1.0, "mcp_policy": 0.0,
+        "multiturn_undefended": 1.0, "multiturn_layered": 0.5,
+        "obfuscation_raw": 0.0, "obfuscation_normalized": 0.83}}), encoding="utf-8")
+    out_dir = _site_with(tmp_path, "lab.html")
+    page = site.build(tmp_path / "missing", out_dir / "index.html", None, None, site.REPO_URL,
+                      lab_json=lab_json).read_text(encoding="utf-8")
+    assert 'id="lab"' in page and "Attacks that don&rsquo;t look like attacks" in page
+    assert "100% &rarr; 0%" in page and "100% &rarr; 50%" in page and "0% &rarr; 83%" in page
+    assert 'href="lab.html"' in page and "Open the attack lab" in page
+
+
+def test_lab_section_without_a_run_shows_no_invented_numbers(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    assert 'id="lab"' in page and "&rarr; 0%" not in page.split('id="lab"')[1].split("</section>")[0]
+
+
+def test_ci_builds_the_linked_pages_before_the_landing_page():
+    # the root cause of the live-site bug: the landing page was built first, so the
+    # pages it should link to did not exist yet
+    ci = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    land = ci.index("scripts/build_site.py")
+    assert ci.index("ragprobe security run") < land
+    assert ci.index("ragprobe security lab") < land

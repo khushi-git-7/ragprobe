@@ -20,6 +20,7 @@ from typing import Iterable, Optional, Sequence, Tuple
 SITE_LINKS: Sequence[Tuple[str, str, str]] = (
     ("overview", "index.html", "Overview"),
     ("security", "security.html", "Security"),
+    ("lab", "lab.html", "Attack lab"),
     ("dashboard", "dashboard.html", "Dashboard"),
     ("report", "report.html", "Report"),
 )
@@ -30,6 +31,7 @@ SITE_LINKS: Sequence[Tuple[str, str, str]] = (
 TOUR: Sequence[Tuple[str, str, str, str]] = (
     ("overview", "index.html", "Overview", "what RAGProbe does"),
     ("security", "security.html", "Security scorecard", "which attacks got through, and which defence stopped them"),
+    ("lab", "lab.html", "Attack lab", "poisoned tools, multi-turn and hidden attacks, and where defences fall short"),
     ("dashboard", "dashboard.html", "Trends dashboard", "how quality and safety move across runs"),
     ("report", "report.html", "Quality report", "every test case for the latest run, in detail"),
 )

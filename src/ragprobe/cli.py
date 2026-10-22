@@ -693,6 +693,16 @@ def build_parser() -> argparse.ArgumentParser:
                          help="also write a Markdown report")
     sec_obf.set_defaults(func=cmd_security_obfuscation)
 
+    sec_lab = sec_sub.add_parser(
+        "lab", help="run every 'beyond one prompt' test and build the attack-lab page")
+    sec_lab.add_argument("--attacks", default="datasets/security/attacks.yaml",
+                         help="attack corpus YAML (for the demo)")
+    sec_lab.add_argument("--root", help="project root that relative paths resolve against")
+    sec_lab.add_argument("--out", default="reports/lab.json", help="results JSON output")
+    sec_lab.add_argument("--html", nargs="?", const="reports/lab.html",
+                         help="also write the self-contained attack-lab page")
+    sec_lab.set_defaults(func=cmd_security_lab)
+
     # bench ----------------------------------------------------------------
     bench_parser = subparsers.add_parser(
         "bench", help="build and inspect the frozen, versioned attack benchmark (Bench v1)",
@@ -1048,6 +1058,30 @@ def cmd_security_obfuscation(args: argparse.Namespace) -> int:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(report), encoding="utf-8")
         print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_lab(args: argparse.Namespace) -> int:
+    """Run the demo, MCP, multi-turn and obfuscation tests and build the lab page."""
+    from ragprobe.security.lab import run_lab
+
+    base_dir = Path(args.root) if args.root else Path.cwd()
+    try:
+        lab = run_lab(Path(args.attacks), base_dir=base_dir)
+    except (ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from exc
+    _write_json(Path(args.out), lab)
+    f = lab["facts"]
+    print(f"attack lab: demo grade {f['demo_grade_before']} -> {f['demo_grade_after']}, "
+          f"poisoned tools {f['mcp_undefended']*100:.0f}% -> {f['mcp_policy']*100:.0f}% "
+          f"(tool policy), multi-turn {f['multiturn_undefended']*100:.0f}% -> "
+          f"{f['multiturn_layered']*100:.0f}% (layered)")
+    print(f"  wrote {args.out}")
+    if args.html:
+        from ragprobe.security.lab_html import render
+        Path(args.html).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.html).write_text(render(lab), encoding="utf-8")
+        print(f"  wrote {args.html}")
     return EXIT_OK
 
 
