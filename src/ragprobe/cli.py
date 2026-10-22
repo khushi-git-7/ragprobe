@@ -674,6 +674,16 @@ def build_parser() -> argparse.ArgumentParser:
                          help="exit 1 if the best defence's exfiltration rate exceeds this")
     sec_mcp.set_defaults(func=cmd_security_mcp)
 
+    sec_mt = sec_sub.add_parser(
+        "multiturn", help="test multi-turn / crescendo attacks that build over several turns")
+    sec_mt.add_argument("--defenses", default="none,detector,layered",
+                        help="comma-separated defences or presets to measure")
+    sec_mt.add_argument("--seed", type=int, default=7, help="canary seed (default: 7)")
+    sec_mt.add_argument("--out", default="reports/multiturn.json", help="results JSON output")
+    sec_mt.add_argument("--md", nargs="?", const="reports/multiturn.md",
+                        help="also write a Markdown report")
+    sec_mt.set_defaults(func=cmd_security_multiturn)
+
     # bench ----------------------------------------------------------------
     bench_parser = subparsers.add_parser(
         "bench", help="build and inspect the frozen, versioned attack benchmark (Bench v1)",
@@ -961,6 +971,22 @@ def cmd_security_mcp(args: argparse.Namespace) -> int:
             print(f"\nGATE FAILED: best-defence exfiltration rate {best:.2f} exceeds "
                   f"the limit of {args.fail_over:.2f}", file=sys.stderr)
             return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
+def cmd_security_multiturn(args: argparse.Namespace) -> int:
+    """Run the multi-turn / crescendo scenarios and report success per defence."""
+    from ragprobe.security.multiturn import render_markdown, run_multiturn
+
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    report = run_multiturn(defenses=defenses, seed=args.seed)
+    _write_json(Path(args.out), report)
+    print(render_markdown(report))
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
     return EXIT_OK
 
 
