@@ -1,0 +1,123 @@
+{
+ "bench": "Bench v1, all runnable attacks (82; 78 for Gemini, which cannot run tool-calling attacks)",
+ "date": "2026-10-25",
+ "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). The defended row uses the layered preset of the ragprobe version before the leetspeak fix. Utility is 26 ordinary questions with no defence on",
+ "models": [
+  {
+   "name": "Qwen 3.8 27B",
+   "none": [
+    1,
+    82,
+    0.0022,
+    0.0659
+   ],
+   "layered": [
+    1,
+    82,
+    0.0022,
+    0.0659
+   ],
+   "utility": [
+    25,
+    26,
+    0.8111,
+    0.9932
+   ],
+   "utility_layered": [
+    26,
+    26,
+    0.8713,
+    1.0
+   ],
+   "cut_off_replies": 0,
+   "screened_before_model": 28
+  },
+  {
+   "name": "gpt-oss 20B",
+   "none": [
+    25,
+    82,
+    0.2158,
+    0.4114
+   ],
+   "layered": [
+    16,
+    82,
+    0.1238,
+    0.2937
+   ],
+   "utility": [
+    26,
+    26,
+    0.8713,
+    1.0
+   ],
+   "utility_layered": [
+    25,
+    26,
+    0.8111,
+    0.9932
+   ],
+   "cut_off_replies": 3,
+   "screened_before_model": 28
+  },
+  {
+   "name": "gpt-oss 120B",
+   "none": [
+    18,
+    82,
+    0.1436,
+    0.3205
+   ],
+   "layered": [
+    19,
+    82,
+    0.1537,
+    0.3338
+   ],
+   "utility": [
+    26,
+    26,
+    0.8713,
+    1.0
+   ],
+   "utility_layered": [
+    26,
+    26,
+    0.8713,
+    1.0
+   ],
+   "cut_off_replies": 0,
+   "screened_before_model": 28
+  },
+  {
+   "name": "Gemini 3.5 Flash-Lite",
+   "none": [
+    4,
+    78,
+    0.0201,
+    0.1246
+   ],
+   "layered": [
+    3,
+    78,
+    0.0132,
+    0.1071
+   ],
+   "utility": [
+    26,
+    26,
+    0.8713,
+    1.0
+   ],
+   "utility_layered": [
+    26,
+    26,
+    0.8713,
+    1.0
+   ],
+   "cut_off_replies": 0,
+   "screened_before_model": 28
+  }
+ ]
+}
