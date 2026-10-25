@@ -29,6 +29,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from ragprobe.security.canary import leaked
 from ragprobe.security.detector import Detector, get_detector
+from ragprobe.security.obfuscation import NormalizingDetector
 
 
 @dataclass
@@ -300,7 +301,8 @@ def _single(name: str) -> Defense:
     if name == "sandwich":
         return SandwichDefense()
     if name in ("detector", "detector-heuristic"):
-        return DetectorDefense(get_detector("heuristic"))
+        # read the text the way the model will: undo hidden characters, look-alikes, 1337
+        return DetectorDefense(NormalizingDetector(get_detector("heuristic")))
     if name == "detector-protectai":
         return DetectorDefense(get_detector("protectai"))
     if name == "tool-policy":
