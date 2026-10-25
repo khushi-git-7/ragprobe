@@ -136,6 +136,8 @@ train / dev / test. Runs are reproducible: `ragprobe bench run` records a manife
 replies, so a number repeats exactly. Every defence reports both the attacks it stops
 *and* the harmless requests it wrongly blocks, so over-blocking can't hide.
 
+**Bench v2** keeps every v1 item exactly (same ids, same splits) and adds seven more attack families, 138 runnable attacks in all: `ragprobe bench build --version v2`. `ragprobe security utility` asks ordinary questions through each defence to check real users still get right answers, and `ragprobe bench leaderboard` ranks live models with intervals and a paired significance test.
+
 - New here? [`docs/quickstart.md`](docs/quickstart.md) gets you a first scan in five minutes, or just run `ragprobe demo`.
 - The method: [`docs/methodology.md`](docs/methodology.md) · the data:
   [`datasets/bench/v1/datasheet.md`](datasets/bench/v1/datasheet.md) · the findings:
