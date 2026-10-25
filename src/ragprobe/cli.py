@@ -662,6 +662,22 @@ def build_parser() -> argparse.ArgumentParser:
                             help="exit 1 if any defence's false-block rate exceeds this")
     sec_benign.set_defaults(func=cmd_security_benign)
 
+    sec_util = sec_sub.add_parser(
+        "utility", help="check ordinary questions still get right answers with each defence on")
+    sec_util.add_argument("--models", default="simulated",
+                          help="'simulated' or comma-separated model names (e.g. groq-qwen,groq-gptoss)")
+    sec_util.add_argument("--defenses", default="none,hardened,detector,layered",
+                          help="comma-separated defences or presets to measure")
+    sec_util.add_argument("--max-tokens", type=int, default=2048,
+                          help="reply budget for live models (reasoning models need room)")
+    sec_util.add_argument("--cache", nargs="?", const="reports/utility_cache",
+                          help="store and replay live replies so a rerun is free and identical")
+    sec_util.add_argument("--seed", type=int, default=42, help="canary seed (default: 42)")
+    sec_util.add_argument("--out", default="reports/utility.json", help="results JSON output")
+    sec_util.add_argument("--md", nargs="?", const="reports/utility.md",
+                          help="also write a Markdown report")
+    sec_util.set_defaults(func=cmd_security_utility)
+
     sec_mcp = sec_sub.add_parser(
         "mcp", help="test MCP / tool-poisoning (description poisoning, rug-pull, cross-tool)")
     sec_mcp.add_argument("--defenses", default="none,detector,tool-policy,layered",
@@ -1047,6 +1063,45 @@ def cmd_security_multiturn(args: argparse.Namespace) -> int:
     if args.md:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_utility(args: argparse.Namespace) -> int:
+    """Ask ordinary questions through each defence; report the share answered correctly."""
+    import os
+
+    from ragprobe.bench.cache import CachingVictim
+    from ragprobe.security.models import build_victim, resolve
+    from ragprobe.security.utility import render_markdown, run_utility
+    from ragprobe.security.victims import get_victim
+
+    defenses = [d.strip() for d in args.defenses.split(",") if d.strip()]
+    names = [m.strip() for m in args.models.split(",") if m.strip()]
+    reports = []
+    for name in names:
+        if name == "simulated":
+            victim = get_victim("simulated")
+        else:
+            try:
+                spec = resolve(name)
+            except ValueError as exc:
+                raise InputError(str(exc)) from exc
+            key = os.environ.get(spec.key_env)
+            if not key:
+                raise InputError(f"no API key for {spec.name}: set {spec.key_env}")
+            victim = build_victim(spec, key, max_tokens=args.max_tokens)
+        runner = CachingVictim(victim, Path(args.cache) / name if args.cache else None)
+        report = run_utility(runner, defenses=defenses, seed=args.seed)
+        report["truncated_replies"] = runner.truncated
+        reports.append(report)
+        print(render_markdown(report))
+    _warn_if_truncated([r["truncated_replies"] for r in reports])
+    _write_json(Path(args.out), reports[0] if len(reports) == 1 else {"kind": "utility-multi", "reports": reports})
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text("\n".join(render_markdown(r) for r in reports), encoding="utf-8")
         print(f"  wrote {args.md}")
     return EXIT_OK
 
