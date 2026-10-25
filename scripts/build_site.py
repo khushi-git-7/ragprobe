@@ -230,7 +230,7 @@ section h2{font-size:38px;margin:12px 0 12px}section .lede{color:var(--muted);fo
 .card:hover{transform:translateY(-6px);border-color:var(--accent)}
 .card .ic{width:46px;height:46px;border-radius:13px;background:var(--panel-2);border:1px solid var(--border-2);display:grid;place-items:center;color:var(--accent-text);margin-bottom:16px}
 .card h3{font-size:19px;margin-bottom:7px}.card p{color:var(--muted);font-size:14.5px;margin:0}
-.lm{margin-top:14px}.lmv{display:block;font-size:30px;font-weight:850;letter-spacing:-.02em}.lml{display:block;font-size:13.5px;color:var(--muted)}.lmc{display:block;font-size:12px;color:var(--faint);font-family:var(--mono);margin-top:2px}.lmnote{margin-top:20px;font-size:13.5px;color:var(--muted);max-width:760px}.lmnote a{color:var(--accent-text,var(--accent))}
+.lm{margin-top:14px}.lmv{display:block;font-size:30px;font-weight:850;letter-spacing:-.02em}.lml{display:block;font-size:13.5px;color:var(--muted)}.lmc{display:block;font-size:12px;color:var(--faint);font-family:var(--mono);margin-top:2px}.lmx{font-size:12.5px;color:var(--muted);margin-top:10px}.lmx b{color:var(--ink,var(--fg,inherit))}.lmnote{margin-top:20px;font-size:13.5px;color:var(--muted);max-width:760px}.lmnote a{color:var(--accent-text,var(--accent))}
 .figure{border:1px solid var(--border-2);border-radius:20px;background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:28px}
 .figure .cap{font-weight:750;font-size:17px}.figure .sub{color:var(--muted);font-size:13.5px;margin:2px 0 18px}
 .legend{display:flex;gap:20px;margin-bottom:8px;font-size:13.5px;flex-wrap:wrap}
@@ -549,6 +549,22 @@ def _live_cell(label: str, cell: Any) -> str:
             ).format(100.0 * k / n, label, k, n, 100.0 * lo, 100.0 * hi)
 
 
+def _live_extra(m: Dict[str, Any]) -> str:
+    """Two small facts under a model's figures: secret leaks, and the bigger attack set."""
+    out = ""
+    leak = m.get("leak_secret")
+    if leak:
+        out += '<div class="lmx">Secret leaked: <b>{} of {}</b> leak attacks, with no defence</div>'.format(
+            leak[0], leak[1])
+    ext = m.get("extended")
+    if ext:
+        n = ext["none"][1]
+        out += ('<div class="lmx">Extended set of {}: <b>{:.0f}%</b> &rarr; <b>{:.0f}%</b> '
+                '(no defence &rarr; layered)</div>').format(
+            n, 100.0 * ext["none"][0] / n, 100.0 * ext["layered"][0] / n)
+    return out
+
+
 def _live(data: Optional[Dict[str, Any]], repo_url: str) -> str:
     """Real models, measured: the honest counterpart to the simulated-victim drill."""
     if not data:
@@ -558,7 +574,8 @@ def _live(data: Optional[Dict[str, Any]], repo_url: str) -> str:
         cards += ('<div class="card"><h3>' + esc(m["name"]) + "</h3>"
                   + _live_cell("attacks that work, no defence", m.get("none"))
                   + _live_cell("attacks that work, layered defence", m.get("layered"))
-                  + _live_cell("ordinary questions answered", m.get("utility")) + "</div>")
+                  + _live_cell("ordinary questions answered", m.get("utility"))
+                  + _live_extra(m) + "</div>")
     notes = esc(data.get("settings", ""))
     doc = repo_url.rstrip("/") + "/blob/main/docs/limitations.md"
     return (

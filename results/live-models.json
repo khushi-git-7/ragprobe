@@ -1,7 +1,7 @@
 {
- "bench": "Bench v1, all runnable attacks (82; 78 for Gemini, which cannot run tool-calling attacks)",
- "date": "2026-10-25",
- "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). The defended row uses the layered preset of the ragprobe version before the leetspeak fix. Utility is 26 ordinary questions with no defence on",
+ "bench": "Bench v1, every runnable attack (82; 78 for Gemini, which cannot run tool-calling attacks)",
+ "date": "2026-10-26",
+ "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). Layered defence with the leetspeak-aware detector. Utility is 26 ordinary questions with no defence on. The extended line is Bench v2 (138 attacks; 134 for Gemini); gpt-oss 20B has not been run on it yet because of a daily free-tier limit",
  "models": [
   {
    "name": "Qwen 3.8 27B",
@@ -30,7 +30,27 @@
     1.0
    ],
    "cut_off_replies": 0,
-   "screened_before_model": 28
+   "screened_before_model": 28,
+   "layered_p": 1.0,
+   "leak_secret": [
+    0,
+    33
+   ],
+   "extended": {
+    "none": [
+     8,
+     138,
+     0.0297,
+     0.1102
+    ],
+    "layered": [
+     6,
+     138,
+     0.0201,
+     0.0916
+    ],
+    "p": 0.625
+   }
   },
   {
    "name": "gpt-oss 20B",
@@ -41,10 +61,10 @@
     0.4114
    ],
    "layered": [
-    16,
+    13,
     82,
-    0.1238,
-    0.2937
+    0.0951,
+    0.2526
    ],
    "utility": [
     26,
@@ -59,7 +79,12 @@
     0.9932
    ],
    "cut_off_replies": 3,
-   "screened_before_model": 28
+   "screened_before_model": 28,
+   "layered_p": 0.004181,
+   "leak_secret": [
+    0,
+    33
+   ]
   },
   {
    "name": "gpt-oss 120B",
@@ -70,10 +95,10 @@
     0.3205
    ],
    "layered": [
-    19,
+    16,
     82,
-    0.1537,
-    0.3338
+    0.1238,
+    0.2937
    ],
    "utility": [
     26,
@@ -88,7 +113,27 @@
     1.0
    ],
    "cut_off_replies": 0,
-   "screened_before_model": 28
+   "screened_before_model": 28,
+   "layered_p": 0.774414,
+   "leak_secret": [
+    0,
+    33
+   ],
+   "extended": {
+    "none": [
+     35,
+     138,
+     0.1884,
+     0.3322
+    ],
+    "layered": [
+     37,
+     138,
+     0.2012,
+     0.3476
+    ],
+    "p": 0.831812
+   }
   },
   {
    "name": "Gemini 3.5 Flash-Lite",
@@ -117,7 +162,27 @@
     1.0
    ],
    "cut_off_replies": 0,
-   "screened_before_model": 28
+   "screened_before_model": 28,
+   "layered_p": 1.0,
+   "leak_secret": [
+    0,
+    33
+   ],
+   "extended": {
+    "none": [
+     14,
+     134,
+     0.0633,
+     0.1677
+    ],
+    "layered": [
+     10,
+     134,
+     0.041,
+     0.1319
+    ],
+    "p": 0.289062
+   }
   }
  ]
 }
