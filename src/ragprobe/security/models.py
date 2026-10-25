@@ -37,6 +37,8 @@ REGISTRY: Dict[str, ModelSpec] = {
                                   "GROQ_API_KEY", "OpenAI gpt-oss 120B, hosted on Groq"),
     "gemini": ModelSpec("gemini", GEMINI_BASE, "gemini-flash-latest", "GEMINI_API_KEY",
                         "Google Gemini Flash (free tier)"),
+    "gemini-lite": ModelSpec("gemini-lite", GEMINI_BASE, "gemini-3.5-flash-lite", "GEMINI_API_KEY",
+                             "Google Gemini 3.5 Flash-Lite (free tier, roomier daily allowance)"),
 }
 
 
