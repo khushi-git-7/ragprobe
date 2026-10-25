@@ -189,6 +189,16 @@ class TestRetry:
         with pytest.raises(ProviderHTTPError, match="could not reach"):
             provider.answer(_answer_request())
 
+    def test_a_read_timeout_is_retried_not_fatal(self):
+        provider = _provider([TimeoutError("The read operation timed out"), _chat("ok")])
+        assert provider.answer(_answer_request()).text == "ok"
+        assert provider.retries == 1
+
+    def test_repeated_timeouts_end_in_a_provider_error(self):
+        provider = _provider([TimeoutError("timed out")] * 6)
+        with pytest.raises(ProviderHTTPError, match="no response"):
+            provider.answer(_answer_request())
+
     def test_unexpected_shape_is_an_error(self):
         provider = _provider([{"unexpected": True}])
         with pytest.raises(ProviderHTTPError, match="unexpected response shape"):
