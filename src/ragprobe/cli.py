@@ -710,6 +710,8 @@ def build_parser() -> argparse.ArgumentParser:
     bench_sub = bench_parser.add_subparsers(dest="bench_command", required=True)
 
     bench_build = bench_sub.add_parser("build", help="rebuild the benchmark from its sources")
+    bench_build.add_argument("--version", default="v1", choices=["v1", "v2"],
+                             help="which benchmark version to build (v2 = v1 plus seven new attack families)")
     bench_build.add_argument("--root", default="datasets/bench",
                              help="where the versioned dataset is written")
     bench_build.add_argument("--attacks", default="datasets/security/attacks.yaml",
@@ -1102,12 +1104,13 @@ def cmd_security_import_deepset(args: argparse.Namespace) -> int:
 
 def cmd_bench_build(args: argparse.Namespace) -> int:
     """Rebuild the frozen benchmark from its sources and print the breakdown."""
-    from ragprobe.bench.build import VERSION, write_v1
+    from ragprobe.bench.build import write_v1, write_v2
 
-    summary = write_v1(root=Path(args.root), attacks_path=Path(args.attacks),
-                       deepset_dir=Path(args.deepset))
-    out_dir = Path(args.root) / VERSION
-    print(f"built Bench {VERSION}: {summary['total']} items "
+    version = args.version
+    summary = (write_v2 if version == "v2" else write_v1)(
+        root=Path(args.root), attacks_path=Path(args.attacks), deepset_dir=Path(args.deepset))
+    out_dir = Path(args.root) / version
+    print(f"built Bench {version}: {summary['total']} items "
           f"({summary['attacks']} attacks, {summary['probes']} probes) -> {out_dir}")
     print(f"  catalogue -> {out_dir / 'attacks.jsonl'}")
     print(f"  datasheet -> {out_dir / 'datasheet.md'}")

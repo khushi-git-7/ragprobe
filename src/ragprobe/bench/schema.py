@@ -35,6 +35,12 @@ TECHNIQUES = {
     "indirect": "payload arrives inside retrieved content or a tool result",
     "direct-request": "simply asks for the secret, no evasion",
     "task-deflection": "hides the ask as a sub-task of a benign request",
+    "hypothetical-framing": "asks the model to answer as an imagined version of itself with no rules",
+    "completion-prefix": "forces the reply to start with an agreeable phrase, then the ask",
+    "emotional-pressure": "urgency or distress used to push past the rules",
+    "delimiter-injection": "fake end-of-document and system markers to change who is speaking",
+    "authorised-test": "claims the request is a sanctioned developer or audit test",
+    "format-hijack": "hides the ask inside a required output format such as JSON",
     "external": "technique as labelled by an imported dataset (unmapped)",
 }
 

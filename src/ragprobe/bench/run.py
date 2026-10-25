@@ -31,6 +31,12 @@ except Exception:  # pragma: no cover - version is always importable in practice
 BENCH_VERSION = "v1"
 
 
+def _bench_version(catalogue: Path) -> str:
+    """"v2" for datasets/bench/v2/attacks.jsonl; v1 for anything else."""
+    name = Path(catalogue).parent.name
+    return name if name[:1] == "v" and name[1:].isdigit() else BENCH_VERSION
+
+
 def select_attacks(items: Sequence[BenchItem], split: Optional[str] = None) -> List[BenchItem]:
     """The verifiable ``attack`` items, optionally limited to one split."""
     return [i for i in items if i.kind == "attack" and (split is None or i.split == split)]
@@ -107,7 +113,7 @@ def run_bench(
         "ragprobe_version": __version__,
         "git_sha": _git_sha(base_dir or Path.cwd()),
         "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "bench_version": BENCH_VERSION,
+        "bench_version": _bench_version(catalogue),
         "catalogue": catalogue.as_posix(),
         "catalogue_fingerprint": _fingerprint(selected),
         "split": split,
