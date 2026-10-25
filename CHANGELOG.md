@@ -8,6 +8,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Bench v2** - v1 kept exactly as it was, plus 56 attacks from seven new families
+  (hypothetical framing, completion prefix, emotional pressure, delimiter injection,
+  authorised-test claims, format hijacking, task deflection): 138 runnable attacks.
+- **Utility check** (`ragprobe security utility`) - 26 ordinary questions through each
+  defence, so a defence that "works" by refusing everything is visible.
+- **Real-model results** (`docs/results.md`, `results/live-models.json`, and a section on
+  the landing page) for Qwen, gpt-oss 20B/120B and Gemini Flash-Lite, with intervals and
+  paired tests; `docs/limitations.md` says what the numbers do not show.
+- Bench runs can be limited to some attack types (`--vectors`), and the manifest records it.
+- Leetspeak is read by the normalizer, and the default detector screens through it.
 - **LLM security suite** covering 8 of the OWASP Top 10 for LLM Applications:
   canary-checked oracles, simulated and live (Groq / Gemini) victims, eight
   defences plus a `layered` preset, chat / RAG / agent scenarios, an A-F
