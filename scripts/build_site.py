@@ -230,6 +230,7 @@ section h2{font-size:38px;margin:12px 0 12px}section .lede{color:var(--muted);fo
 .card:hover{transform:translateY(-6px);border-color:var(--accent)}
 .card .ic{width:46px;height:46px;border-radius:13px;background:var(--panel-2);border:1px solid var(--border-2);display:grid;place-items:center;color:var(--accent-text);margin-bottom:16px}
 .card h3{font-size:19px;margin-bottom:7px}.card p{color:var(--muted);font-size:14.5px;margin:0}
+.lm{margin-top:14px}.lmv{display:block;font-size:30px;font-weight:850;letter-spacing:-.02em}.lml{display:block;font-size:13.5px;color:var(--muted)}.lmc{display:block;font-size:12px;color:var(--faint);font-family:var(--mono);margin-top:2px}.lmnote{margin-top:20px;font-size:13.5px;color:var(--muted);max-width:760px}.lmnote a{color:var(--accent-text,var(--accent))}
 .figure{border:1px solid var(--border-2);border-radius:20px;background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:28px}
 .figure .cap{font-weight:750;font-size:17px}.figure .sub{color:var(--muted);font-size:13.5px;margin:2px 0 18px}
 .legend{display:flex;gap:20px;margin-bottom:8px;font-size:13.5px;flex-wrap:wrap}
@@ -525,6 +526,53 @@ def _lab(lab_href: Optional[str], facts: Optional[Dict[str, Any]]) -> str:
     )
 
 
+def live_models(path: Optional[Path]) -> Optional[Dict[str, Any]]:
+    """Curated real-model results (``results/live-models.json``); None if absent or unreadable."""
+    if path is None or not Path(path).is_file():
+        return None
+    import json
+
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) and data.get("models") else None
+
+
+def _live_cell(label: str, cell: Any) -> str:
+    """One 'k of n' figure with its 95% interval, as a percentage."""
+    if not cell:
+        return ""
+    k, n, lo, hi = cell
+    return ('<div class="lm"><span class="lmv">{:.0f}%</span><span class="lml">{}</span>'
+            '<span class="lmc">{} of {} &middot; 95% CI {:.0f}&ndash;{:.0f}%</span></div>'
+            ).format(100.0 * k / n, label, k, n, 100.0 * lo, 100.0 * hi)
+
+
+def _live(data: Optional[Dict[str, Any]], repo_url: str) -> str:
+    """Real models, measured: the honest counterpart to the simulated-victim drill."""
+    if not data:
+        return ""
+    cards = ""
+    for m in data["models"]:
+        cards += ('<div class="card"><h3>' + esc(m["name"]) + "</h3>"
+                  + _live_cell("attacks that work, no defence", m.get("none"))
+                  + _live_cell("attacks that work, layered defence", m.get("layered"))
+                  + _live_cell("ordinary questions answered", m.get("utility")) + "</div>")
+    notes = esc(data.get("settings", ""))
+    doc = repo_url.rstrip("/") + "/blob/main/docs/limitations.md"
+    return (
+        '<section id="models" class="shell reveal"><div class="shead">'
+        '<span class="eyebrow">Real models</span><h2>What actually happens on live models</h2>'
+        '<p class="lede">' + esc(data.get("bench", "")) + ". Lower is better for attacks; higher for questions."
+        "</p></div>"
+        '<div class="row3">' + cards + "</div>"
+        '<p class="lmnote">' + notes + ". Intervals are wide at this sample size: when two intervals "
+        "overlap the difference may be noise. Not a safety rating &mdash; see "
+        '<a href="' + esc(doc) + '">what these numbers do and do not show</a>.</p></section>'
+    )
+
+
 def _scorecard(security_href: Optional[str]) -> str:
     rows = [("Prompt Injection", "LLM01", "100% → 0%"), ("Sensitive Info Disclosure", "LLM02", "100% → 0%"),
             ("Excessive Agency", "LLM06", "100% → 0%"), ("System Prompt Leakage", "LLM07", "100% → 0%"),
@@ -539,7 +587,7 @@ def _scorecard(security_href: Optional[str]) -> str:
     return (
         '<section id="scorecard" class="shell reveal">'
         '<div class="shead"><span class="eyebrow">The report card</span><h2>OWASP Top 10 scorecard</h2>'
-        '<p class="lede">A grade per risk under the layered defence — the share of attacks that still get through.</p></div>'
+        '<p class="lede">A grade per risk under the layered defence — the share of attacks that still get through. Measured against a simulated worst-case victim that obeys everything, so it tests the defences, not a real model.</p></div>'
         '<div class="grid">' + cells + "</div>" + more + "</section>"
     )
 
@@ -630,7 +678,8 @@ SCRIPT = """
 def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: Optional[str],
            repo_url: str, changelog: Optional[List[str]] = None,
            security_href: Optional[str] = None, lab_href: Optional[str] = None,
-           lab: Optional[Dict[str, Any]] = None) -> str:
+           lab: Optional[Dict[str, Any]] = None,
+           live: Optional[Dict[str, Any]] = None) -> str:
     return (
         "<!doctype html><html lang=\"en\" data-theme=\"dark\"><head><meta charset=\"utf-8\">"
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -640,6 +689,7 @@ def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: 
         + _hero(numbers, repo_url, security_href, dashboard_href, report_href, lab_href)
         + _what()
         + _benchmark(bench_stats(), repo_url)
+        + _live(live, repo_url)
         + _finding()
         + _defence()
         + _scorecard(security_href)
@@ -653,7 +703,8 @@ def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: 
 
 def build(history_dir: Path, out: Path, dashboard: str, report: str, repo_url: str,
           changelog: Optional[List[str]] = None, security: str = "security.html",
-          lab: str = "lab.html", lab_json: Optional[Path] = None) -> Path:
+          lab: str = "lab.html", lab_json: Optional[Path] = None,
+          live_json: Optional[Path] = None) -> Path:
     runs = load_runs(history_dir)
     numbers = stats(runs)
 
@@ -666,7 +717,8 @@ def build(history_dir: Path, out: Path, dashboard: str, report: str, repo_url: s
 
     page = render(numbers, usable(dashboard), usable(report), repo_url,
                   changelog=changelog, security_href=usable(security),
-                  lab_href=usable(lab), lab=lab_facts(lab_json))
+                  lab_href=usable(lab), lab=lab_facts(lab_json),
+                  live=live_models(live_json))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     return out
@@ -682,6 +734,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--lab", default="lab.html", help="href of the attack-lab page, relative to --out")
     parser.add_argument("--lab-json", default="reports/lab.json",
                         help="results of `ragprobe security lab`, for the landing page's headline numbers")
+    parser.add_argument("--live-json", default="results/live-models.json",
+                        help="curated real-model results for the landing page")
     parser.add_argument("--repo-url", default=REPO_URL, help="repository URL for the source links")
     parser.add_argument("--no-changelog", action="store_true", help="(kept for compatibility; unused)")
     args = parser.parse_args(argv)
@@ -689,7 +743,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     changelog = [] if args.no_changelog else recent_commits()
     out = build(Path(args.history_dir), Path(args.out), args.dashboard, args.report, args.repo_url,
                 changelog=changelog, security=args.security,
-                lab=args.lab, lab_json=Path(args.lab_json))
+                lab=args.lab, lab_json=Path(args.lab_json),
+                live_json=Path(args.live_json))
     runs = len(load_runs(Path(args.history_dir)))
     print("site -> " + str(out) + " (" + str(runs) + " run(s) in history)")
     return 0

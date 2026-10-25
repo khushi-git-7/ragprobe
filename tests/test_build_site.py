@@ -267,6 +267,40 @@ def test_lab_section_without_a_run_shows_no_invented_numbers(site, tmp_path):
     assert 'id="lab"' in page and "&rarr; 0%" not in page.split('id="lab"')[1].split("</section>")[0]
 
 
+LIVE = {"bench": "Bench v1, all 82 runnable attacks", "settings": "temperature 0, one trial",
+        "models": [{"name": "Model A", "none": [4, 82, 0.02, 0.12],
+                    "layered": [2, 82, 0.01, 0.09], "utility": [20, 26, 0.58, 0.88]}]}
+
+
+def test_real_model_section_quotes_the_results_with_intervals(site, tmp_path):
+    live = tmp_path / "live.json"
+    live.write_text(json.dumps(LIVE), encoding="utf-8")
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL, live_json=live).read_text(encoding="utf-8")
+    section = page.split('id="models"')[1].split("</section>")[0]
+    assert "Model A" in section and "5%" in section and "2%" in section and "77%" in section
+    assert "4 of 82" in section and "95% CI 2&ndash;12%" in section
+    assert "limitations.md" in section and "may be noise" in section
+
+
+def test_real_model_section_is_absent_without_results(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL, live_json=tmp_path / "nope.json").read_text(encoding="utf-8")
+    assert 'id="models"' not in page
+
+
+def test_real_model_section_ignores_a_broken_file(site, tmp_path):
+    bad = tmp_path / "live.json"
+    bad.write_text("{not json", encoding="utf-8")
+    assert site.live_models(bad) is None
+
+
+def test_scorecard_says_it_is_a_simulated_victim(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    assert "simulated worst-case victim" in page.split('id="scorecard"')[1].split("</section>")[0]
+
+
 def test_ci_builds_the_linked_pages_before_the_landing_page():
     # the root cause of the live-site bug: the landing page was built first, so the
     # pages it should link to did not exist yet
