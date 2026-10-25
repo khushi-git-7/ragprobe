@@ -283,6 +283,19 @@ def test_real_model_section_quotes_the_results_with_intervals(site, tmp_path):
     assert "limitations.md" in section and "may be noise" in section
 
 
+def test_real_model_section_shows_leaks_and_the_extended_set(site, tmp_path):
+    data = json.loads(json.dumps(LIVE))
+    data["models"][0]["leak_secret"] = [0, 33]
+    data["models"][0]["extended"] = {"none": [14, 138, 0.06, 0.16], "layered": [10, 138, 0.04, 0.13]}
+    live = tmp_path / "live.json"
+    live.write_text(json.dumps(data), encoding="utf-8")
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL, live_json=live).read_text(encoding="utf-8")
+    section = page.split('id="models"')[1].split("</section>")[0]
+    assert "<b>0 of 33</b>" in section and "Extended set of 138" in section
+    assert "<b>10%</b> &rarr; <b>7%</b>" in section
+
+
 def test_real_model_section_is_absent_without_results(site, tmp_path):
     page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
                       site.REPO_URL, live_json=tmp_path / "nope.json").read_text(encoding="utf-8")
