@@ -162,6 +162,12 @@ class OpenAICompatibleProvider(LLMProvider):
                 if attempt == MAX_ATTEMPTS:
                     raise ProviderHTTPError(last_error) from exc
                 wait = delay
+            except (TimeoutError, ConnectionError) as exc:
+                # a read that times out mid-response is not a URLError; retry it too
+                last_error = f"no response from {url} ({type(exc).__name__})"
+                if attempt == MAX_ATTEMPTS:
+                    raise ProviderHTTPError(last_error) from exc
+                wait = delay
             self.retries += 1
             print(
                 f"  [{self.name}] {_summarise(last_error)} - retrying in {wait:.0f}s "
