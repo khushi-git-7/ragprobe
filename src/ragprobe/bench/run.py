@@ -37,9 +37,11 @@ def _bench_version(catalogue: Path) -> str:
     return name if name[:1] == "v" and name[1:].isdigit() else BENCH_VERSION
 
 
-def select_attacks(items: Sequence[BenchItem], split: Optional[str] = None) -> List[BenchItem]:
-    """The verifiable ``attack`` items, optionally limited to one split."""
-    return [i for i in items if i.kind == "attack" and (split is None or i.split == split)]
+def select_attacks(items: Sequence[BenchItem], split: Optional[str] = None,
+                   vectors: Optional[Sequence[str]] = None) -> List[BenchItem]:
+    """The verifiable ``attack`` items, optionally limited to one split and some vectors."""
+    return [i for i in items if i.kind == "attack" and (split is None or i.split == split)
+            and (not vectors or i.vector in vectors)]
 
 
 def _attacks_yaml(items: Sequence[BenchItem], path: Path) -> Path:
@@ -92,13 +94,14 @@ def run_bench(
     cache_dir: Optional[Path] = None,
     base_dir: Optional[Path] = None,
     corpus_dir: str = "datasets/docs",
+    vectors: Optional[Sequence[str]] = None,
 ) -> Dict[str, Any]:
     """Run the benchmark and return a results object carrying its manifest."""
     catalogue = Path(catalogue)
     items = load_jsonl(catalogue)
-    selected = select_attacks(items, split)
+    selected = select_attacks(items, split, vectors)
     if not selected:
-        raise ValueError(f"no runnable attacks in {catalogue} for split={split!r}")
+        raise ValueError(f"no runnable attacks in {catalogue} for split={split!r}, vectors={vectors!r}")
 
     # always wrapped: with a cache directory it replays replies, without one it still
     # counts them, so cut-off replies are reported either way
@@ -117,6 +120,7 @@ def run_bench(
         "catalogue": catalogue.as_posix(),
         "catalogue_fingerprint": _fingerprint(selected),
         "split": split,
+        "vectors": list(vectors) if vectors else None,
         "attack_count": len(selected),
         "defenses": list(defenses),
         "trials": trials,

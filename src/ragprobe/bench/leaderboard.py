@@ -34,6 +34,7 @@ def run_leaderboard(
     base_dir: Optional[Path] = None,
     corpus_dir: str = "datasets/docs",
     max_tokens: int = 512,
+    vectors: Optional[Sequence[str]] = None,
     get_key: Callable[[str], Optional[str]] = os.environ.get,
     build: Callable = build_victim,
     progress: Optional[Callable[[str], None]] = None,
@@ -57,7 +58,7 @@ def run_leaderboard(
         cache = (Path(cache_dir) / spec.name) if cache_dir else None
         result = run_bench(catalogue, victim, split=split, defenses=list(defenses),
                            trials=trials, seed=seed, cache_dir=cache, base_dir=base_dir,
-                           corpus_dir=corpus_dir)
+                           corpus_dir=corpus_dir, vectors=vectors)
         rows.append({
             "model": spec.name, "note": spec.note, "endpoint": spec.model,
             "summary": result["summary"], "manifest": result["manifest"],
