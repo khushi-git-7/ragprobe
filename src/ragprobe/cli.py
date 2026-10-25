@@ -760,6 +760,7 @@ def build_parser() -> argparse.ArgumentParser:
     bench_run.add_argument("--max-tokens", type=_positive_int, default=512,
                            help="reply length cap for a live victim (default: 512); raise it "
                                 "for reasoning models, which can spend it all thinking")
+    bench_run.add_argument("--vectors", help="limit to these attack vectors (user,document,tool); e.g. skip tool-calling for a model that can't do it")
     bench_run.add_argument("--cache", nargs="?", const="reports/bench_cache",
                            help="cache model replies here so reruns are free and exact")
     bench_run.add_argument("--root", help="project root that relative paths resolve against")
@@ -784,6 +785,7 @@ def build_parser() -> argparse.ArgumentParser:
     bench_lb.add_argument("--max-tokens", type=_positive_int, default=512,
                           help="reply length cap per model (default: 512); raise it for "
                                "reasoning models, which can spend it all thinking")
+    bench_lb.add_argument("--vectors", help="limit to these attack vectors (user,document,tool); e.g. skip tool-calling for a model that can't do it")
     bench_lb.add_argument("--cache", nargs="?", const="reports/bench_cache",
                           help="cache model replies here so reruns are free and resumable")
     bench_lb.add_argument("--root", help="project root that relative paths resolve against")
@@ -1207,6 +1209,7 @@ def cmd_bench_run(args: argparse.Namespace) -> int:
             trials=args.trials, seed=args.seed,
             cache_dir=Path(args.cache) if args.cache else None,
             base_dir=base_dir, corpus_dir=args.corpus,
+            vectors=([v.strip() for v in args.vectors.split(",")] if args.vectors else None),
         )
     except (ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from exc
@@ -1266,6 +1269,7 @@ def cmd_bench_leaderboard(args: argparse.Namespace) -> int:
             trials=args.trials, seed=args.seed,
             cache_dir=Path(args.cache) if args.cache else None,
             base_dir=base_dir, corpus_dir=args.corpus, max_tokens=args.max_tokens,
+            vectors=([v.strip() for v in args.vectors.split(",")] if args.vectors else None),
             progress=progress)
     except (ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from exc

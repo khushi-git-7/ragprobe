@@ -168,3 +168,19 @@ class TestTruncation:
         assert "3 reply" in capsys.readouterr().err
         for cmd in (["bench", "run"], ["bench", "leaderboard"]):
             assert build_parser().parse_args(cmd + ["--max-tokens", "2048"]).max_tokens == 2048
+
+
+class TestVectorFilter:
+    def test_vectors_limit_the_attacks_and_are_recorded(self):
+        all_n = len(select_attacks(load_jsonl(CAT)))
+        chat = select_attacks(load_jsonl(CAT), vectors=["user", "document"])
+        assert 0 < len(chat) < all_n
+        assert all(i.vector in ("user", "document") for i in chat)
+        res = run_bench(CAT, get_victim("simulated"), split=None, defenses=["none"],
+                        vectors=["user", "document"], base_dir=ROOT)
+        assert res["manifest"]["vectors"] == ["user", "document"]
+        assert res["manifest"]["attack_count"] == len(chat)
+
+    def test_no_vector_means_everything(self):
+        res = run_bench(CAT, get_victim("simulated"), split=None, defenses=["none"], base_dir=ROOT)
+        assert res["manifest"]["vectors"] is None
