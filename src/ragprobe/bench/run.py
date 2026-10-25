@@ -148,7 +148,7 @@ def render_markdown(result: Dict[str, Any]) -> str:
         f"# Bench {m['bench_version']} run\n",
         f"Victim **{m['victim']['name']}**"
         + (f" (`{m['victim']['model']}`)" if m['victim'].get('model') else "")
-        + f" &middot; split **{m['split']}** &middot; {m['attack_count']} attacks "
+        + f" &middot; split **{m['split'] or 'all'}** &middot; {m['attack_count']} attacks "
         f"&middot; seed {m['seed']}\n",
         "| Defence | Attack-success | 95% CI | Trials |",
         "|---|--:|--:|--:|",
@@ -173,7 +173,7 @@ def render_markdown(result: Dict[str, Any]) -> str:
         f"- generated {m['created']}",
         "",
         "Rerun: `ragprobe bench run --split "
-        f"{m['split']} --seed {m['seed']}` against the same victim reproduces these "
+        f"{m['split'] or 'all'} --seed {m['seed']}` against the same victim reproduces these "
         "numbers (live victims via the response cache).",
         "",
     ]
