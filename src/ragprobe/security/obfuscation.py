@@ -57,6 +57,13 @@ def _spaced(text: str) -> str:
     return " ".join(text)
 
 
+_LEET_OUT = str.maketrans("aeiost", "431057")
+
+
+def _leetspeak(text: str) -> str:
+    return text.lower().translate(_LEET_OUT)
+
+
 OBFUSCATORS: Dict[str, Callable[[str], str]] = {
     "zero-width": _zero_width,
     "homoglyph": _homoglyph,
@@ -64,7 +71,25 @@ OBFUSCATORS: Dict[str, Callable[[str], str]] = {
     "html-hidden": _html_hidden,
     "markdown-alt": _markdown_alt,
     "spaced-out": _spaced,
+    "leetspeak": _leetspeak,
 }
+
+
+_LEET = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s"})
+_LEET_WORD = re.compile(r"[^\W_]*[^\W\d_][^\W_]*", re.UNICODE)
+
+
+def _unleet(text: str) -> str:
+    """Read "1gn0r3" as "ignore": only words that mix letters and digits, so plain
+    numbers ("2024", "3 items") and ordinary words are left alone."""
+    def fix(m: "re.Match[str]") -> str:
+        word = m.group(0)
+        digits = sum(ch in "013457" for ch in word)
+        # a digit with no leet reading (2, 6, 8, 9) means a real token like "base64", not leet
+        if len(word) >= 3 and digits and digits < len(word) and not any(ch in "2689" for ch in word):
+            return word.translate(_LEET)
+        return word
+    return _LEET_WORD.sub(fix, text)
 
 
 def normalize(text: str) -> str:
@@ -77,6 +102,7 @@ def normalize(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text)                        # reveal hidden spans / tags
     # rejoin single-letter runs ("i g n o r e" -> "ignore") without touching real words
     text = re.sub(r"(?<=\b[^\W\d_]) (?=[^\W\d_]\b)", "", text)
+    text = _unleet(text)
     text = re.sub(r"[ \t]{2,}", " ", text)
     return text
 
@@ -90,7 +116,9 @@ class NormalizingDetector(Detector):
         self.threshold = getattr(self.inner, "threshold", 0.0)
 
     def score(self, text: str) -> Verdict:
-        return self.inner.score(normalize(text))
+        # flag if either reading is flagged: cleaning must never make the detector blinder
+        raw, clean = self.inner.score(text), self.inner.score(normalize(text))
+        return raw if raw.flagged or not clean.flagged else clean
 
 
 # A small set of canonical injections the detector is expected to catch.
