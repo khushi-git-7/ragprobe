@@ -17,7 +17,7 @@ actually help and what they cost real users.
   or obfuscated text, each with the defence that works and the gap that remains.
 - A usability check, so a defence cannot win by refusing everything.
 - CI that fails a change which makes the system easier to attack; a live site rebuilt on
-  every push; 700+ tests.
+  every push; 670+ tests.
 
 **What it found on real models** (82 original attacks; free-tier APIs; 26 Oct 2026).
 
