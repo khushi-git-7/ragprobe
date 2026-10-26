@@ -17,6 +17,8 @@ Usage::
 
 from __future__ import annotations
 
+from ragprobe.errors import RagprobeError
+
 import json
 import urllib.parse
 import urllib.request
@@ -41,7 +43,7 @@ tuned on `train.jsonl`; every number in the README comes from `test.jsonl`.
 """
 
 
-class DeepsetImportError(ValueError):
+class DeepsetImportError(RagprobeError, ValueError):
     """The API answered in an unexpected shape."""
 
 

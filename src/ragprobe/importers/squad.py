@@ -22,6 +22,8 @@ The pure functions here take the parsed JSON; only the CLI touches the network.
 
 from __future__ import annotations
 
+from ragprobe.errors import RagprobeError
+
 import json
 import random
 import re
@@ -37,7 +39,7 @@ SPLITS = {
 _ID_STRIP_RE = re.compile(r"[^a-z0-9]+")
 
 
-class ImportError_(ValueError):
+class ImportError_(RagprobeError, ValueError):
     """The input is not a SQuAD 2.0 file or the options make an empty set."""
 
 
