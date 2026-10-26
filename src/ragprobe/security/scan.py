@@ -39,6 +39,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from ragprobe.bench.dataset import load_jsonl
 from ragprobe.bench.schema import BenchItem, to_attack
+from ragprobe.errors import RagprobeError
 from ragprobe.security.canary import leak_form, make_canaries, marker_emitted
 from ragprobe.stats import wilson_interval
 
@@ -57,7 +58,7 @@ RETRY_STATUSES = (429, 500, 502, 503, 504)
 MAX_ATTEMPTS = 4
 
 
-class ScanError(ValueError):
+class ScanError(RagprobeError, ValueError):
     """The endpoint could not be reached, or did not answer in a usable shape."""
 
 
