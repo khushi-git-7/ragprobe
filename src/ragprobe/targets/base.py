@@ -13,6 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Mapping, Sequence
 
+from ragprobe.errors import RagprobeError
 from ragprobe.pipeline.rag import RagResult, RetrievedChunk
 from ragprobe.providers.base import LLMProvider
 
@@ -26,7 +27,7 @@ CHUNK_DOC_KEYS = ("doc_id", "document", "source", "file")
 CHUNK_SCORE_KEYS = ("score", "similarity", "relevance", "distance")
 
 
-class TargetError(RuntimeError):
+class TargetError(RagprobeError, RuntimeError):
     """The target could not be reached or answered in an unusable shape."""
 
 
