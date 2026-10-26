@@ -28,11 +28,13 @@ actually help and what they cost real users.
 | gpt-oss 120B | 22% | 20% |
 | gpt-oss 20B | 30% | 16% (paired p = 0.004) |
 
+On the extended 138-attack set the gpt-oss 20B result repeated: 29% to 19%, p = 0.014.
+
 1. Models differ a lot: two of four resisted nearly everything, two were fooled by a fifth
    to a third of attacks.
-2. The layered defence clearly helped one model, did nothing measurable for another, and had
-   little to stop on the rest. The headline "92% to 0%" belongs to a simulated always-obey
-   model and is labelled that way.
+2. The layered defence clearly helped one model and did nothing measurable for another, and
+   the helpful result replicated on a second, larger attack set (p = 0.004 then p = 0.014).
+   The headline "92% to 0%" belongs to a simulated always-obey model and is labelled that way.
 3. No secret leaked on any model, with or without defences. What succeeds is making the model
    print an attacker-chosen word, a real weakness with low immediate harm.
 4. Ordinary questions were answered 96 to 100% of the time with defences on.
