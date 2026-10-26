@@ -11,6 +11,7 @@ present in the report while asserting nothing. Every unknown key is an error.
 
 from __future__ import annotations
 
+from ragprobe.errors import RagprobeError
 from ragprobe.resources import resolve_data
 
 import hashlib
@@ -33,7 +34,7 @@ CASE_FIELDS = {
 }
 
 
-class DatasetError(ValueError):
+class DatasetError(RagprobeError, ValueError):
     """Raised when the golden dataset is malformed."""
 
 

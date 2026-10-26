@@ -6,6 +6,8 @@ a prompt change is a behaviour change and must apply to both.
 
 from __future__ import annotations
 
+from ragprobe.errors import RagprobeError
+
 import json
 import re
 from typing import Any, Dict, List
@@ -30,11 +32,11 @@ Respond with a single JSON object and nothing else:
 {"score": <float 0..1>, "grounded": <true|false>, "unsupported_claims": [<string>, ...], "rationale": "<one sentence>"}"""
 
 
-class ProviderRefusal(RuntimeError):
+class ProviderRefusal(RagprobeError, RuntimeError):
     """Raised when the model declines to respond."""
 
 
-class JudgeParseError(ValueError):
+class JudgeParseError(RagprobeError, ValueError):
     """Raised when the judge returns something that is not usable JSON."""
 
 
