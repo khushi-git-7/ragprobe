@@ -276,10 +276,13 @@ class TestCli:
         err = capsys.readouterr().err
         assert err.strip().splitlines()[-1].startswith("error: ") and "Traceback" not in err
 
-    def test_an_unreachable_endpoint_fails_cleanly(self, tmp_path, capsys):
+    def test_an_unreachable_endpoint_fails_the_build(self, tmp_path, capsys):
+        """A scan that measured nothing must never look like a clean result."""
         code = main(["security", "scan", "--url", "http://127.0.0.1:9/x", "--timeout", "0.3",
                      "--max-attacks", "1", "-q", "--out", str(tmp_path / "s.json")])
-        assert code == EXIT_OK  # the run completed; the failure is in the report
+        assert code == EXIT_USAGE
+        err = capsys.readouterr().err
+        assert "nothing could be scored" in err and "Traceback" not in err
         payload = json.loads((tmp_path / "s.json").read_text(encoding="utf-8"))
         assert payload["errors"] == 1 and payload["attacks_scored"] == 0
 

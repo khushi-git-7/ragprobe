@@ -68,8 +68,9 @@ skipped and counted as skipped - never scored as safe.
 | `--fail-over 0.1` | exit 1 if more than 10% of attacks worked - the CI gate |
 
 A 429 or 5xx is retried with backoff; a 404 or an unreadable response stops with one
-clear line that says what to pass. An attack that gets no usable reply is counted as
-an error and scored neither way.
+clear line that says what to pass. An attack that gets no usable reply is counted as an
+error and scored neither way - and if *nothing* could be scored, the command exits 2
+rather than 0, because an unreachable app must not pass a build as though it were clean.
 
 ## In CI
 
