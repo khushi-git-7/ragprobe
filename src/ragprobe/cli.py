@@ -679,6 +679,43 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown report")
     sec_util.set_defaults(func=cmd_security_utility)
 
+    sec_scan = sec_sub.add_parser(
+        "scan", help="attack YOUR app: send the benchmark's attacks to an HTTP endpoint you own")
+    sec_scan.add_argument("--url", required=True, metavar="URL",
+                          help="the endpoint that takes a message and returns the reply")
+    sec_scan.add_argument("--method", default="POST", choices=["POST", "GET"],
+                          help="HTTP method (default: POST)")
+    sec_scan.add_argument("--shape", default="simple", choices=["simple", "openai"],
+                          help="request body: a JSON object with one text field (simple), "
+                               "or the chat-completions shape (openai)")
+    sec_scan.add_argument("--field", default="message", metavar="NAME",
+                          help="name of the text field for --shape simple (default: message)")
+    sec_scan.add_argument("--answer-field", metavar="PATH",
+                          help="where the reply is in the response, dots allowed "
+                               "(e.g. choices.0.message.content). Found automatically if omitted")
+    sec_scan.add_argument("--header", action="append", default=[], metavar="'Name: value'",
+                          help="extra request header; repeatable. ${VARS} are read from the "
+                               "environment at call time, so secrets stay out of the report")
+    sec_scan.add_argument("--model", help="model id for --shape openai")
+    sec_scan.add_argument("--canary", metavar="STRING",
+                          help="a test string you have planted in your own system prompt; "
+                               "without it leak attacks are skipped, not guessed")
+    sec_scan.add_argument("--catalogue", default="datasets/bench/v1/attacks.jsonl",
+                          help="the attack catalogue to send")
+    sec_scan.add_argument("--max-attacks", type=_positive_int, metavar="N",
+                          help="stop after N attacks (a cheap first look)")
+    sec_scan.add_argument("--delay", type=float, default=0.0, metavar="SECONDS",
+                          help="wait between requests to respect your own rate limits")
+    sec_scan.add_argument("--timeout", type=float, default=30.0, help="per-request timeout")
+    sec_scan.add_argument("--seed", type=int, default=42, help="canary seed (default: 42)")
+    sec_scan.add_argument("--out", default="reports/scan.json", help="results JSON output")
+    sec_scan.add_argument("--md", nargs="?", const="reports/scan.md",
+                          help="also write a Markdown report")
+    sec_scan.add_argument("--fail-over", type=float, metavar="RATE",
+                          help="exit 1 if more than this share of attacks worked (for CI)")
+    sec_scan.add_argument("-q", "--quiet", action="store_true", help="no per-attack progress")
+    sec_scan.set_defaults(func=cmd_security_scan)
+
     sec_mcp = sec_sub.add_parser(
         "mcp", help="test MCP / tool-poisoning (description poisoning, rug-pull, cross-tool)")
     sec_mcp.add_argument("--defenses", default="none,detector,tool-policy,layered",
@@ -1108,6 +1145,45 @@ def cmd_security_utility(args: argparse.Namespace) -> int:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text("\n".join(render_markdown(r) for r in reports), encoding="utf-8")
         print(f"  wrote {args.md}")
+    return EXIT_OK
+
+
+def cmd_security_scan(args: argparse.Namespace) -> int:
+    """Send the benchmark's attacks to the user's own endpoint and report what worked."""
+    from ragprobe.security.scan import (EndpointSpec, HttpApp, ScanError, gate, parse_header,
+                                        render, render_markdown, scan)
+
+    try:
+        spec = EndpointSpec(
+            url=args.url, method=args.method, shape=args.shape, message_field=args.field,
+            answer_field=args.answer_field, headers=dict(parse_header(h) for h in args.header),
+            model=args.model, timeout=args.timeout, delay=args.delay)
+    except ScanError as exc:
+        raise InputError(str(exc)) from None
+
+    print(f"Scanning {spec.url} - only scan a system you own or are authorised to test.",
+          file=sys.stderr)
+
+    def progress(index: int, total: int) -> None:
+        print(f"  attack {index}/{total}", end="\r", file=sys.stderr)
+
+    try:
+        report = scan(HttpApp(spec), Path(args.catalogue), canary=args.canary, seed=args.seed,
+                      limit=args.max_attacks, progress=None if args.quiet else progress)
+    except (ScanError, ValueError, FileNotFoundError) as exc:
+        raise InputError(str(exc)) from None
+
+    print(render(report))
+    _write_json(Path(args.out), report)
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(report), encoding="utf-8")
+        print(f"  wrote {args.md}")
+    if not gate(report, args.fail_over):
+        print(f"  GATE FAILED: {report['asr'] * 100:.0f}% of attacks worked, limit "
+              f"{args.fail_over * 100:.0f}%", file=sys.stderr)
+        return EXIT_GATE_FAILED
     return EXIT_OK
 
 

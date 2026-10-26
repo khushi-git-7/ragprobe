@@ -139,6 +139,7 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
 **Bench v2** keeps every v1 item exactly (same ids, same splits) and adds seven more attack families, 138 runnable attacks in all: `ragprobe bench build --version v2`. `ragprobe security utility` asks ordinary questions through each defence to check real users still get right answers, and `ragprobe bench leaderboard` ranks live models with intervals and a paired significance test.
 
 - New here? [`docs/quickstart.md`](docs/quickstart.md) gets you a first scan in five minutes, or just run `ragprobe demo`.
+- Testing **your own** app: [`docs/scan.md`](docs/scan.md) - `ragprobe security scan --url https://your-app/chat`.
 - The method: [`docs/methodology.md`](docs/methodology.md) · the data:
   [`datasheet`](src/ragprobe/datasets/bench/v1/datasheet.md) · the findings:
   [`docs/FINDINGS.md`](docs/FINDINGS.md) · what the numbers do and do not show: [`docs/limitations.md`](docs/limitations.md)
