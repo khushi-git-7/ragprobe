@@ -104,7 +104,8 @@ def render(report: Dict[str, Any]) -> str:
                    "on the model behaving. Against a live model, prompt hardening can help; "
                    "measure it with `ragprobe security run --victim live`.")
     out.append("")
-    out.append("Try it on your own app:  ragprobe security run --html reports/security.html")
+    out.append("Scan your own app:       ragprobe security scan --url https://your-app/chat")
+    out.append("Scan this sample again:  ragprobe security run --html reports/security.html")
     return "\n".join(out)
 
 
