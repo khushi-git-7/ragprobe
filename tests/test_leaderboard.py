@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from ragprobe.resources import bundled_path
 from ragprobe.bench.leaderboard import render_markdown, run_leaderboard
+from ragprobe.resources import bundled_path
 from ragprobe.security.victims import Reply, Victim, get_victim
 
 ROOT = Path(__file__).resolve().parents[1]

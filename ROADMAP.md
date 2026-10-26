@@ -1,59 +1,80 @@
 # RAGProbe roadmap
 
 Where the project is and where it's going. RAGProbe is an open-source AI security
-testing platform: it attacks your LLM / RAG / agent app the way real attackers
-do, measures which defences actually work, and blocks releases that make security
-worse. The goal is research-grade evidence with a polished product experience.
+testing platform: it attacks your LLM / RAG / agent app the way real attackers do,
+measures which defences actually work, and blocks releases that make security worse.
+The goal is research-grade evidence with a polished product experience.
 
-Legend: ✅ done · 🚧 in progress · ⏳ next · 🧊 later · ⛔ blocked
+Legend: ✅ done · ⏳ next · 🧊 later · ⛔ decided against
 
-## Shipped (merged to `main`)
-- ✅ Core evaluation + regression harness (retrieval metrics, grounding/faithfulness,
-  LLM-judge, baseline+diff gate, stub provider).
-- ✅ Security suite across 8 OWASP LLM risks: canary oracle, simulated + live
-  (Groq/Gemini) victims, 8 defences + `layered`, chat/RAG/agent scenarios, A–F
-  scorecard, Wilson intervals.
-- ✅ Detector benchmark on deepset/prompt-injections with per-language recall.
-- ✅ Self-contained HTML site (landing, security, dashboard, quality report),
-  unified dark theme + shared nav + animation, published to GitHub Pages.
-- ✅ CI: unit tests, security gate, regression gate, Pages publish.
+## Shipped
 
-## Phase 1 — research-grade core
-- 🚧 **Stats upgrade** — Wilson everywhere, **McNemar** (paired defence/model
-  comparison), **bootstrap** CIs for recall/F1, effect sizes; `docs/methodology.md`.
-- ⏳ **Bench v1 dataset** — a frozen, versioned attack set (~400) tagged with
-  id / OWASP / technique / language / source / licence, from our own attacks +
-  deepset (Apache-2.0) + vetted garak (Apache-2.0) & PyRIT (MIT) imports, with a
-  train/dev/test split and a datasheet.
-- ⏳ **`ragprobe bench run`** — one command, `--suite v1 --seed 42`, full manifest
-  + on-disk response cache; committed baseline runs under `results/`.
-- ⏳ **Benign set (200+)** — public data; every defence reports false-block rate.
-- ⏳ **Live model leaderboard** — Bench v1 across free models (Groq, Gemini),
-  rate-limited and cached over several days.
+**The harness**
+- ✅ Evaluation + regression harness: retrieval metrics, grounding and faithfulness,
+  optional LLM judge, baseline + diff, CI gate, offline stub provider.
+- ✅ Your own system under test: HTTP service or Python entry point, same golden set,
+  metrics and gate.
 
-## Phase 2 — attacks that matter in 2026
-- 🧊 MCP / tool-poisoning tests (sandboxed agent only).
-- 🧊 Indirect injection through real content types (PDF, HTML, Markdown, CSV, email).
-- 🧊 Multi-turn / agent hijack chains with canary data and fake tools.
-- 🧊 Automated red-teaming (optional attacker LLM, reviewed before promotion).
-- 🧊 Multilingual deep dive (4–6 languages, offline translation + back-translation check).
+**Security**
+- ✅ Security suite across 8 OWASP LLM risks: canary oracles (success is a string
+  check, never a judge), simulated and live victims, 8 defences plus `layered`,
+  chat / RAG / agent scenarios, A–F scorecard, Wilson intervals.
+- ✅ Benign set with a false-block rate per defence, and a 26-question utility
+  check, so a defence that "works" by refusing everything is visible.
+- ✅ MCP and tool poisoning (description poison, rug-pull, cross-tool).
+- ✅ Multi-turn and crescendo chains.
+- ✅ Obfuscated injections (zero-width, homoglyph, spacing, HTML, leetspeak) and a
+  normalizer the default detector screens through.
+- ✅ Package-hallucination audit.
+- ✅ **Scan your own app**: `ragprobe security scan --url` sends the benchmark at an
+  endpoint you own and reports what got through, with a CI gate.
 
-## Phase 3 — product experience
-- 🧊 SaaS-style dashboard (OWASP matrix, attack explorer, defence scatter, leaderboard,
-  runs, methodology) as a static site with a real design system.
-- 🧊 Professional CLI (Rich output, `init`, `doctor`, `--json`).
-- 🧊 Ship as a package (PyPI, semver, CHANGELOG, extras).
-- 🧊 GitHub Action `ragprobe/security-gate` on the Marketplace.
+**Evidence**
+- ✅ Bench v1 — frozen, versioned, 744 items (82 scoreable attacks), tagged with
+  OWASP risk, technique, language, source and licence, split train/dev/test, with a
+  datasheet and a NOTICE.
+- ✅ Bench v2 — v1 unchanged plus seven more attack families: 138 scoreable attacks.
+- ✅ `ragprobe bench run` with a full manifest (version, commit, model, seed,
+  catalogue fingerprint) and an on-disk response cache, so a number repeats exactly.
+- ✅ Model leaderboard with paired McNemar tests.
+- ✅ Statistics: Wilson intervals, McNemar, bootstrap, effect sizes
+  ([`docs/methodology.md`](docs/methodology.md)).
+- ✅ Detector benchmark on deepset/prompt-injections with per-language recall — the
+  German blind spot finding.
+- ✅ Real-model results for four models with intervals and significance
+  ([`docs/results.md`](docs/results.md)) and an honest
+  [limitations page](docs/limitations.md).
+
+**Product**
+- ✅ Self-contained HTML site (landing, security report, attack lab, quality
+  dashboard, run report), one dark theme, published to GitHub Pages on every push.
+- ✅ `ragprobe demo` end-to-end story and `ragprobe doctor` install check.
+- ✅ Data ships inside the package: `pip install` is enough, from any directory.
+- ✅ CI: unit tests on 3.9 and 3.12, security gate, regression gate, Pages publish.
+
+## Next
+- ⏳ Indirect injection through real content types (PDF, HTML, CSV, email bodies).
+- ⏳ A defence that reads the whole conversation, to close the multi-turn gap the
+  attack lab reports.
+- ⏳ More languages for the detector gap, with a back-translation check.
+
+## Later
+- 🧊 Automated red-teaming with an attacker model, reviewed before anything is
+  promoted into the frozen benchmark.
 - 🧊 MkDocs documentation site.
-- 🧊 Demo victim app ("Acme Helpdesk", fictional) for the end-to-end story.
+- 🧊 Technical report in `paper/`.
 
-## Phase 4 — proof and polish
-- 🧊 Technical report (`paper/`), README landing page, quality bar (mypy, ruff,
-  coverage, CodeQL, SECURITY.md), launch kit drafts.
+## Decided against, for now
+- ⛔ **PyPI release.** Installing from GitHub works and is tested; publishing a name
+  and a version contract adds maintenance this project does not need yet.
+- ⛔ **A GitHub Marketplace action.** [`docs/scan.md`](docs/scan.md) has a
+  copy-paste CI snippet, which is the same benefit without a second thing to keep
+  working.
 
 ## Notes / decisions
-- Free tiers and open source only; no company data; attacks target our own
-  simulated/local victims only.
+- Free tiers and open source only; no company data; attacks target our own simulated
+  or local victims, or a system the operator owns.
 - Branches off `main`, one feature per PR; **Khushi merges, Claude never does**.
-- Live free-tier runs are spaced, cached and resumable; code ships tested offline
-  and live numbers are marked pending until a run fills them.
+- Live free-tier runs are spaced, cached and resumable; code ships tested offline and
+  live numbers are marked pending until a run fills them.
+- Numbers from a simulated victim are labelled as such everywhere they appear.

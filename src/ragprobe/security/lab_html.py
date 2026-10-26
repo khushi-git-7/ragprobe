@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from ragprobe import webui
-from ragprobe.security.report_html import REPO_URL, _CSS, _bar, _pct, esc
+from ragprobe.security.report_html import _CSS, REPO_URL, _bar, _pct, esc
 
 GRADE_TONE = {"A": "pass", "B": "pass", "C": "warn", "D": "fail", "F": "fail"}
 

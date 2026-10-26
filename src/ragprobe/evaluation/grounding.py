@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import List, Sequence, Set, Tuple
 
 from ragprobe.text_utils import bigrams, content_tokens, split_sentences
 

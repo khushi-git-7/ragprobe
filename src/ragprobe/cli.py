@@ -30,13 +30,19 @@ from ragprobe.dashboard import build_model, write_dashboard
 from ragprobe.errors import RagprobeError
 from ragprobe.evaluation.dataset import load_dataset
 from ragprobe.evaluation.runner import RunResult, rescore, run_suite
-from ragprobe.targets import parse_target_spec
-from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, is_valid_run, load_history, merge_current
+from ragprobe.history import (
+    DEFAULT_HISTORY_DIR,
+    append_run,
+    is_valid_run,
+    load_history,
+    merge_current,
+)
 from ragprobe.providers import get_provider
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
 from ragprobe.reporting.html import write_report
 from ragprobe.reporting.terminal import render_diff_summary, render_gate, render_run_summary
 from ragprobe.resources import resolve_under
+from ragprobe.targets import parse_target_spec
 
 EXIT_OK = 0
 EXIT_GATE_FAILED = 1
@@ -1150,8 +1156,16 @@ def cmd_security_utility(args: argparse.Namespace) -> int:
 
 def cmd_security_scan(args: argparse.Namespace) -> int:
     """Send the benchmark's attacks to the user's own endpoint and report what worked."""
-    from ragprobe.security.scan import (EndpointSpec, HttpApp, ScanError, gate, parse_header,
-                                        render, render_markdown, scan)
+    from ragprobe.security.scan import (
+        EndpointSpec,
+        HttpApp,
+        ScanError,
+        gate,
+        parse_header,
+        render,
+        render_markdown,
+        scan,
+    )
 
     try:
         spec = EndpointSpec(

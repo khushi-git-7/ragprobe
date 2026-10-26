@@ -13,8 +13,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Dict, Iterable, List
 
+from ragprobe.bench.schema import BenchError, BenchItem, validate
 from ragprobe.resources import resolve_data
-from ragprobe.bench.schema import BenchItem, BenchError, validate
 
 
 def save_jsonl(items: Iterable[BenchItem], path: Path) -> Path:

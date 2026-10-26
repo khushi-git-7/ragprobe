@@ -16,7 +16,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
-from ragprobe.resources import resolve_data
 from ragprobe.bench.dataset import save_jsonl, stats, validate_all
 from ragprobe.bench.generate import generate_attacks
 from ragprobe.bench.generate_v2 import generate_v2_attacks
@@ -26,6 +25,7 @@ from ragprobe.bench.schema import (
     BenchItem,
     assign_split,
 )
+from ragprobe.resources import resolve_data
 from ragprobe.security.attacks import load_attacks
 from ragprobe.security.language import classify
 

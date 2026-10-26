@@ -1,8 +1,14 @@
 """The utility check: ordinary questions must still be answered with a defence on."""
 
 from ragprobe.security.defenses import build_defense
-from ragprobe.security.utility import (ITEMS, UtilityItem, _answer, _is_correct,
-                                       render_markdown, run_utility)
+from ragprobe.security.utility import (
+    ITEMS,
+    UtilityItem,
+    _answer,
+    _is_correct,
+    render_markdown,
+    run_utility,
+)
 from ragprobe.security.victims import Reply, Victim, get_victim
 
 

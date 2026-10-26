@@ -34,3 +34,23 @@ def test_quickstart_exists_and_only_uses_real_commands():
         assert command in text
     # PyPI is not published yet, so the quickstart must not promise it
     assert "pip install ragprobe" not in text
+
+
+def test_the_lint_job_runs_the_same_check_a_contributor_runs():
+    """CI and a local `ruff check` must not disagree about what passes."""
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "ruff check src tests scripts" in workflow
+    assert "ruff==" in workflow, "pin the linter, or a new release can fail an unrelated PR"
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert "[tool.ruff.lint]" in pyproject and 'select = ["F", "I", "W", "E7", "E9"]' in pyproject
+    assert "ruff" in (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+
+
+def test_the_roadmap_does_not_promise_work_that_is_already_done():
+    """A stale roadmap makes a finished project look half-built."""
+    roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+    shipped = roadmap.split("## Next")[0]
+    for claim in ("Bench v1", "bench run", "Benign set", "leaderboard", "MCP", "Multi-turn",
+                  "Obfuscated injections", "security scan"):
+        assert claim.lower() in shipped.lower(), f"{claim} is shipped but not listed as shipped"
+    assert "Decided against" in roadmap  # choices are recorded, not silently dropped

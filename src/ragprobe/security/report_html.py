@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping
 
 from ragprobe import webui
-from ragprobe.security.attacks import OWASP
 from ragprobe.security.report import scorecard
 
 REPO_URL = "https://github.com/khushi-git-7/ragprobe"
@@ -148,7 +147,7 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
              "</div>")
 
     # OWASP scorecard
-    p.append(f"<h2>OWASP scorecard</h2>")
+    p.append("<h2>OWASP scorecard</h2>")
     p.append(f"<p class='muted'>Grade = attack-success under the <code>{esc(card['defense'])}</code> "
              "defence (A = almost nothing gets through). The meter shows how much of the undefended "
              "attack-success it removes.</p>")

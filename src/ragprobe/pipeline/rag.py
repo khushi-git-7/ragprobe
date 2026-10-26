@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-from ragprobe.resources import resolve_under
 from ragprobe.config import ProbeConfig
 from ragprobe.pipeline.chunking import Chunk, chunk_document
 from ragprobe.pipeline.embeddings import Embedder, get_embedder
@@ -24,6 +23,7 @@ from ragprobe.pipeline.loader import load_corpus
 from ragprobe.pipeline.store import InMemoryVectorStore
 from ragprobe.providers import get_provider
 from ragprobe.providers.base import AnswerRequest, ContextChunk, LLMProvider
+from ragprobe.resources import resolve_under
 
 
 @dataclass

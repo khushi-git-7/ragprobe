@@ -7,7 +7,14 @@ every string that comes from a results file passes through ``esc``.
 
 from __future__ import annotations
 
-from ragprobe.reporting.fragments import check_pill, checks_table, chunk_list, esc, fmt_pct, fmt_score
+from ragprobe.reporting.fragments import (
+    check_pill,
+    checks_table,
+    chunk_list,
+    esc,
+    fmt_pct,
+    fmt_score,
+)
 
 
 class TestFormatting:

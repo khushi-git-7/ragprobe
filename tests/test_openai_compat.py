@@ -12,7 +12,7 @@ import pytest
 
 from ragprobe.config import ConfigError, GenerationConfig, ProbeConfig
 from ragprobe.providers import get_provider
-from ragprobe.providers.base import AnswerRequest, ContextChunk, JudgeRequest, REFUSAL_TEXT
+from ragprobe.providers.base import REFUSAL_TEXT, AnswerRequest, ContextChunk, JudgeRequest
 from ragprobe.providers.chat_prompts import JudgeParseError, ProviderRefusal
 from ragprobe.providers.openai_compat import (
     API_KEY_VARIABLES,

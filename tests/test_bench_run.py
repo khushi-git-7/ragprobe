@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from ragprobe.resources import bundled_path
 from ragprobe.bench.cache import CachingVictim
-from ragprobe.bench.run import render_markdown, run_bench, select_attacks
 from ragprobe.bench.dataset import load_jsonl
+from ragprobe.bench.run import render_markdown, run_bench, select_attacks
+from ragprobe.resources import bundled_path
 from ragprobe.security.victims import get_victim
 
 ROOT = Path(__file__).resolve().parents[1]

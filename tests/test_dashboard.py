@@ -14,7 +14,8 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
-from ragprobe.dashboard import analytics, insights as insights_mod, svg
+from ragprobe.dashboard import analytics, svg
+from ragprobe.dashboard import insights as insights_mod
 from ragprobe.dashboard.analytics import (
     ATTRIBUTION_ERROR,
     ATTRIBUTION_GENERATION,
@@ -35,7 +36,7 @@ from ragprobe.dashboard.analytics import (
 )
 from ragprobe.dashboard.html import render_dashboard
 from ragprobe.dashboard.insights import generate_insights
-from ragprobe.regression.diff import STATUS_FLAT, STATUS_IMPROVED, STATUS_REGRESSED
+from ragprobe.regression.diff import STATUS_IMPROVED, STATUS_REGRESSED
 
 # ------------------------------------------------------------------ fixtures
 

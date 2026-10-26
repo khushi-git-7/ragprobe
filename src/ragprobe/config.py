@@ -9,13 +9,13 @@ so instead of silently attributing the delta to the change under test.
 
 from __future__ import annotations
 
-from ragprobe.errors import RagprobeError
-
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
+
+from ragprobe.errors import RagprobeError
 
 DEFAULT_CONFIG_FILENAME = "ragprobe.yaml"
 

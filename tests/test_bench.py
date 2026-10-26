@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from ragprobe.resources import bundled_path
 from ragprobe.bench.build import build_v1, write_v1
 from ragprobe.bench.dataset import load_jsonl, save_jsonl, stats, validate_all
 from ragprobe.bench.generate import generate_attacks
@@ -18,6 +16,7 @@ from ragprobe.bench.schema import (
     to_attack,
     validate,
 )
+from ragprobe.resources import bundled_path
 
 ROOT = Path(__file__).resolve().parents[1]
 

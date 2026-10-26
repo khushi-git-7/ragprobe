@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4",
+    "ruff>=0.17",
 ]
 # Live provider: Claude via the official SDK. Activated with RAGPROBE_PROVIDER=anthropic.
 anthropic = [
@@ -85,3 +86,29 @@ filterwarnings = ["error::DeprecationWarning:ragprobe.*"]
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+
+# A linter earns its place by catching mistakes, not by rewriting working code to
+# taste. So: pyflakes (unused imports, undefined names, shadowed definitions),
+# pycodestyle errors and warnings, and import order. The pyupgrade family is
+# deliberately off - it would rewrite 1100 annotations to syntax that needs a newer
+# Python than the 3.9 this package supports and CI tests.
+[tool.ruff.lint]
+# Lint for mistakes, not for taste. F catches real defects (unused imports,
+# undefined names, shadowed definitions), I keeps imports ordered, W catches
+# whitespace damage, and the E rules below are the ones that are bugs rather than
+# opinions. Deliberately off: the pyupgrade family, which would rewrite 1100
+# annotations to syntax newer than the Python 3.9 this package supports and CI
+# tests; and E501, because the HTML and CSS generators and the hand-written
+# multilingual attack strings are more readable on one line than wrapped.
+select = ["F", "I", "W", "E7", "E9"]
+ignore = [
+    "E741",  # a one-letter label inside generated HTML reads fine in context
+    "E731",  # small lambdas used as local formatters in the report builders
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ragprobe"]
+
+[tool.ruff.lint.per-file-ignores]
+# the test suite imports fixtures for their side effects and shadows names on purpose
+"tests/*" = ["F811"]

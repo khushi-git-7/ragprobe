@@ -1084,7 +1084,7 @@ def render_dashboard(model: DashboardModel, title: str = "RAGProbe Dashboard") -
         f'<span class="chip">Dataset <code>{esc(latest_point.dataset_fingerprint)}</code></span>'
         f'<span class="chip">Corpus <code>{esc(pipeline.get("documents"))} docs / {esc(pipeline.get("chunks"))} chunks</code></span>'
     )
-    logo = '<span class="mark">R</span>' 
+    logo = '<span class="mark">R</span>'
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ragprobe.resources import bundled_path
 from ragprobe.cli import EXIT_OK, main
 from ragprobe.demo import STAGES, passes, render, run_demo
+from ragprobe.resources import bundled_path
 
 ROOT = Path(__file__).resolve().parents[1]
 

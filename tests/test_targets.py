@@ -17,13 +17,13 @@ from typing import Any, Dict, List
 
 import pytest
 
-from ragprobe.resources import BUNDLED, bundled_path
 from ragprobe.cli import EXIT_OK, EXIT_USAGE, main
 from ragprobe.config import ConfigError, ProbeConfig
 from ragprobe.evaluation.dataset import load_dataset
 from ragprobe.evaluation.runner import run_suite
-from ragprobe.pipeline.rag import RagResult, RetrievedChunk
+from ragprobe.pipeline.rag import RagResult
 from ragprobe.providers.base import REFUSAL_TEXT
+from ragprobe.resources import BUNDLED, bundled_path
 from ragprobe.targets import TargetError, get_target, parse_target_spec
 from ragprobe.targets.base import dig, normalise_chunks, result_from_payload
 from ragprobe.targets.http_target import HttpTarget

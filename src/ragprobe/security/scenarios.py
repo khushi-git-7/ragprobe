@@ -24,18 +24,18 @@ import functools
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional
 
-from ragprobe.resources import resolve_under
 from ragprobe.config import ChunkConfig, RetrievalConfig
 from ragprobe.pipeline.chunking import chunk_document
 from ragprobe.pipeline.embeddings import get_embedder
 from ragprobe.pipeline.loader import load_corpus
 from ragprobe.pipeline.store import InMemoryVectorStore
+from ragprobe.resources import resolve_under
 from ragprobe.security.attacks import Attack
 from ragprobe.security.canary import Canaries
 from ragprobe.security.defenses import Context, DefenseStack, Event
-from ragprobe.security.victims import Message, Reply, Victim
+from ragprobe.security.victims import Message, Victim
 
 COMPANY_DOMAIN = "northwind.example"
 REFUSAL = "Sorry, I can't help with that request."

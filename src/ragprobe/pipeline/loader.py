@@ -6,11 +6,11 @@ installed; it is an optional extra so that the base install stays light.
 
 from __future__ import annotations
 
-from ragprobe.errors import RagprobeError
-from ragprobe.resources import resolve_data
-
 from pathlib import Path
 from typing import Dict, List
+
+from ragprobe.errors import RagprobeError
+from ragprobe.resources import resolve_data
 
 TEXT_SUFFIXES = {".md", ".markdown", ".txt"}
 PDF_SUFFIXES = {".pdf"}
