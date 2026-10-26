@@ -25,13 +25,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from ragprobe import __version__
-from ragprobe.config import ConfigError, ProbeConfig
+from ragprobe.config import ProbeConfig
 from ragprobe.dashboard import build_model, write_dashboard
-from ragprobe.evaluation.dataset import DatasetError, load_dataset
+from ragprobe.errors import RagprobeError
+from ragprobe.evaluation.dataset import load_dataset
 from ragprobe.evaluation.runner import RunResult, rescore, run_suite
-from ragprobe.targets import TargetError, parse_target_spec
+from ragprobe.targets import parse_target_spec
 from ragprobe.history import DEFAULT_HISTORY_DIR, append_run, is_valid_run, load_history, merge_current
-from ragprobe.pipeline.loader import CorpusError
 from ragprobe.providers import get_provider
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
 from ragprobe.reporting.html import write_report
@@ -73,7 +73,7 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> Path:
     return path
 
 
-class InputError(Exception):
+class InputError(RagprobeError):
     """A results or baseline file that exists but cannot be used (exit code 2)."""
 
 
@@ -1357,8 +1357,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (ConfigError, DatasetError, CorpusError, FileNotFoundError, InputError, TargetError) as exc:
-        # Expected, actionable failures: print the message, not a traceback.
+    except (RagprobeError, FileNotFoundError) as exc:
+        # Expected, actionable failures: print the message, not a traceback. Every
+        # error a user can cause inherits RagprobeError; anything else is our bug
+        # and keeps its traceback.
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
     except KeyboardInterrupt:  # pragma: no cover

@@ -28,6 +28,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from ragprobe.errors import RagprobeError
 from ragprobe.resources import resolve_data
 from ragprobe.security.canary import Canaries
 
@@ -65,7 +66,7 @@ OWASP = {
 }
 
 
-class AttackError(ValueError):
+class AttackError(RagprobeError, ValueError):
     """The attack file is malformed."""
 
 

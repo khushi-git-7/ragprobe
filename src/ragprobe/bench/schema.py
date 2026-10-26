@@ -12,6 +12,7 @@ import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Mapping, Optional, Tuple
 
+from ragprobe.errors import RagprobeError
 from ragprobe.security.attacks import (
     GOALS,
     OWASP,
@@ -67,7 +68,7 @@ SPLITS = {"train", "dev", "test"}
 KINDS = {"attack", "probe"}
 
 
-class BenchError(ValueError):
+class BenchError(RagprobeError, ValueError):
     """A Bench item or dataset is malformed."""
 
 

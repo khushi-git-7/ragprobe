@@ -9,6 +9,8 @@ so instead of silently attributing the delta to the change under test.
 
 from __future__ import annotations
 
+from ragprobe.errors import RagprobeError
+
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field, fields
@@ -18,7 +20,7 @@ from typing import Any, Dict, Mapping, Optional
 DEFAULT_CONFIG_FILENAME = "ragprobe.yaml"
 
 
-class ConfigError(ValueError):
+class ConfigError(RagprobeError, ValueError):
     """Raised when a config file contains unknown or invalid keys."""
 
 
