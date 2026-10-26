@@ -60,6 +60,8 @@ ragprobe security detector-eval --detectors heuristic,groq-guard --tune --by-lan
 | heuristic | 50% | 26% |
 | Llama Prompt Guard 2 | 24% | **5%** |
 
+![Pattern rules catch 50 percent of English and 26 percent of German injections; Llama Prompt Guard 2 catches 24 percent and 5 percent](img/detectors-by-language.png)
+
 Both detectors are roughly half as effective on German as on English, and Prompt
 Guard 2 nearly stops working on German (5%) - which is what drags its overall recall
 down to 17%. This matches a well-documented pattern: LLM safety tooling is trained

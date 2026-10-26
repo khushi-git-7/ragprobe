@@ -156,6 +156,27 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
   [`datasheet`](src/ragprobe/datasets/bench/v1/datasheet.md) · the findings:
   [`docs/FINDINGS.md`](docs/FINDINGS.md) · what the numbers do and do not show: [`docs/limitations.md`](docs/limitations.md)
 
+### What it found
+
+Four free-tier models, temperature 0, one trial per attack, 95% Wilson intervals and a
+paired McNemar test for each defence comparison.
+
+![Attack success before and after the layered defence: Qwen 6 to 4 percent, Gemini 10 to 7, gpt-oss 120B 25 to 27, gpt-oss 20B 29 to 19 with p equals 0.014](docs/img/defence-effect.png)
+
+The layered defence cut attacks on gpt-oss 20B from 40 to 26 of 138 (p = 0.014), and
+had already done so on the independent v1 set (25 → 13 of 82, p = 0.004). On gpt-oss
+120B it changed nothing measurable, on either set. **No model leaked a planted secret**
+— 0 of 61 leak attacks, defended or not; what succeeds is plain obedience to an
+injected instruction. Ordinary questions were still answered 96–100% of the time, so
+none of this is a defence that scores well by refusing everything.
+
+On the labelled probe half, detectors fall off sharply outside English:
+
+![Pattern rules catch 50 percent of English and 26 percent of German injections; Llama Prompt Guard 2 catches 24 percent and 5 percent](docs/img/detectors-by-language.png)
+
+Numbers, method and caveats: [`docs/results.md`](docs/results.md) ·
+[`docs/FINDINGS.md`](docs/FINDINGS.md) · [`docs/limitations.md`](docs/limitations.md).
+
 ### How it compares
 
 RAGProbe overlaps with excellent existing tools and takes a different emphasis. This
