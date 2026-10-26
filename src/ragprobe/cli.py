@@ -1176,6 +1176,12 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
     print(render(report))
     _write_json(Path(args.out), report)
     print(f"  wrote {args.out}")
+    if not report["attacks_scored"]:
+        # nothing was measured: a green build here would read as "safe", which is a lie
+        raise InputError(
+            f"nothing could be scored: {report['errors']} attack(s) got no usable reply from "
+            f"{report['endpoint']['url']}. Check the URL, auth headers and --answer-field; "
+            f"the detail is in {args.out}")
     if args.md:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(report), encoding="utf-8")
