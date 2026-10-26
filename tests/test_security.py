@@ -412,3 +412,16 @@ def test_min_reduction_gate_exit_codes(tmp_path):
     # Demanding a 99.9% cut from a prompt-only defence must fail the gate.
     assert main(["security", "run", "--defenses", "none,hardened",
                  "--min-reduction", "0.999", "--out", out]) == 1
+
+
+def test_the_report_page_says_which_corpus_it_ran(tmp_path):
+    """12 here and 138 on the benchmark page must not look like a contradiction."""
+    from ragprobe.security.report_html import render
+    from ragprobe.security.suite import run_suite
+    from ragprobe.security.victims import get_victim
+
+    results = run_suite(ATTACKS, get_victim("simulated"), defenses=["none", "layered"],
+                        base_dir=Path(__file__).resolve().parents[1])
+    page = render(results)
+    assert "hand-written" in page and "138 in v2" in page
+    assert "ragprobe security scan --url" in page

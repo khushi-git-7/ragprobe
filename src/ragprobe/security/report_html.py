@@ -45,6 +45,8 @@ h1,h2{letter-spacing:-.02em;margin:0;font-weight:800}h2{font-size:20px;margin:40
 .bigstat .from{font-size:34px;font-weight:800;color:var(--bad);text-decoration:line-through;opacity:.7}
 .bigstat .arr{color:var(--faint);font-size:22px}.bigstat .to{font-size:52px;font-weight:850;letter-spacing:-.03em;color:var(--good)}
 .bigstat .cap{font-size:13px;color:var(--muted);align-self:center;max-width:220px}
+.corpusnote{color:var(--muted);font-size:13.5px;margin:-6px 0 18px;max-width:84ch}
+.corpusnote b{color:var(--ink)}
 .banner{background:var(--panel-2);border:1px solid var(--border);border-left:3px solid var(--warn);border-radius:0 10px 10px 0;padding:12px 15px;margin:16px 0;font-size:13.5px;color:var(--muted)}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}
 .stat{border:1px solid var(--border);border-radius:16px;background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:16px 18px}
@@ -122,7 +124,15 @@ def render(results: Mapping[str, Any], title: str = "RAGProbe security report") 
 
     if victim.get("deterministic"):
         p.append("<div class='banner'><b>Worst-case drill.</b> The victim obeys every instruction it "
-                 "can parse, so these rates test the harness and the code-level defences, not a real model.</div>")
+                 "can parse, so these rates test the harness and the code-level defences, not a real "
+                 "model.</div>")
+    # a reader comparing pages must not have to wonder why this says 12 and the
+    # benchmark says 138: say which corpus this is, and where the bigger one lives
+    p.append(f"<p class='corpusnote'>This report runs the <b>{results['attack_count']} hand-written "
+             "scenarios</b> that cover every OWASP risk end to end. The frozen benchmark is the "
+             "bigger set (82 scoreable attacks in v1, 138 in v2) and is run separately with "
+             "<code>ragprobe bench run</code>; to scan your own app, use "
+             "<code>ragprobe security scan --url</code>.</p>")
 
     # kpi
     reduction = worst[1]["asr"] - best[1]["asr"]
