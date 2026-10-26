@@ -11,6 +11,8 @@ present in the report while asserting nothing. Every unknown key is an error.
 
 from __future__ import annotations
 
+from ragprobe.resources import resolve_data
+
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
@@ -135,7 +137,7 @@ def parse_cases(entries: Iterable[Mapping[str, Any]], source: str = "<memory>") 
 
 def load_dataset(path: Path) -> List[GoldenCase]:
     """Load a golden set from YAML or JSONL."""
-    path = Path(path)
+    path = resolve_data(path)
     if not path.exists():
         raise DatasetError(f"dataset file not found: {path}")
 

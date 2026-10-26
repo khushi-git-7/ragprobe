@@ -6,6 +6,7 @@ import math
 
 import pytest
 
+from ragprobe.resources import bundled_path
 from ragprobe.config import GenerationConfig, ProbeConfig, RetrievalConfig
 from ragprobe.pipeline.chunking import Chunk
 from ragprobe.pipeline.embeddings import HashingTfidfEmbedder, get_embedder
@@ -378,7 +379,7 @@ class TestEmbeddingCache:
 
         monkeypatch.setattr(rag_mod, "get_embedder", lambda cfg: embedder)
         cfg = ProbeConfig.from_dict({
-            "corpus_dir": str(project_root / "datasets" / "docs"),
+            "corpus_dir": str(bundled_path("docs")),
             "retrieval": {"cache_dir": "cache"},
         })
         return RagPipeline(cfg, base_dir=root), embedder
@@ -408,7 +409,7 @@ class TestEmbeddingCache:
         from ragprobe.config import ProbeConfig
         from ragprobe.pipeline.rag import RagPipeline
 
-        cfg = ProbeConfig.from_dict({"corpus_dir": str(project_root / "datasets" / "docs"), "retrieval": {"cache_dir": "cache"}})
+        cfg = ProbeConfig.from_dict({"corpus_dir": str(bundled_path("docs")), "retrieval": {"cache_dir": "cache"}})
         RagPipeline(cfg, base_dir=tmp_path).ingest()
         assert not (tmp_path / "cache").exists()
 

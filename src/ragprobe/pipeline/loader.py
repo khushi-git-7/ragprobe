@@ -6,6 +6,8 @@ installed; it is an optional extra so that the base install stays light.
 
 from __future__ import annotations
 
+from ragprobe.resources import resolve_data
+
 from pathlib import Path
 from typing import Dict, List
 
@@ -45,7 +47,7 @@ def load_corpus(corpus_dir: Path) -> Dict[str, str]:
     The document ID is the file stem, so ``datasets/docs/security_policy.md`` becomes
     ``security_policy`` and its chunks are ``security_policy#<anchor>``.
     """
-    corpus_dir = Path(corpus_dir)
+    corpus_dir = resolve_data(corpus_dir)
     if not corpus_dir.exists():
         raise CorpusError(f"corpus directory not found: {corpus_dir}")
     if not corpus_dir.is_dir():

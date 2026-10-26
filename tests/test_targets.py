@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 
 import pytest
 
+from ragprobe.resources import BUNDLED, bundled_path
 from ragprobe.cli import EXIT_OK, EXIT_USAGE, main
 from ragprobe.config import ConfigError, ProbeConfig
 from ragprobe.evaluation.dataset import load_dataset
@@ -347,7 +348,7 @@ class TestRunSuiteWithExternalTarget:
             return {"answer": REFUSAL_TEXT, "contexts": []}
 
         handler.responder = staticmethod(respond)
-        cases = [c for c in load_dataset(project_root / "datasets" / "golden_set.yaml") if c.id == "pto-annual-allowance"]
+        cases = [c for c in load_dataset(bundled_path("golden_set.yaml")) if c.id == "pto-annual-allowance"]
         cfg = ProbeConfig.from_dict({"target": {"kind": "http", "url": url}, "evaluation": {"judge_enabled": False}})
         run = run_suite(cases, cfg, base_dir=project_root)
         assert run.provider == "http"
@@ -359,7 +360,7 @@ class TestRunSuiteWithExternalTarget:
         assert case.passed, case.failed_checks()
 
     def test_a_dead_endpoint_fails_cases_not_the_run(self, project_root):
-        cases = load_dataset(project_root / "datasets" / "golden_set.yaml")[:2]
+        cases = load_dataset(bundled_path("golden_set.yaml"))[:2]
         cfg = ProbeConfig.from_dict({
             "target": {"kind": "http", "url": "http://127.0.0.1:9/ask", "timeout": 2},
             "evaluation": {"judge_enabled": False},
@@ -374,7 +375,7 @@ class TestRunSuiteWithExternalTarget:
 
 @pytest.fixture
 def workspace(tmp_path: Path, project_root: Path) -> Path:
-    shutil.copytree(project_root / "datasets", tmp_path / "datasets")
+    shutil.copytree(BUNDLED, tmp_path / "datasets")
     shutil.copy(project_root / "ragprobe.yaml", tmp_path / "ragprobe.yaml")
     return tmp_path
 

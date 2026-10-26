@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
+from ragprobe.resources import is_bundled, resolve_under
+
 OK, WARN, FAIL = "ok", "warn", "fail"
 
 
@@ -48,21 +50,28 @@ def _check_yaml() -> Check:
         return Check(FAIL, "PyYAML", "missing; run `pip install -e .`")
 
 
+def _where(path: Path) -> str:
+    """Say which copy answered: the one shipped in the package, or the user's own."""
+    return "shipped with the package" if is_bundled(path) else str(path)
+
+
 def _check_file(name: str, path: Path, hint: str) -> Check:
     if path.is_file():
-        return Check(OK, name, str(path))
+        return Check(OK, name, _where(path))
     return Check(FAIL, name, f"not found at {path}; {hint}")
 
 
 def _check_bench(path: Path) -> Check:
     if not path.is_file():
-        return Check(WARN, "Bench v1", f"not found at {path}; run `ragprobe bench build`")
+        return Check(FAIL, "Bench v1", f"not found at {path}; it ships inside the package, "
+                     "so reinstall RAGProbe or rebuild it with `ragprobe bench build`")
     try:
         from ragprobe.bench.dataset import load_jsonl, validate_all
         items = load_jsonl(path)
         validate_all(items)
         attacks = sum(1 for i in items if i.kind == "attack")
-        return Check(OK, "Bench v1", f"{len(items)} items ({attacks} runnable attacks), valid")
+        return Check(OK, "Bench v1", f"{len(items)} items ({attacks} runnable attacks), valid "
+                                     f"- {_where(path)}")
     except Exception as exc:
         return Check(FAIL, "Bench v1", f"invalid: {exc}")
 
@@ -75,16 +84,20 @@ def _check_key(name: str, env: str) -> Check:
 
 def run_checks(root: Optional[Path] = None) -> List[Check]:
     root = Path(root) if root else Path.cwd()
-    ds = root / "datasets"
+
+    def data(relative: str) -> Path:
+        """Where this run would read that file: a local copy if any, else the shipped one."""
+        return resolve_under(root, "datasets/" + relative)
+
+    hint = ("this file ships inside the package, so reinstall RAGProbe or check a local "
+            "./datasets copy")
     return [
         _check_python(),
         _check_version(),
         _check_yaml(),
-        _check_file("Attack corpus", ds / "security" / "attacks.yaml",
-                    "it ships with the repo"),
-        _check_bench(ds / "bench" / "v1" / "attacks.jsonl"),
-        _check_file("Benign corpus", ds / "security" / "benign.jsonl",
-                    "it ships with the repo"),
+        _check_file("Attack corpus", data("security/attacks.yaml"), hint),
+        _check_bench(data("bench/v1/attacks.jsonl")),
+        _check_file("Benign corpus", data("security/benign.jsonl"), hint),
         _check_key("Groq", "GROQ_API_KEY"),
         _check_key("Gemini", "GEMINI_API_KEY"),
     ]

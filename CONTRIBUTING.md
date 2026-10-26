@@ -36,12 +36,15 @@ victim. Keys are only for *live* model runs, and are read from the environment
   does and how it was tested.
 - Keep the public CLI and report headings stable, or update their tests in the
   same change.
-- Document data provenance and licences for anything imported into `datasets/`.
+- Document data provenance and licences for anything imported into
+  `src/ragprobe/datasets/`.
 
 ## Project layout
 
 - `src/ragprobe/` - the package (core eval, `security/`, `bench/`, `dashboard/`,
   `reporting/`, `webui.py`).
-- `datasets/` - attack corpora, the benchmark, benign requests, imported data.
+- `src/ragprobe/datasets/` - attack corpora, the benchmark, benign requests, imported
+  data. It lives in the package so it installs with it; add a `package-data` glob in
+  `pyproject.toml` for a new file type (`tests/test_packaging.py` enforces this).
 - `docs/` - methodology, findings, the datasheet, the leaderboard plan.
 - `tests/` - the test suite.

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import BUNDLED, resolve_under
 from ragprobe.cli import EXIT_OK, main
 from ragprobe.config import ProbeConfig
 from ragprobe.evaluation.dataset import load_dataset
@@ -16,14 +17,14 @@ from ragprobe.evaluation.runner import rescore, run_suite
 
 @pytest.fixture
 def workspace(tmp_path: Path, project_root: Path) -> Path:
-    shutil.copytree(project_root / "datasets", tmp_path / "datasets")
+    shutil.copytree(BUNDLED, tmp_path / "datasets")
     shutil.copy(project_root / "ragprobe.yaml", tmp_path / "ragprobe.yaml")
     return tmp_path
 
 
 def test_rescore_reproduces_a_stub_run(project_root):
     config = ProbeConfig.from_yaml(project_root / "ragprobe.yaml").apply_overrides({"evaluation.judge_enabled": False})
-    cases = load_dataset(project_root / config.dataset_path)
+    cases = load_dataset(resolve_under(project_root, config.dataset_path))
     original = run_suite(cases, config, base_dir=project_root)
     again = rescore(original.to_dict(), cases)
     assert [c.passed for c in again.cases] == [c.passed for c in original.cases]
@@ -33,7 +34,7 @@ def test_rescore_reproduces_a_stub_run(project_root):
 
 def test_rescore_applies_an_evaluator_change_without_the_model(project_root):
     config = ProbeConfig.from_yaml(project_root / "ragprobe.yaml").apply_overrides({"evaluation.judge_enabled": False})
-    cases = load_dataset(project_root / config.dataset_path)
+    cases = load_dataset(resolve_under(project_root, config.dataset_path))
     payload = run_suite(cases, config, base_dir=project_root).to_dict()
     # Tighten a threshold: scoring changes, answers do not.
     stricter = config.apply_overrides({"evaluation.grounding_threshold": 0.99})
@@ -44,7 +45,7 @@ def test_rescore_applies_an_evaluator_change_without_the_model(project_root):
 
 def test_rescore_skips_cases_missing_from_the_dataset(project_root):
     config = ProbeConfig.from_yaml(project_root / "ragprobe.yaml").apply_overrides({"evaluation.judge_enabled": False})
-    cases = load_dataset(project_root / config.dataset_path)
+    cases = load_dataset(resolve_under(project_root, config.dataset_path))
     payload = run_suite(cases, config, base_dir=project_root).to_dict()
     assert rescore(payload, cases[:3]).total == 3
 

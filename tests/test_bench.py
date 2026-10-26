@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import bundled_path
 from ragprobe.bench.build import build_v1, write_v1
 from ragprobe.bench.dataset import load_jsonl, save_jsonl, stats, validate_all
 from ragprobe.bench.generate import generate_attacks
@@ -144,7 +145,7 @@ class TestBuild:
 
 class TestFrozenCatalogue:
     def test_committed_catalogue_is_valid_and_matches_a_fresh_build(self):
-        committed = load_jsonl(ROOT / "datasets" / "bench" / "v1" / "attacks.jsonl")
+        committed = load_jsonl(bundled_path("bench/v1/attacks.jsonl"))
         validate_all(committed)
         fresh = build_v1()
         assert {i.id for i in committed} == {i.id for i in fresh}

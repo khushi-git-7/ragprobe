@@ -110,7 +110,8 @@ def bench_stats() -> Optional[Dict[str, str]]:
     only the standard library. Returns None if the catalogue is absent, in which
     case the benchmark section is simply not shown.
     """
-    path = Path(__file__).resolve().parents[1] / "datasets" / "bench" / "v1" / "attacks.jsonl"
+    path = (Path(__file__).resolve().parents[1] / "src" / "ragprobe" / "datasets"
+            / "bench" / "v1" / "attacks.jsonl")
     if not path.is_file():
         return None
     import json
@@ -454,7 +455,7 @@ def _benchmark(bs: Optional[Dict[str, str]], repo_url: str) -> str:
     items = "".join(
         '<div class="card"><div class="ic">' + _icon('<path d="M20 6 9 17l-5-5"/>') + "</div>"
         '<h3>' + t + "</h3><p>" + d + "</p></div>" for t, d in points)
-    doc = repo_url.rstrip("/") + "/blob/main/datasets/bench/v1/datasheet.md"
+    doc = repo_url.rstrip("/") + "/blob/main/src/ragprobe/datasets/bench/v1/datasheet.md"
     return (
         '<section id="benchmark" class="shell reveal">'
         '<div class="shead"><span class="eyebrow">The benchmark</span>'

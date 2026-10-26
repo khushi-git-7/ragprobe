@@ -140,7 +140,7 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
 
 - New here? [`docs/quickstart.md`](docs/quickstart.md) gets you a first scan in five minutes, or just run `ragprobe demo`.
 - The method: [`docs/methodology.md`](docs/methodology.md) · the data:
-  [`datasets/bench/v1/datasheet.md`](datasets/bench/v1/datasheet.md) · the findings:
+  [`datasheet`](src/ragprobe/datasets/bench/v1/datasheet.md) · the findings:
   [`docs/FINDINGS.md`](docs/FINDINGS.md) · what the numbers do and do not show: [`docs/limitations.md`](docs/limitations.md)
 
 ### How it compares
@@ -157,7 +157,25 @@ is about focus, not quality — each of these is worth using.
 
 ## Quickstart
 
-Three commands, no API key:
+Two commands, no API key, no clone:
+
+```bash
+pip install git+https://github.com/khushi-git-7/ragprobe
+ragprobe demo
+```
+
+`demo` scans a deliberately vulnerable sample app, turns on defences one at a time
+and rescans, in about ten seconds. The golden set, the sample corpus, the attack
+corpus and the frozen benchmark all ship inside the package, so every command works
+from any directory with nothing else to download:
+
+```bash
+ragprobe doctor                  # install, data and keys, one line each
+ragprobe security run --html     # A-F grade per OWASP risk, with intervals
+ragprobe run --html              # the answer-quality harness on the sample app
+```
+
+To work on RAGProbe itself, clone it instead:
 
 ```bash
 git clone https://github.com/khushi-git-7/ragprobe && cd ragprobe
@@ -613,8 +631,11 @@ trust the number.
 
 ## The golden dataset
 
-`datasets/golden_set.yaml` holds the test cases. YAML and JSONL are both supported
-with the same schema.
+The shipped golden set lives in the package at
+[`src/ragprobe/datasets/golden_set.yaml`](src/ragprobe/datasets/golden_set.yaml), so it is
+there after a plain `pip install`. Point `--dataset` at your own file to replace it, or
+keep a `datasets/golden_set.yaml` beside your project and every command picks it up.
+YAML and JSONL are both supported with the same schema.
 
 ```yaml
 cases:
@@ -931,9 +952,11 @@ ragprobe/
 │   └── cli.py                  argparse entrypoint, exit-code contract
 ├── scripts/build_site.py       Landing page for GitHub Pages (stdlib only)
 ├── examples/                   Real-data examples (Playwright docs, SQuAD 2.0) and target wrappers
-├── datasets/
-│   ├── docs/                   Five fictional sample documents
-│   └── golden_set.yaml         Sixteen cases across six categories
+│   └── datasets/               Shipped data, installed with the package
+│       ├── docs/               Five fictional sample documents
+│       ├── golden_set.yaml     Sixteen cases across six categories
+│       ├── security/           Attack corpus, benign set, imported probes
+│       └── bench/              The frozen benchmark (v1, v2) with datasheets
 ├── baselines/baseline.json     The committed regression contract
 ├── tests/                      pytest suite for the harness itself
 ├── .github/workflows/ci.yml    Unit tests + regression gate + report artifact

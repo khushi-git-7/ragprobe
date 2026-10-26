@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
+from ragprobe.resources import resolve_data
 from ragprobe.security.defenses import build_defense
 from ragprobe.stats import wilson_interval
 
@@ -90,7 +91,7 @@ def write_benign(path: Path) -> Path:
 
 
 def load_benign(path: Path) -> List[Dict[str, str]]:
-    path = Path(path)
+    path = resolve_data(path)
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()

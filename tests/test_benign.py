@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ragprobe.resources import bundled_path
 from ragprobe.security.benign import (
     deepset_benign,
     false_block_rates,
@@ -29,11 +30,11 @@ class TestCorpus:
         assert [r["id"] for r in again] == [r["id"] for r in generate_benign()]
 
     def test_committed_corpus_matches_the_generator(self):
-        committed = load_benign(ROOT / "datasets" / "security" / "benign.jsonl")
+        committed = load_benign(bundled_path("security/benign.jsonl"))
         assert {r["id"] for r in committed} == {r["id"] for r in generate_benign()}
 
     def test_deepset_benign_are_all_label_zero(self):
-        rows = deepset_benign(ROOT / "datasets" / "security" / "deepset")
+        rows = deepset_benign(bundled_path("security/deepset"))
         assert rows and all(r["label"] == 0 for r in rows)
 
 
