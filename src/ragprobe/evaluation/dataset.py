@@ -11,14 +11,14 @@ present in the report while asserting nothing. Every unknown key is an error.
 
 from __future__ import annotations
 
-from ragprobe.errors import RagprobeError
-from ragprobe.resources import resolve_data
-
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+
+from ragprobe.errors import RagprobeError
+from ragprobe.resources import resolve_data
 
 #: Every field a case may declare. Anything else is rejected.
 CASE_FIELDS = {

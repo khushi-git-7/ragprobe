@@ -19,8 +19,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ragprobe.security.canary import make_canaries
 from ragprobe.security.defenses import Context, DefenseStack, build_defense
-from ragprobe.security.scenarios import (CHAT_SYSTEM, COMPANY_DOMAIN, RAG_SYSTEM,
-                                         REFUSAL, _present)
+from ragprobe.security.scenarios import CHAT_SYSTEM, COMPANY_DOMAIN, RAG_SYSTEM, REFUSAL, _present
 from ragprobe.security.victims import Victim
 from ragprobe.stats import wilson_interval
 

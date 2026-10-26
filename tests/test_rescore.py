@@ -8,11 +8,11 @@ from pathlib import Path
 
 import pytest
 
-from ragprobe.resources import BUNDLED, resolve_under
 from ragprobe.cli import EXIT_OK, main
 from ragprobe.config import ProbeConfig
 from ragprobe.evaluation.dataset import load_dataset
 from ragprobe.evaluation.runner import rescore, run_suite
+from ragprobe.resources import BUNDLED, resolve_under
 
 
 @pytest.fixture

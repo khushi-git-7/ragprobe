@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from ragprobe.resources import BUNDLED
 from ragprobe.cli import EXIT_GATE_FAILED, EXIT_OK, EXIT_USAGE, main
+from ragprobe.resources import BUNDLED
 
 
 @pytest.fixture

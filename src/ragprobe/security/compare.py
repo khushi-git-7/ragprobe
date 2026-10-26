@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
-from ragprobe.security.models import ModelSpec, build_victim, resolve
+from ragprobe.security.models import build_victim, resolve
 from ragprobe.security.suite import run_suite
 from ragprobe.stats import mcnemar_from_pairs
 

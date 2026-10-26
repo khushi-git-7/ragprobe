@@ -22,14 +22,14 @@ The pure functions here take the parsed JSON; only the CLI touches the network.
 
 from __future__ import annotations
 
-from ragprobe.errors import RagprobeError
-
 import json
 import random
 import re
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+from ragprobe.errors import RagprobeError
 
 SPLITS = {
     "dev": "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json",

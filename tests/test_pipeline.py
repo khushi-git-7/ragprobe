@@ -6,13 +6,13 @@ import math
 
 import pytest
 
-from ragprobe.resources import bundled_path
 from ragprobe.config import GenerationConfig, ProbeConfig, RetrievalConfig
 from ragprobe.pipeline.chunking import Chunk
 from ragprobe.pipeline.embeddings import HashingTfidfEmbedder, get_embedder
 from ragprobe.pipeline.store import InMemoryVectorStore, cosine
 from ragprobe.providers.base import AnswerRequest, ContextChunk, JudgeRequest
 from ragprobe.providers.stub import StubProvider
+from ragprobe.resources import bundled_path
 
 CORPUS = [
     "Telemetry data is retained for 13 months and then permanently deleted.",

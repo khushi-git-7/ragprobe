@@ -11,16 +11,15 @@ rate-limited free-tier calls is reproducible and resumable.
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
 from ragprobe.bench.run import run_bench
 from ragprobe.security.compare import _per_attack_success
-from ragprobe.security.models import ModelSpec, build_victim, resolve
+from ragprobe.security.models import build_victim, resolve
 from ragprobe.stats import mcnemar_from_pairs
-
-import os
 
 
 def run_leaderboard(

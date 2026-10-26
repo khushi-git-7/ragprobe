@@ -17,14 +17,14 @@ Usage::
 
 from __future__ import annotations
 
-from ragprobe.errors import RagprobeError
-from ragprobe.resources import resolve_data
-
 import json
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
+
+from ragprobe.errors import RagprobeError
+from ragprobe.resources import resolve_data
 
 DATASET = "deepset/prompt-injections"
 ROWS_URL = "https://datasets-server.huggingface.co/rows"

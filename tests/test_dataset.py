@@ -11,13 +11,13 @@ import json
 
 import pytest
 
-from ragprobe.resources import resolve_under
 from ragprobe.evaluation.dataset import (
     DatasetError,
     dataset_fingerprint,
     load_dataset,
     parse_cases,
 )
+from ragprobe.resources import resolve_under
 
 VALID = {
     "id": "case-1",

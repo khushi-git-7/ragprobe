@@ -18,9 +18,18 @@ import pytest
 from ragprobe.cli import EXIT_GATE_FAILED, EXIT_OK, EXIT_USAGE, main
 from ragprobe.resources import bundled_path
 from ragprobe.security.canary import make_canaries
-from ragprobe.security.scan import (EndpointSpec, HttpApp, ScanError, _dig, gate,
-                                    parse_header, render, render_markdown, scan,
-                                    select_scannable)
+from ragprobe.security.scan import (
+    EndpointSpec,
+    HttpApp,
+    ScanError,
+    _dig,
+    gate,
+    parse_header,
+    render,
+    render_markdown,
+    scan,
+    select_scannable,
+)
 
 CATALOGUE = bundled_path("bench/v1/attacks.jsonl")
 CANARY = "OVR-test-canary-9f21"

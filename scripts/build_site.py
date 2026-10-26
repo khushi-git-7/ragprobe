@@ -316,7 +316,7 @@ def _nav(security_href: Optional[str] = None, lab_href: Optional[str] = None,
     links.append((REPO_URL, "GitHub", "a"))
     items = "".join('<a class="' + c + '" href="' + esc(h) + '">' + esc(t) + "</a>"
                     for h, t, c in links)
-    items += '<a class="p cta-nav" href="#start">Scan your app</a>' 
+    items += '<a class="p cta-nav" href="#start">Scan your app</a>'
     return (
         '<nav><div class="shell"><span class="logo"><span class="mark">R</span><span class="lt">RAGProbe</span></span>'
         '<span class="links">' + items + "</span>"

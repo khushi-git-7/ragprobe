@@ -6,11 +6,11 @@ a prompt change is a behaviour change and must apply to both.
 
 from __future__ import annotations
 
-from ragprobe.errors import RagprobeError
-
 import json
 import re
 from typing import Any, Dict, List
+
+from ragprobe.errors import RagprobeError
 
 ANSWER_SYSTEM_PROMPT = """You are a retrieval-grounded question answering system.
 

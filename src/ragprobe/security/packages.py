@@ -16,7 +16,6 @@ are injectable so the logic is tested offline and deterministically.
 
 from __future__ import annotations
 
-import json
 import re
 import urllib.error
 import urllib.request

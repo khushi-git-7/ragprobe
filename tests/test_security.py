@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 
 from ragprobe.resources import bundled_path
-from ragprobe.security.attacks import load_attacks, select
-from ragprobe.security.canary import leaked, leak_form, make_canaries, marker_emitted
+from ragprobe.security.attacks import load_attacks
+from ragprobe.security.canary import leak_form, leaked, make_canaries, marker_emitted
 from ragprobe.security.defenses import (
     Context,
     OutputFilterDefense,
@@ -25,8 +25,8 @@ from ragprobe.security.defenses import (
     build_defense,
 )
 from ragprobe.security.detector import get_detector
-from ragprobe.security.victims import get_victim
 from ragprobe.security.suite import run_suite
+from ragprobe.security.victims import get_victim
 
 ATTACKS = bundled_path("security/attacks.yaml")
 
@@ -338,6 +338,7 @@ def test_false_block_column_appears_only_when_benign_is_attached():
 
 def test_html_report_is_self_contained_and_wellformed(tmp_path):
     import html.parser
+
     from ragprobe.security.report_html import render
     from ragprobe.security.suite import run_suite
     from ragprobe.security.victims import get_victim

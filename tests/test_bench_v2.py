@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
-from ragprobe.resources import bundled_path
 from ragprobe.bench.build import build_v1, build_v2
 from ragprobe.bench.dataset import load_jsonl
 from ragprobe.bench.generate_v2 import WRAPPERS_V2, generate_v2_attacks
 from ragprobe.bench.run import run_bench, select_attacks
 from ragprobe.bench.schema import TECHNIQUES, to_attack
+from ragprobe.resources import bundled_path
 from ragprobe.security.canary import make_canaries
 from ragprobe.security.victims import get_victim
 

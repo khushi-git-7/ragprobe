@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -11,7 +10,13 @@ from ragprobe.cli import EXIT_OK, EXIT_USAGE, main
 from ragprobe.config import ProbeConfig
 from ragprobe.evaluation.dataset import load_dataset
 from ragprobe.evaluation.runner import run_suite
-from ragprobe.importers.squad import ImportError_, convert, doc_id_for, render_golden_set, write_example
+from ragprobe.importers.squad import (
+    ImportError_,
+    convert,
+    doc_id_for,
+    render_golden_set,
+    write_example,
+)
 
 
 def _qa(qid, question, answers=None, impossible=False):

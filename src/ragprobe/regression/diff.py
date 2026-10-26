@@ -22,7 +22,7 @@ it is noise with a percentage sign on it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional
 
 #: Score changes smaller than this are treated as flat. Guards against float noise.
 DEFAULT_EPSILON = 0.01
