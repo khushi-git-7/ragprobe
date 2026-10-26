@@ -1,11 +1,23 @@
 # RAGProbe
 
+![RAGProbe: prompt-injection attacks that score themselves](docs/img/banner.png)
+
 [![CI](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml/badge.svg)](https://github.com/khushi-git-7/ragprobe/actions/workflows/ci.yml)
 [![Live dashboard](https://img.shields.io/badge/live-dashboard-2a5bd7)](https://khushi-git-7.github.io/ragprobe/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
 
-**An evaluation and regression-testing harness for RAG pipelines and LLM features.**
+**Attack your LLM app the way the OWASP Top 10 describes, prove every hit with a planted
+canary, and fail CI when a change makes things worse.** It is also a regression-testing
+harness for answer quality, which is where the project started.
+
+```bash
+pip install git+https://github.com/khushi-git-7/ragprobe
+ragprobe demo                                        # 10 seconds, no API key
+ragprobe security scan --url https://your-app/chat   # your own endpoint
+```
+
+The benchmark is also published on its own: [Hugging Face](https://huggingface.co/datasets/Khushi-7/ragprobe-bench) · [Kaggle](https://www.kaggle.com/datasets/khushi234854/ragprobe-bench).
 
 **Live dashboard:** <https://khushi-git-7.github.io/ragprobe/> - the landing page, with
 the [dashboard](https://khushi-git-7.github.io/ragprobe/dashboard.html), the latest

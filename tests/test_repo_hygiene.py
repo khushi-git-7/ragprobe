@@ -54,3 +54,13 @@ def test_the_roadmap_does_not_promise_work_that_is_already_done():
                   "Obfuscated injections", "security scan"):
         assert claim.lower() in shipped.lower(), f"{claim} is shipped but not listed as shipped"
     assert "Decided against" in roadmap  # choices are recorded, not silently dropped
+
+
+def test_the_readme_leads_with_what_the_tool_does_now():
+    """Someone arriving from a link reads the first screen, and nothing else."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    top = readme[:1400]
+    assert "docs/img/banner.png" in top
+    assert (ROOT / "docs" / "img" / "banner.png").is_file()
+    assert "OWASP" in top and "security scan --url" in top
+    assert "pip install" in top
