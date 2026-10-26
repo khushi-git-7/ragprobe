@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import bundled_path
 from ragprobe.bench.cache import CachingVictim
 from ragprobe.bench.run import render_markdown, run_bench, select_attacks
 from ragprobe.bench.dataset import load_jsonl
 from ragprobe.security.victims import get_victim
 
 ROOT = Path(__file__).resolve().parents[1]
-CAT = ROOT / "datasets" / "bench" / "v1" / "attacks.jsonl"
+CAT = bundled_path("bench/v1/attacks.jsonl")
 
 
 def _run(cache=None):

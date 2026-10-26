@@ -16,6 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
+from ragprobe.resources import resolve_data
 from ragprobe.bench.dataset import save_jsonl, stats, validate_all
 from ragprobe.bench.generate import generate_attacks
 from ragprobe.bench.generate_v2 import generate_v2_attacks
@@ -49,6 +50,7 @@ def _deepset_probes(deepset_dir: Path) -> List[BenchItem]:
     from ragprobe.importers.deepset import load_split
 
     out: List[BenchItem] = []
+    deepset_dir = resolve_data(deepset_dir)
     for split_name in ("train", "test"):
         path = deepset_dir / f"{split_name}.jsonl"
         if not path.is_file():

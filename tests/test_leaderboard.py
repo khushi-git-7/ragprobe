@@ -6,11 +6,12 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import bundled_path
 from ragprobe.bench.leaderboard import render_markdown, run_leaderboard
 from ragprobe.security.victims import Reply, Victim, get_victim
 
 ROOT = Path(__file__).resolve().parents[1]
-CAT = ROOT / "datasets" / "bench" / "v1" / "attacks.jsonl"
+CAT = bundled_path("bench/v1/attacks.jsonl")
 
 
 class _SafeVictim(Victim):

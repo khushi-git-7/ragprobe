@@ -6,15 +6,20 @@ test a live model.
 ## 1. Install
 
 ```bash
-git clone https://github.com/khushi-git-7/ragprobe.git
-cd ragprobe
 python -m venv .venv && . .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e .
+pip install git+https://github.com/khushi-git-7/ragprobe
 ragprobe doctor                                 # checks the install, data and keys
 ```
 
 `doctor` prints a line per check and tells you what to fix. Missing API keys are
 only warnings; they matter for live-model runs, not for anything on this page.
+
+The attack corpus, the sample documents, the golden set and the frozen benchmark are
+installed with the package, so every command below works in any directory with nothing
+else to download. To change the data, copy it out and edit it: a `./datasets` folder in
+your working directory wins over the shipped copy, and `--attacks`, `--dataset` and
+`--catalogue` take any path. To work on RAGProbe itself, clone the repository and
+`pip install -e ".[dev]"` instead.
 
 ## 2. Watch the whole story (one command)
 

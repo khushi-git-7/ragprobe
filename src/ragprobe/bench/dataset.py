@@ -13,6 +13,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Dict, Iterable, List
 
+from ragprobe.resources import resolve_data
 from ragprobe.bench.schema import BenchItem, BenchError, validate
 
 
@@ -26,7 +27,7 @@ def save_jsonl(items: Iterable[BenchItem], path: Path) -> Path:
 
 
 def load_jsonl(path: Path) -> List[BenchItem]:
-    path = Path(path)
+    path = resolve_data(path)
     if not path.is_file():
         raise BenchError(f"bench catalogue not found: {path}")
     items: List[BenchItem] = []

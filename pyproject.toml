@@ -61,6 +61,22 @@ Issues = "https://github.com/khushi-git-7/ragprobe/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# The reference data travels with the package: an installed tool that cannot find its
+# own golden set, corpus, attacks or benchmark is not installed. Globs are explicit so
+# nothing is shipped by accident; tests/test_packaging.py fails if a data file stops
+# being covered by one of them.
+[tool.setuptools.package-data]
+"ragprobe.datasets" = [
+    "*.yaml",
+    "docs/*.md",
+    "security/*.yaml",
+    "security/*.jsonl",
+    "security/deepset/*.jsonl",
+    "security/deepset/*.md",
+    "bench/*/*.jsonl",
+    "bench/*/*.md",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"

@@ -18,6 +18,7 @@ Usage::
 from __future__ import annotations
 
 from ragprobe.errors import RagprobeError
+from ragprobe.resources import resolve_data
 
 import json
 import urllib.parse
@@ -91,7 +92,7 @@ def write_splits(out: Path, splits: Dict[str, List[Dict]]) -> Path:
 def load_split(path: Path) -> List[Dict]:
     """Read a ``{"text", "label"}`` JSONL file written by :func:`write_splits`."""
     rows = []
-    with Path(path).open("r", encoding="utf-8") as handle:
+    with resolve_data(path).open("r", encoding="utf-8") as handle:
         for number, line in enumerate(handle, start=1):
             if not line.strip():
                 continue

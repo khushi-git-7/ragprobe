@@ -160,7 +160,7 @@ def test_benchmark_section_is_data_driven_from_the_catalogue(site, tmp_path):
     # the real catalogue totals appear as count-up targets
     assert f'data-count="{bs["total"]}"' in page and f'data-count="{bs["attacks"]}"' in page
     # the datasheet link stays inside the repo (no external fetch)
-    assert "datasets/bench/v1/datasheet.md" in page
+    assert "src/ragprobe/datasets/bench/v1/datasheet.md" in page
 
 
 def test_hero_cta_leads_into_the_product_not_the_repo(site, tmp_path):

@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
+from ragprobe.resources import resolve_under
 from ragprobe.config import ProbeConfig
 from ragprobe.pipeline.chunking import Chunk, chunk_document
 from ragprobe.pipeline.embeddings import Embedder, get_embedder
@@ -113,7 +114,7 @@ class RagPipeline:
 
     def ingest(self) -> "RagPipeline":
         """Load, chunk, fit the embedder and build the index."""
-        corpus_dir = self.base_dir / self.config.corpus_dir
+        corpus_dir = resolve_under(self.base_dir, self.config.corpus_dir)
         documents = load_corpus(corpus_dir)
 
         chunks: List[Chunk] = []

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from ragprobe.resources import bundled_path
 from ragprobe.bench.build import build_v1, build_v2
 from ragprobe.bench.dataset import load_jsonl
 from ragprobe.bench.generate_v2 import WRAPPERS_V2, generate_v2_attacks
@@ -11,8 +12,8 @@ from ragprobe.security.canary import make_canaries
 from ragprobe.security.victims import get_victim
 
 ROOT = Path(__file__).resolve().parents[1]
-V1 = ROOT / "datasets" / "bench" / "v1" / "attacks.jsonl"
-V2 = ROOT / "datasets" / "bench" / "v2" / "attacks.jsonl"
+V1 = bundled_path("bench/v1/attacks.jsonl")
+V2 = bundled_path("bench/v2/attacks.jsonl")
 
 
 def test_every_new_family_is_in_the_documented_vocabulary():

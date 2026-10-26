@@ -11,6 +11,7 @@ import json
 
 import pytest
 
+from ragprobe.resources import resolve_under
 from ragprobe.evaluation.dataset import (
     DatasetError,
     dataset_fingerprint,
@@ -149,11 +150,11 @@ class TestShippedGoldenSet:
     """
 
     def test_loads(self, config, project_root):
-        cases = load_dataset(project_root / config.dataset_path)
+        cases = load_dataset(resolve_under(project_root, config.dataset_path))
         assert len(cases) >= 10
 
     def test_every_expected_chunk_exists_in_the_corpus(self, config, project_root, pipeline):
-        cases = load_dataset(project_root / config.dataset_path)
+        cases = load_dataset(resolve_under(project_root, config.dataset_path))
         available = set(pipeline.chunk_ids())
         missing = {
             f"{case.id} -> {chunk}"
@@ -164,12 +165,12 @@ class TestShippedGoldenSet:
         assert not missing, f"dataset references chunk ids that do not exist: {sorted(missing)}"
 
     def test_has_refusal_coverage(self, config, project_root):
-        cases = load_dataset(project_root / config.dataset_path)
+        cases = load_dataset(resolve_under(project_root, config.dataset_path))
         assert any(case.should_refuse for case in cases), (
             "a RAG golden set without refusal cases cannot detect a system that "
             "answers everything confidently"
         )
 
     def test_has_multiple_categories(self, config, project_root):
-        cases = load_dataset(project_root / config.dataset_path)
+        cases = load_dataset(resolve_under(project_root, config.dataset_path))
         assert len({case.category for case in cases}) >= 3

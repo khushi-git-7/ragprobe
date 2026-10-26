@@ -36,6 +36,7 @@ from ragprobe.providers import get_provider
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
 from ragprobe.reporting.html import write_report
 from ragprobe.reporting.terminal import render_diff_summary, render_gate, render_run_summary
+from ragprobe.resources import resolve_under
 
 EXIT_OK = 0
 EXIT_GATE_FAILED = 1
@@ -162,7 +163,7 @@ def _record_history(args: argparse.Namespace, payload: Mapping[str, Any]) -> Opt
 def _execute_run(args: argparse.Namespace) -> RunResult:
     config = _build_config(args)
     base_dir = _base_dir(args)
-    dataset_path = base_dir / config.dataset_path
+    dataset_path = resolve_under(base_dir, config.dataset_path)
     cases = load_dataset(dataset_path)
 
     progress = None
@@ -852,7 +853,7 @@ def cmd_security_run(args: argparse.Namespace) -> int:
 
     if getattr(args, "benign", None):
         from ragprobe.security.benign import false_block_rates, load_benign
-        benign_path = base_dir / args.benign
+        benign_path = resolve_under(base_dir, args.benign)
         if benign_path.is_file():
             results["benign"] = false_block_rates(defenses, load_benign(benign_path))
         else:
@@ -1308,7 +1309,7 @@ def cmd_rescore(args: argparse.Namespace) -> int:
     payload = _read_json(Path(args.results), "results")
     config = _build_config(args) if args.config else None
     base_dir = _base_dir(args)
-    dataset_path = base_dir / (config.dataset_path if config else payload["config"]["dataset_path"])
+    dataset_path = resolve_under(base_dir, config.dataset_path if config else payload["config"]["dataset_path"])
     cases = load_dataset(dataset_path)
     result = rescore(payload, cases, config)
     out = result.to_dict()

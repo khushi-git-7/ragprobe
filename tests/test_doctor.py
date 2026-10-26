@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ragprobe.doctor import FAIL, OK, WARN, has_failures, render, run_checks
+from ragprobe.resources import bundled_path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,12 +26,38 @@ def test_healthy_checkout_passes_core_checks(monkeypatch):
     assert not has_failures(checks)
 
 
-def test_missing_data_is_a_failure(tmp_path):
-    checks = run_checks(tmp_path)  # an empty dir: datasets are absent
+def test_an_empty_directory_is_healthy_because_the_data_ships_with_the_package(tmp_path):
+    """The install is what matters, not where you stand: a pip user has no checkout."""
+    checks = run_checks(tmp_path)
+    by = _by_name(checks)
+    assert by["Attack corpus"].status == OK
+    assert by["Benign corpus"].status == OK
+    assert by["Bench v1"].status == OK
+    assert not has_failures(checks)
+    assert by["Attack corpus"].detail == "shipped with the package"
+
+
+def test_a_local_copy_is_used_and_named(tmp_path):
+    """Your own ./datasets copy wins, and the report says so instead of claiming ours."""
+    local = tmp_path / "datasets" / "security"
+    local.mkdir(parents=True)
+    (local / "attacks.yaml").write_text(
+        bundled_path("security/attacks.yaml").read_text(encoding="utf-8"), encoding="utf-8")
+    by = _by_name(run_checks(tmp_path))
+    assert by["Attack corpus"].status == OK
+    assert by["Attack corpus"].detail.endswith("attacks.yaml")
+    assert "shipped" not in by["Attack corpus"].detail
+
+
+def test_a_damaged_install_is_a_failure(tmp_path, monkeypatch):
+    """If the shipped data really is gone, say so with a fix, and fail."""
+    import ragprobe.resources as resources
+
+    monkeypatch.setattr(resources, "BUNDLED", tmp_path / "gone")
+    checks = run_checks(tmp_path)
     by = _by_name(checks)
     assert by["Attack corpus"].status == FAIL
-    assert by["Benign corpus"].status == FAIL
-    assert by["Bench v1"].status == WARN  # bench is a warn (you can build it)
+    assert "reinstall" in by["Attack corpus"].detail
     assert has_failures(checks)
 
 

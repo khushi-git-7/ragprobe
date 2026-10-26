@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ragprobe.resources import bundled_path
 from ragprobe.cli import EXIT_OK, main
 from ragprobe.demo import STAGES, passes, render, run_demo
 
@@ -11,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _report():
-    return run_demo(ROOT / "datasets" / "security" / "attacks.yaml", base_dir=ROOT)
+    return run_demo(bundled_path("security/attacks.yaml"), base_dir=ROOT)
 
 
 def test_stages_run_in_the_order_a_team_would_try_them():

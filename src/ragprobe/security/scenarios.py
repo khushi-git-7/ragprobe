@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from ragprobe.resources import resolve_under
 from ragprobe.config import ChunkConfig, RetrievalConfig
 from ragprobe.pipeline.chunking import chunk_document
 from ragprobe.pipeline.embeddings import get_embedder
@@ -186,7 +187,7 @@ class _Retriever:
 
     @functools.lru_cache(maxsize=1)
     def _benign_chunks(self):  # noqa: ANN202
-        documents = load_corpus(self.base_dir / self.corpus_dir)
+        documents = load_corpus(resolve_under(self.base_dir, self.corpus_dir))
         chunk_cfg = ChunkConfig()
         chunks = []
         for doc_id in sorted(documents):

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import bundled_path
 from ragprobe.security.lab import facts, run_lab
 from ragprobe.security.lab_html import render
 
@@ -16,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope="module")
 def lab():
-    return run_lab(ROOT / "datasets" / "security" / "attacks.yaml", base_dir=ROOT)
+    return run_lab(bundled_path("security/attacks.yaml"), base_dir=ROOT)
 
 
 @pytest.fixture(scope="module")

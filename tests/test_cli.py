@@ -14,13 +14,14 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import BUNDLED
 from ragprobe.cli import EXIT_GATE_FAILED, EXIT_OK, EXIT_USAGE, main
 
 
 @pytest.fixture
 def workspace(tmp_path: Path, project_root: Path) -> Path:
     """An isolated copy of the project's data files, so tests never write into the repo."""
-    shutil.copytree(project_root / "datasets", tmp_path / "datasets")
+    shutil.copytree(BUNDLED, tmp_path / "datasets")
     shutil.copy(project_root / "ragprobe.yaml", tmp_path / "ragprobe.yaml")
     return tmp_path
 

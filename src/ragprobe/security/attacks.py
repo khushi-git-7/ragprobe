@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from ragprobe.errors import RagprobeError
+from ragprobe.resources import resolve_data
 from ragprobe.security.canary import Canaries
 
 ATTACKER_DOMAIN = "exfil-collector.example"
@@ -152,7 +153,7 @@ def _attack_from_mapping(raw: Mapping[str, Any], where: str) -> Attack:
 def load_attacks(path: Path) -> List[Attack]:
     import yaml
 
-    path = Path(path)
+    path = resolve_data(path)
     if not path.is_file():
         raise AttackError(f"attack file not found: {path}")
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}

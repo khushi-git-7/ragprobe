@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from ragprobe.resources import bundled_path
 from ragprobe.security.attacks import load_attacks, select
 from ragprobe.security.canary import leaked, leak_form, make_canaries, marker_emitted
 from ragprobe.security.defenses import (
@@ -27,7 +28,7 @@ from ragprobe.security.detector import get_detector
 from ragprobe.security.victims import get_victim
 from ragprobe.security.suite import run_suite
 
-ATTACKS = Path(__file__).resolve().parent.parent / "datasets" / "security" / "attacks.yaml"
+ATTACKS = bundled_path("security/attacks.yaml")
 
 
 # ------------------------------------------------------------------ canaries

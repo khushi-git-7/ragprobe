@@ -62,5 +62,5 @@ loop. A clean report is not a security review.
 ## Data and ethics
 
 All attacks are synthetic or from published open datasets with licences recorded in
-`datasets/bench/v1/NOTICE.md`. No company data, no real personal data, and no
+`src/ragprobe/datasets/bench/v1/NOTICE.md`. No company data, no real personal data, and no
 credentials are used. Live-model runs use free-tier keys supplied by the operator.
