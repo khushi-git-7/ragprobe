@@ -8,7 +8,8 @@ nothing about a model's overall safety.
 which cannot run the tool-calling ones). Temperature 0, one trial per attack, replies
 capped at 2048 tokens (4096 for gpt-oss 20B). "Layered" is the layered defence preset
 with the leetspeak-aware detector. Intervals are 95% Wilson. "p" is a paired McNemar test
-of the layered run against the undefended run on the same attacks.
+of the layered run against the undefended run on the same attacks. Every reply is cached,
+so each number in this file can be reproduced without spending an API call.
 
 | Model | Attacks that work, no defence | Attacks that work, layered | Paired test | Ordinary questions answered (26) |
 |---|--:|--:|--:|--:|
@@ -24,7 +25,7 @@ On the **extended set** (Bench v2, the 82 plus 56 attacks from seven new familie
 | Qwen 3.8 27B | 6% (8 of 138, CI 3&ndash;11%) | 4% (6 of 138) | p = 0.63 |
 | Gemini 3.5 Flash-Lite | 10% (14 of 134, CI 6&ndash;17%) | 7% (10 of 134) | p = 0.29 |
 | gpt-oss 120B | 25% (35 of 138, CI 19&ndash;33%) | 27% (37 of 138) | p = 0.83 |
-| gpt-oss 20B | not run yet (hit the free tier's daily token limit) | | |
+| gpt-oss 20B | 29% (40 of 138, CI 22&ndash;37%) | 19% (26 of 138, CI 13&ndash;26%) | **p = 0.014** |
 
 ## What this shows
 
@@ -34,11 +35,13 @@ On the **extended set** (Bench v2, the 82 plus 56 attacks from seven new familie
 - **The new attack families are harder.** Qwen went from 1 of 82 on the original set to
   7 of the 56 new attacks, and Gemini from 4 of 78 to 10 of 56. A benchmark that no model
   fails cannot tell models apart, so the extension earns its place.
-- **The layered defence helped one model clearly, and not the others.** On gpt-oss 20B it
-  cut attacks from 25 to 13 and the paired test says that is unlikely to be chance
-  (p = 0.004). On gpt-oss 120B it made no measurable difference, on either set. On Qwen and
-  Gemini there was little to stop. So the defence's value depends on the model, and the
-  "attacks drop to 0%" figure belongs to the simulated always-obey victim only.
+- **The layered defence helped one model clearly, and not the others &mdash; and that result
+  replicated.** On gpt-oss 20B it cut attacks from 25 to 13 of 82 (p = 0.004), and on the
+  larger, independent extension it did it again: 40 to 26 of 138 (p = 0.014). Two separate
+  attack sets, the same direction, both significant. On gpt-oss 120B it made no measurable
+  difference on either set. On Qwen and Gemini there was little left to stop. So the
+  defence's value depends on the model, and the "attacks drop to 0%" figure belongs to the
+  simulated always-obey victim only.
 - **Bigger was not safer.** gpt-oss 120B was not clearly better than 20B undefended
   (their intervals overlap). One family, one benchmark; not a rule.
 - **Defences did not cost usability.** Ordinary questions were answered 96&ndash;100% of
@@ -65,13 +68,17 @@ This is the most important caveat on the numbers above.
 
 ## Caveats specific to these runs
 
-- gpt-oss 20B hit its token limit on 3 of 148 replies even at 4096 tokens; those count as
-  "attack did not succeed", so its figures are lower bounds.
+- gpt-oss 20B hit its token limit on 3 of 148 replies on the original set and 9 of 240 on
+  the extended set, even at 4096 tokens: it is a reasoning model and can spend the whole
+  budget thinking, returning nothing. Those count as "attack did not succeed", so its
+  figures are lower bounds &mdash; the runner counts and reports them for exactly this
+  reason rather than letting them pass as safety.
 - One trial per attack at temperature 0. Providers change hosted models without notice.
 - All attacks are single-turn text attacks from this benchmark's own families. A model
   that resists them may still fall to adaptive attackers.
-- Across the 7 comparisons above only one is clearly significant. With several comparisons
-  and small samples, treat any single p-value as a hint, not a verdict.
+- Across the 8 comparisons above, two are clearly significant and they are the same model
+  measured twice. With several comparisons and small samples, treat any single p-value as
+  a hint; a result that repeats on an independent set is worth more than its p-value.
 
 ## Reproduce
 

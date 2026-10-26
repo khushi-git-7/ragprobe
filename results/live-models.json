@@ -1,7 +1,7 @@
 {
  "bench": "Bench v1, every runnable attack (82; 78 for Gemini, which cannot run tool-calling attacks)",
  "date": "2026-10-26",
- "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). Layered defence with the leetspeak-aware detector. Utility is 26 ordinary questions with no defence on. The extended line is Bench v2 (138 attacks; 134 for Gemini); gpt-oss 20B has not been run on it yet because of a daily free-tier limit",
+ "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). Layered defence with the leetspeak-aware detector. Utility is 26 ordinary questions with no defence on. The extended line is Bench v2 (138 attacks; 134 for Gemini). On the extended set gpt-oss 20B cut off 9 of 240 replies at its token limit; those score as 'attack failed', so its extended figures are lower bounds",
  "models": [
   {
    "name": "Qwen 3.8 27B",
@@ -84,7 +84,22 @@
    "leak_secret": [
     0,
     33
-   ]
+   ],
+   "extended": {
+    "none": [
+     40,
+     138,
+     0.2207,
+     0.3704
+    ],
+    "layered": [
+     26,
+     138,
+     0.1319,
+     0.2617
+    ],
+    "p": 0.014019
+   }
   },
   {
    "name": "gpt-oss 120B",
