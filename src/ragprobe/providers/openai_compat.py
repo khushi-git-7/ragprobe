@@ -31,6 +31,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Callable, Dict, List, Optional
 
+from ragprobe.errors import RagprobeError
 from ragprobe.providers.base import (
     REFUSAL_TEXT,
     AnswerRequest,
@@ -59,7 +60,7 @@ RETRY_STATUSES = {408, 409, 425, 429, 500, 502, 503, 504}
 MAX_ATTEMPTS = 6
 
 
-class ProviderHTTPError(RuntimeError):
+class ProviderHTTPError(RagprobeError, RuntimeError):
     """The endpoint answered with an error the adapter could not recover from."""
 
 

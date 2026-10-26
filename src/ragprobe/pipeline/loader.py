@@ -6,6 +6,8 @@ installed; it is an optional extra so that the base install stays light.
 
 from __future__ import annotations
 
+from ragprobe.errors import RagprobeError
+
 from pathlib import Path
 from typing import Dict, List
 
@@ -14,7 +16,7 @@ PDF_SUFFIXES = {".pdf"}
 SUPPORTED_SUFFIXES = TEXT_SUFFIXES | PDF_SUFFIXES
 
 
-class CorpusError(RuntimeError):
+class CorpusError(RagprobeError, RuntimeError):
     """Raised when the corpus directory is missing or empty."""
 
 
