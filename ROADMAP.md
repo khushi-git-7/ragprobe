@@ -53,6 +53,10 @@ Legend: ✅ done · ⏳ next · 🧊 later · ⛔ decided against
 - ✅ CI: unit tests on 3.9 and 3.12, security gate, regression gate, Pages publish.
 
 ## Next
+- ⏳ Bench v3, which rewrites `rag-note-marker` so the joined marker never appears in
+  an attack text. The invariant is enforced for everything else in
+  `tests/test_oracle_invariants.py`; this one item is frozen into v1 and v2, so it can
+  only be fixed in a new version. See [limitations](docs/limitations.md).
 - ⏳ Indirect injection through real content types (PDF, HTML, CSV, email bodies).
 - ⏳ A defence that reads the whole conversation, to close the multi-turn gap the
   attack lab reports.
