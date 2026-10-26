@@ -27,6 +27,8 @@ On the **extended set** (Bench v2, the 82 plus 56 attacks from seven new familie
 | gpt-oss 120B | 25% (35 of 138, CI 19&ndash;33%) | 27% (37 of 138) | p = 0.83 |
 | gpt-oss 20B | 29% (40 of 138, CI 22&ndash;37%) | 19% (26 of 138, CI 13&ndash;26%) | **p = 0.014** |
 
+![Attack success before and after the layered defence: Qwen 6 to 4 percent, Gemini 10 to 7, gpt-oss 120B 25 to 27, gpt-oss 20B 29 to 19 with p equals 0.014](img/defence-effect.png)
+
 ## What this shows
 
 - **Models differ a lot.** Qwen and Gemini Flash-Lite resisted almost everything in the
