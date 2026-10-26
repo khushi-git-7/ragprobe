@@ -103,15 +103,18 @@ def stats(runs: List[Dict[str, Any]]) -> Dict[str, str]:
     }
 
 
-def bench_stats() -> Optional[Dict[str, str]]:
-    """Read the committed benchmark catalogue for the landing page's facts.
+BENCH_DIR = Path(__file__).resolve().parents[1] / "src" / "ragprobe" / "datasets" / "bench"
+
+
+def bench_stats(version: str = "v1") -> Optional[Dict[str, str]]:
+    """Read a committed benchmark catalogue for the landing page's facts.
 
     Reads the JSONL directly (no import of the package) so the site builds with
     only the standard library. Returns None if the catalogue is absent, in which
-    case the benchmark section is simply not shown.
+    case the benchmark section is simply not shown. Every number on the page comes
+    from here, so the page cannot claim an attack count the data does not have.
     """
-    path = (Path(__file__).resolve().parents[1] / "src" / "ragprobe" / "datasets"
-            / "bench" / "v1" / "attacks.jsonl")
+    path = BENCH_DIR / version / "attacks.jsonl"
     if not path.is_file():
         return None
     import json
@@ -133,8 +136,21 @@ def bench_stats() -> Optional[Dict[str, str]]:
             owasp.add(row["owasp"])
         if row.get("language") and row["language"] != "other":
             langs.add(row["language"])
-    return {"total": str(total), "attacks": str(attacks), "probes": str(total - attacks),
-            "owasp": str(len(owasp)), "languages": str(len(langs))}
+    return {"version": version, "total": str(total), "attacks": str(attacks),
+            "probes": str(total - attacks), "owasp": str(len(owasp)),
+            "languages": str(len(langs))}
+
+
+def bench_best() -> Optional[Dict[str, str]]:
+    """The largest committed catalogue: what the tool will actually send."""
+    found = [s for s in (bench_stats(v) for v in sorted(_bench_versions(), reverse=True)) if s]
+    return max(found, key=lambda s: int(s["attacks"])) if found else None
+
+
+def _bench_versions() -> List[str]:
+    if not BENCH_DIR.is_dir():
+        return []
+    return [d.name for d in BENCH_DIR.iterdir() if d.is_dir() and (d / "attacks.jsonl").is_file()]
 
 
 def recent_commits(limit: int = 6) -> List[str]:
@@ -261,6 +277,16 @@ section h2{font-size:38px;margin:12px 0 12px}section .lede{color:var(--muted);fo
 .risk .ms{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);margin-top:7px;font-family:var(--mono)}
 .copy{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--border-2);background:var(--panel);border-radius:12px;padding:12px 16px;font-family:var(--mono);font-size:14px;cursor:pointer;color:var(--ink)}
 .copy:hover{border-color:var(--accent)}.copy .k{color:var(--accent-text)}
+.copy .cl{color:var(--faint);font-size:12px}
+.steps{display:grid;gap:18px;margin-top:8px}
+.step{display:flex;gap:16px;align-items:flex-start;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px 22px}
+.step .sn{flex:0 0 32px;height:32px;border-radius:999px;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--border-2);font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent-text)}
+.step h3{font-size:18px;margin-bottom:10px}
+.step p{color:var(--muted);font-size:14.5px;margin:10px 0 0;max-width:62ch}
+.step .copy{max-width:100%;overflow-x:auto}
+.note{margin-top:22px;border-left:3px solid var(--accent);background:var(--panel-2);border-radius:0 12px 12px 0;padding:14px 18px;color:var(--muted);font-size:14px;max-width:80ch}
+.note b{color:var(--ink)}
+.cta-nav{border:1px solid var(--accent);border-radius:999px;color:var(--accent-text)!important}
 footer{padding:76px 0;border-top:1px solid var(--border);text-align:center}
 footer h2{font-size:34px;margin-bottom:22px}footer .fl{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
 footer p{color:var(--faint);font-size:13px;font-family:var(--mono)}
@@ -279,17 +305,18 @@ def _nav(security_href: Optional[str] = None, lab_href: Optional[str] = None,
     product links (always shown) and ``p2`` the least important of them (also hidden on
     the narrowest screens) - so a phone visitor still has a way into the product.
     """
-    links = [("#what", "What it tests", "a"), ("#finding", "The finding", "a"),
-             ("#start", "Quickstart", "a")]
+    links = [("#start", "Get started", "a"), ("#what", "How it works", "a"),
+             ("#models", "Real models", "a")]
     if security_href:
-        links.append((security_href, "Security", "p"))
+        links.append((security_href, "Sample report", "p"))
     if lab_href:
         links.append((lab_href, "Attack lab", "p"))
     if dashboard_href:
-        links.append((dashboard_href, "Dashboard", "p p2"))
+        links.append((dashboard_href, "Quality dashboard", "p p2"))
     links.append((REPO_URL, "GitHub", "a"))
     items = "".join('<a class="' + c + '" href="' + esc(h) + '">' + esc(t) + "</a>"
                     for h, t, c in links)
+    items += '<a class="p cta-nav" href="#start">Scan your app</a>' 
     return (
         '<nav><div class="shell"><span class="logo"><span class="mark">R</span><span class="lt">RAGProbe</span></span>'
         '<span class="links">' + items + "</span>"
@@ -318,21 +345,22 @@ def _hero_cta(security_href: Optional[str], dashboard_href: Optional[str],
     With no page published yet it scrolls to the on-page walkthrough. The repo lives in
     the top nav, so a first visit is an invitation to look, not a detour to GitHub.
     """
-    choices = [(security_href, "See a live security scan"), (lab_href, "Explore the attack lab"),
-               (dashboard_href, "Open the live dashboard"), (report_href, "Read the latest report")]
+    choices = [(security_href, "See a sample report"), (lab_href, "See the attack lab"),
+               (dashboard_href, "See the quality dashboard"), (report_href, "See the latest report")]
     entry = next(((h, label) for h, label in choices if h), None)
-    if entry:
-        primary = '<a class="btn" href="' + esc(entry[0]) + '">' + entry[1] + " &rarr;</a>"
-    else:
-        primary = '<a class="btn" href="#what">See how it works &darr;</a>'
-    return ('<div class="cta">' + primary
-            + '<a class="btn ghost" href="#start">Quickstart &darr;</a></div>')
+    secondary = ('<a class="btn ghost" href="' + esc(entry[0]) + '">' + entry[1] + " &rarr;</a>"
+                 if entry else '<a class="btn ghost" href="#what">See how it works &darr;</a>')
+    return ('<div class="cta"><a class="btn" href="#start">Scan your app &darr;</a>'
+            + secondary + "</div>")
 
 
 def _hero(numbers: Dict[str, str], repo_url: str,
           security_href: Optional[str] = None, dashboard_href: Optional[str] = None,
-          report_href: Optional[str] = None, lab_href: Optional[str] = None) -> str:
+          report_href: Optional[str] = None, lab_href: Optional[str] = None,
+          bench: Optional[Dict[str, str]] = None) -> str:
     runs = numbers.get("runs", "0")
+    attacks = (bench or {}).get("attacks", "0")
+    languages = (bench or {}).get("languages", "4")
     scene = (
         '<div class="scene" aria-hidden="true"><div class="radar"></div><div class="radar r2"></div>'
         '<div class="radar r3"></div><div class="sweep"></div><div class="ring"></div>'
@@ -341,17 +369,20 @@ def _hero(numbers: Dict[str, str], repo_url: str,
         '<path d="M22 36l7 8 14-16" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
         + _threats()
         + '<div class="hstats">'
-        '<div><div class="n"><span data-count="92" data-suffix="%">0</span></div><div class="l">attacks stopped</div></div>'
-        '<div><div class="n"><span data-count="8">0</span></div><div class="l">OWASP risks</div></div>'
-        '<div><div class="n"><span data-count="' + esc(runs) + '">0</span></div><div class="l">CI runs</div></div>'
+        '<div><div class="n"><span data-count="' + esc(attacks) + '">' + esc(attacks)
+        + '</span></div><div class="l">scoreable attacks</div></div>'
+        '<div><div class="n"><span data-count="8">8</span></div><div class="l">OWASP risks</div></div>'
+        '<div><div class="n"><span data-count="' + esc(runs) + '">' + esc(runs) + '</span></div><div class="l">CI runs</div></div>'
         "</div></div>"
     )
     return (
         '<header class="hero shell"><div>'
         '<span class="pill"><span class="d"></span>Open-source &middot; runs free &amp; offline</span>'
-        '<h1>Ship AI features that <span class="hl">don’t get hacked</span>.</h1>'
-        "<p>RAGProbe attacks your LLM app the way the OWASP Top 10 describes, proves every hit "
-        "with planted secrets, and tells you which defences actually hold — then gates it in CI.</p>"
+        '<h1>Find out if your AI app <span class="hl">can be hacked</span>.</h1>'
+        "<p>Point RAGProbe at your chat endpoint and it sends " + esc(attacks) + " prompt-injection "
+        "attacks, in " + esc(languages) + " languages, from the OWASP Top 10 for LLMs. Every hit is "
+        "proved by a planted marker, not judged by another model — so the number is checkable, and it "
+        "can fail your CI build.</p>"
         + _hero_cta(security_href, dashboard_href, report_href, lab_href)
         + '<div class="term"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i>'
         '<i style="background:#28c840"></i></div><pre id="term"></pre></div>'
@@ -416,11 +447,16 @@ def _finding() -> str:
 def _defence() -> str:
     return (
         '<section id="defence" class="shell reveal"><div class="two">'
-        '<div><span class="eyebrow">Does defence work</span>'
-        '<h2 style="font-size:34px;margin-top:10px">Layered defence takes attacks to zero</h2>'
+        '<div><span class="eyebrow">Lab drill &middot; simulated model</span>'
+        '<h2 style="font-size:34px;margin-top:10px">Against a model that obeys everything, the layered '
+        "defence holds</h2>"
         '<p class="lede" style="font-size:16.5px">A hardened prompt, data-marking, a detector, a tool policy '
-        "and an output filter — stacked. Attack success collapses from 92% to 0, with no legitimate "
-        "requests wrongly blocked.</p></div>"
+        "and an output filter — stacked. Attack success falls from 92% to 0, with no legitimate "
+        "requests wrongly blocked.</p>"
+        '<p class="lede" style="font-size:16.5px">The victim here is a <b>simulated</b> model built to '
+        "obey every instruction it can parse, so this measures the defences and the harness, not any "
+        'real model. On real models the same defence clearly helped one of four — the honest version is '
+        'in <a href="#models">Real models</a> above.</p></div>'
         '<div class="figure"><div class="cap">Attack-success rate by defence</div><div class="sub">Lower is better</div>'
         '<div class="chartwrap"><svg width="100%" viewBox="0 0 520 170" role="img" aria-label="92 to 0 percent">'
         '<text class="xlab" x="8" y="52">None</text><rect x="92" y="34" width="410" height="30" rx="15" fill="var(--track)"/>'
@@ -429,7 +465,9 @@ def _defence() -> str:
         '<text class="xlab" x="8" y="120">Layered</text><rect x="92" y="102" width="410" height="30" rx="15" fill="var(--track)"/>'
         '<rect class="bar-rect growx" x="92" y="102" width="8" height="30" rx="4" fill="var(--good)" style="filter:drop-shadow(0 0 8px var(--good));transition-delay:.25s"><title>Layered &middot; 0%</title></rect>'
         '<text class="vlab" x="112" y="122">0%</text></svg></div>'
-        '<div class="insight">Every OWASP category reaches grade <b>A</b> — what one layer misses, the next catches.</div>'
+        '<div class="insight">Every OWASP category reaches grade <b>A</b> '
+        '<span style="opacity:.8">against this simulated victim</span> — what one layer misses, the '
+        "next catches.</div>"
         "</div></div></section>"
     )
 
@@ -438,8 +476,10 @@ def _benchmark(bs: Optional[Dict[str, str]], repo_url: str) -> str:
     """The research-grade story: a frozen, tagged, reproducible benchmark."""
     if not bs:
         return ""
+    # the real number is in the markup and animates up from zero, so a visitor with no
+    # JavaScript (or a slow phone) never reads "0 runnable attacks"
     stat = (lambda n, l: '<div class="stat"><div class="n"><span data-count="' + esc(n)
-            + '">0</span></div><div class="l">' + l + "</div></div>")
+            + '">' + esc(n) + '</span></div><div class="l">' + l + "</div></div>")
     cards = (stat(bs["total"], "tagged items")
              + stat(bs["attacks"], "runnable attacks")
              + stat(bs["owasp"], "OWASP risks")
@@ -455,12 +495,15 @@ def _benchmark(bs: Optional[Dict[str, str]], repo_url: str) -> str:
     items = "".join(
         '<div class="card"><div class="ic">' + _icon('<path d="M20 6 9 17l-5-5"/>') + "</div>"
         '<h3>' + t + "</h3><p>" + d + "</p></div>" for t, d in points)
-    doc = repo_url.rstrip("/") + "/blob/main/src/ragprobe/datasets/bench/v1/datasheet.md"
+    doc = (repo_url.rstrip("/") + "/blob/main/src/ragprobe/datasets/bench/"
+           + bs["version"] + "/datasheet.md")
     return (
         '<section id="benchmark" class="shell reveal">'
         '<div class="shead"><span class="eyebrow">The benchmark</span>'
         '<h2>Measured on a benchmark you can cite</h2>'
-        '<p class="lede">RAGProbe Bench v1 — a frozen, versioned attack set, not a handful of ad-hoc prompts.</p></div>'
+        '<p class="lede">RAGProbe Bench ' + esc(bs["version"]) + ' — a frozen, versioned attack '
+        "set, not a handful of ad-hoc prompts. Every earlier version stays exactly as it was, so a "
+        'number published last month still means the same thing today.</p></div>'
         '<div class="grid">' + cards + "</div>"
         '<div class="row3">' + items + "</div>"
         '<p style="margin-top:22px"><a class="btn ghost" href="' + esc(doc) + '">Read the datasheet →</a></p>'
@@ -605,7 +648,11 @@ def _scorecard(security_href: Optional[str]) -> str:
     return (
         '<section id="scorecard" class="shell reveal">'
         '<div class="shead"><span class="eyebrow">The report card</span><h2>OWASP Top 10 scorecard</h2>'
-        '<p class="lede">A grade per risk under the layered defence — the share of attacks that still get through. Measured against a simulated worst-case victim that obeys everything, so it tests the defences, not a real model.</p></div>'
+        '<p class="lede">A grade per risk under the layered defence — the share of attacks that still '
+        "get through. These grades come from the 12 hand-written scenarios that cover every risk, run "
+        "against a simulated worst-case victim that obeys everything, so they test the defences and "
+        "not a real model. The frozen benchmark is the bigger set (82 attacks in v1, 138 in v2), and "
+        'the <a href="#models">real-model numbers</a> above come from that.</p></div>'
         '<div class="grid">' + cells + "</div>" + more + "</section>"
     )
 
@@ -631,19 +678,54 @@ def _gate(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: O
         '<section id="gate" class="shell reveal">'
         '<div class="shead"><span class="eyebrow">The other half</span><h2>A regression gate for answer quality</h2>'
         '<p class="lede">RAGProbe started as a <code>pytest</code> for RAG: a golden set, a baseline, and a CI gate '
-        "that fails when a prompt or retrieval change quietly breaks answers. Live numbers from the latest run:</p></div>"
+        "that fails when a prompt or retrieval change quietly breaks answers. The dashboard and the "
+        "report below are that half of the tool: they track answer quality on a sample app over time, "
+        "not security. Live numbers from the latest run:</p></div>"
         + inner + "</section>"
     )
 
 
+STEPS = [
+    ("Install it", INSTALL,
+     "One dependency, no account, no API key. The attacks, the sample app and the "
+     "benchmark are installed with it, so nothing else to download."),
+    ("See what a scan looks like", "ragprobe demo",
+     "Ten seconds against a deliberately vulnerable sample app: it scans, turns on "
+     "defences one at a time and rescans, printing a grade each time."),
+    ("Scan your own app", "ragprobe security scan --url https://your-app/chat",
+     "Sends the attacks to your endpoint and reports how many worked, with a 95% "
+     "interval and the exact messages that got through. Add --canary with a test "
+     "string from your system prompt to measure leaks, and --fail-over 0.05 to fail "
+     "a build."),
+]
+
+
 def _start(repo_url: str) -> str:
+    """Three real commands, in order, with what each one gives back."""
+    steps = ""
+    for index, (title, command, body) in enumerate(STEPS, 1):
+        steps += ('<div class="step"><div class="sn">' + str(index) + "</div><div>"
+                  '<h3>' + title + "</h3>"
+                  '<button class="copy" data-cmd="' + esc(command) + '"><span class="k">$</span>'
+                  "<span>" + esc(command) + '</span><span class="cl">copy</span></button>'
+                  "<p>" + body + "</p></div></div>")
+    docs = repo_url.rstrip("/") + "/blob/main/docs/"
     return (
-        '<section id="start" class="shell reveal"><div class="shead"><span class="eyebrow">Quickstart</span>'
-        "<h2>Running in one line</h2><p class=\"lede\">Installs tiny and runs offline against a deterministic "
-        "stub — no API key needed to try it.</p></div>"
-        '<button class="copy" id="copy" data-cmd="' + esc(INSTALL) + '"><span class="k">$</span>'
-        "<span>" + esc(INSTALL) + '</span><span id="copylab" style="color:var(--faint)">copy</span></button>'
-        '<p style="margin-top:16px"><a class="btn" href="' + esc(repo_url) + '">Read the docs on GitHub</a></p>'
+        '<section id="start" class="shell reveal"><div class="shead">'
+        '<span class="eyebrow">Get started</span><h2>Scan your own app in three commands</h2>'
+        '<p class="lede">Free, offline until you point it at something, and nothing to sign up '
+        "for. Works on Python 3.9 and later.</p></div>"
+        '<div class="steps">' + steps + "</div>"
+        '<div class="note"><b>What it can and cannot see.</b> A scan proves your app followed an '
+        "instruction hidden in a user message, because the reply contains a random marker it was "
+        "asked to join &mdash; an echo cannot do that. Attacks that arrive inside a retrieved "
+        "document or a tool result are skipped, because only your app can feed those channels, "
+        "and every report lists what it skipped. A clean result means these attacks did not work, "
+        "not that the app is safe.</div>"
+        '<p style="margin-top:20px">'
+        '<a class="btn" href="' + esc(docs) + 'scan.md">How to scan your app &rarr;</a>'
+        '<a class="btn ghost" href="' + esc(docs) + 'quickstart.md">Quickstart &rarr;</a>'
+        '<a class="btn ghost" href="' + esc(repo_url) + '">GitHub &rarr;</a></p>'
         "</section>"
     )
 
@@ -656,8 +738,13 @@ def _footer(dashboard_href: Optional[str], security_href: Optional[str], repo_ur
         links.append('<a class="btn ghost" href="' + esc(security_href) + '">Security scorecard</a>')
     return (
         '<footer class="reveal"><div class="shell"><h2>Test your AI before someone else does.</h2>'
+        '<p class="lede" style="margin:0 auto 22px;max-width:60ch">For the engineer who shipped an '
+        "LLM feature and has to answer &ldquo;can this be hacked?&rdquo; &mdash; and wants an answer "
+        "with a number, a confidence interval and a CI gate. Python 3.9+, MIT licence.</p>"
         '<div class="fl">' + "".join(links) + "</div>"
-        "<p>" + esc(TITLE) + " — " + esc(TAGLINE) + " &middot; free &amp; offline</p></div></footer>"
+        "<p>" + esc(TITLE) + " — " + esc(TAGLINE) + " &middot; free &amp; offline &middot; "
+        '<a href="' + esc(repo_url.rstrip("/")) + '/issues">report a problem</a>'
+        "</p></div></footer>"
     )
 
 
@@ -673,13 +760,13 @@ SCRIPT = """
   function count(el){var to=+el.dataset.count,suf=el.dataset.suffix||'',t0=null,d=1100;
     function s(ts){t0=t0||ts;var p=Math.min((ts-t0)/d,1);el.textContent=Math.round(p*to)+suf;if(p<1)requestAnimationFrame(s);}requestAnimationFrame(s);}
   document.querySelectorAll('.scene [data-count]').forEach(count);
-  var cp=document.getElementById('copy');cp&&cp.addEventListener('click',function(){
-    try{navigator.clipboard.writeText(cp.dataset.cmd);var l=document.getElementById('copylab');if(l){l.textContent='copied';setTimeout(function(){l.textContent='copy';},1500);}}catch(e){}});
-  var lines=[['m','$ '],['c','ragprobe'],['','  security run --defenses none,layered\\n'],
-    ['m','  victim    : simulated   attacks : 12\\n'],['','  defence        ASR      95% CI\\n'],
-    ['','  none           '],['r','92%'],['','    0.65-0.99\\n'],
-    ['','  layered         '],['g','0%'],['','    0.00-0.28\\n'],
-    ['g','  \\u2713 GATE PASSED '],['m','\\u2014 attack-success cut 92%']];
+  document.querySelectorAll('.copy').forEach(function(cp){cp.addEventListener('click',function(){
+    try{navigator.clipboard.writeText(cp.dataset.cmd);var l=cp.querySelector('.cl');if(l){l.textContent='copied';setTimeout(function(){l.textContent='copy';},1500);}}catch(e){}});});
+  var lines=[['m','$ '],['c','ragprobe'],['','  security scan --url https://your-app/chat\\n'],
+    ['m','  sent 67 attacks \\u00b7 scored 67\\n'],
+    ['','  attacks that worked  '],['r','67%'],['','  (45/67, 95% CI 55-77%)\\n'],
+    ['','  worked most often    instruction-override 6/9, persona-switch 6/9\\n'],
+    ['r','  \\u2717 GATE FAILED '],['m','\\u2014 the limit was 5%']];
   var box=document.getElementById('term');if(box){box.innerHTML='<span class="cursor"></span>';var li=0,ci=0;
     function type(){if(li>=lines.length)return;var cls=lines[li][0],txt=lines[li][1];
       if(ci===0){var s=document.createElement('span');if(cls)s.className=cls;s.dataset.k=li;box.insertBefore(s,box.lastChild);}
@@ -704,16 +791,17 @@ def render(numbers: Dict[str, str], dashboard_href: Optional[str], report_href: 
         "<title>" + esc(TITLE) + " — " + esc(TAGLINE) + "</title>"
         "<style>" + CSS + "</style></head><body><div class=\"bgfx\"></div>"
         + _nav(security_href, lab_href, dashboard_href)
-        + _hero(numbers, repo_url, security_href, dashboard_href, report_href, lab_href)
+        + _hero(numbers, repo_url, security_href, dashboard_href, report_href, lab_href,
+                bench=bench_best())
+        + _start(repo_url)
         + _what()
-        + _benchmark(bench_stats(), repo_url)
+        + _benchmark(bench_best(), repo_url)
         + _live(live, repo_url)
         + _finding()
         + _defence()
         + _scorecard(security_href)
         + _lab(lab_href, lab)
         + _gate(numbers, dashboard_href, report_href)
-        + _start(repo_url)
         + _footer(dashboard_href, security_href, repo_url)
         + "<script>" + SCRIPT + "</script></body></html>"
     )

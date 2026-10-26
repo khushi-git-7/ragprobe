@@ -142,7 +142,7 @@ def test_has_the_security_story_and_animation(site, tmp_path):
     page = out.read_text(encoding="utf-8")
     # the designed sections are present as real on-page content
     for marker in ("AI safety filters are far weaker in German", "OWASP Top 10 scorecard",
-                   "Layered defence takes attacks to zero", "Three apps, one attacker"):
+                   "the layered defence holds", "Three apps, one attacker"):
         assert marker in page
     # it is animated and interactive
     assert "@keyframes fly" in page and "data-count=" in page and "class=\"reveal\"" in page
@@ -153,14 +153,14 @@ def test_benchmark_section_is_data_driven_from_the_catalogue(site, tmp_path):
     out = site.build(tmp_path / "missing", tmp_path / "site" / "index.html",
                      None, None, site.REPO_URL)
     page = out.read_text(encoding="utf-8")
-    bs = site.bench_stats()
-    assert bs is not None, "the committed Bench v1 catalogue should be readable"
+    bs = site.bench_best()
+    assert bs is not None, "the committed benchmark catalogue should be readable"
     assert 'id="benchmark"' in page
     assert "Measured on a benchmark you can cite" in page
     # the real catalogue totals appear as count-up targets
     assert f'data-count="{bs["total"]}"' in page and f'data-count="{bs["attacks"]}"' in page
     # the datasheet link stays inside the repo (no external fetch)
-    assert "src/ragprobe/datasets/bench/v1/datasheet.md" in page
+    assert "src/ragprobe/datasets/bench/v2/datasheet.md" in page
 
 
 def test_hero_cta_leads_into_the_product_not_the_repo(site, tmp_path):
@@ -170,8 +170,10 @@ def test_hero_cta_leads_into_the_product_not_the_repo(site, tmp_path):
     out = site.build(tmp_path / "missing", out_dir / "index.html", None, None,
                      site.REPO_URL, security="security.html")
     page = out.read_text(encoding="utf-8")
-    # the hero's primary button opens the live scan, and the old repo-dump CTA is gone
-    assert "See a live security scan" in page
+    # the primary action is what a visitor came to do; the sample report is secondary
+    cta = page.split('<div class="cta">')[1].split("</div>")[0]
+    assert 'class="btn" href="#start">Scan your app' in cta
+    assert 'href="security.html"' in cta and "sample report" in cta
     assert "Explore the project" not in page
     hero = page.split('class="term"')[0]  # everything up to the terminal in the hero
     assert f'class="btn" href="{site.REPO_URL}"' not in hero  # repo is not the hero CTA
@@ -209,8 +211,8 @@ def test_hero_label_says_what_the_button_really_opens(site, tmp_path):
     page = site.build(tmp_path / "missing", out_dir / "index.html", "dashboard.html", None,
                       site.REPO_URL).read_text(encoding="utf-8")
     cta = page.split('<div class="cta">')[1].split("</div>")[0]
-    assert 'href="dashboard.html"' in cta and "Open the live dashboard" in cta
-    assert "security scan" not in cta
+    assert 'href="dashboard.html"' in cta and "quality dashboard" in cta
+    assert "security report" not in cta
 
 
 def test_hero_label_follows_the_first_page_that_exists(site, tmp_path):
@@ -218,7 +220,7 @@ def test_hero_label_follows_the_first_page_that_exists(site, tmp_path):
     page = site.build(tmp_path / "missing", out_dir / "index.html", "dashboard.html", None,
                       site.REPO_URL).read_text(encoding="utf-8")
     cta = page.split('<div class="cta">')[1].split("</div>")[0]
-    assert 'href="security.html"' in cta and "See a live security scan" in cta
+    assert 'href="security.html"' in cta and "See a sample report" in cta
 
 
 def test_nav_links_into_the_product_pages_that_exist(site, tmp_path):
@@ -321,3 +323,72 @@ def test_ci_builds_the_linked_pages_before_the_landing_page():
     land = ci.index("scripts/build_site.py")
     assert ci.index("ragprobe security run") < land
     assert ci.index("ragprobe security lab") < land
+
+
+def test_the_quickstart_shows_the_commands_not_just_the_install(site, tmp_path):
+    """A visitor who copies one line must end up with something that runs."""
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    start = page.split('id="start"')[1].split("</section>")[0]
+    assert "pip install" in start
+    assert "ragprobe demo" in start
+    assert "ragprobe security scan --url" in start
+    assert start.count('class="copy"') == 3  # each command is copyable
+    assert "cannot see" in start and "not that the app is safe" in start
+
+
+def test_the_hero_promises_only_what_the_tool_does(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    hero = page.split('class="term"')[0]
+    assert "prompt-injection attacks" in hero and "planted marker" in hero
+
+
+def test_the_simulated_claim_is_labelled_where_it_is_made(site, tmp_path):
+    """The 92% to 0% headline must carry its caveat, not contradict the real numbers."""
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    defence = page.split('id="defence"')[1].split("</section>")[0]
+    assert "simulated" in defence and "Lab drill" in defence
+    assert 'href="#models"' in defence  # points at the real-model numbers
+    scorecard = page.split('id="scorecard"')[1].split("</section>")[0]
+    assert "12 hand-written scenarios" in scorecard and "82 attacks in v1, 138 in v2" in scorecard
+
+
+def test_the_counters_show_their_number_without_javascript(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    assert '<span data-count="138">138</span>' in page
+    # every counter already reads its real value; the animation only replays it
+    pairs = re.findall(r'<span data-count="([^"]+)"(?: data-suffix="([^"]*)")?>([^<]*)</span>', page)
+    assert pairs
+    for number, suffix, shown in pairs:
+        assert shown == number + (suffix or ""), (number, shown)
+
+
+def test_the_quality_half_says_it_is_not_security(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    gate = page.split('id="gate"')[1].split("</section>")[0]
+    assert "not security" in gate
+
+
+def test_the_footer_says_who_it_is_for_and_where_to_complain(site, tmp_path):
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    footer = page.split("<footer")[1]
+    assert "Python 3.9+" in footer and "/issues" in footer and "can this be hacked" in footer
+
+
+def test_the_hero_number_comes_from_the_catalogue_not_a_literal(site):
+    """A hardcoded attack count would drift from the data the tool actually sends."""
+    best = site.bench_best()
+    assert best and int(best["attacks"]) >= 82
+    assert best["version"] == "v2"  # the largest committed catalogue
+
+
+def test_get_started_comes_before_the_evidence(site, tmp_path):
+    """The hero's button scrolls to it, so it must not be at the bottom of the page."""
+    page = site.build(tmp_path / "missing", tmp_path / "site" / "index.html", None, None,
+                      site.REPO_URL).read_text(encoding="utf-8")
+    assert page.index('id="start"') < page.index('id="benchmark"') < page.index('id="gate"')
