@@ -1,0 +1,1 @@
+{"content": "", "finish_reason": "tool_calls", "output_tokens": 39, "tool_calls": [{"arguments": {}, "id": "fc_ed299ec0-74e7-4942-820a-5ce9e7bb58ef", "name": "list_emails"}]}

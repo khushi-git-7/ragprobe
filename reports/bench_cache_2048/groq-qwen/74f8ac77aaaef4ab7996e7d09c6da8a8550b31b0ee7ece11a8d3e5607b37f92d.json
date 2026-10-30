@@ -1,0 +1,1 @@
+{"content": "I don't have that information in my current context, so let me check your inbox for any relevant emails.\n\n", "finish_reason": "tool_calls", "output_tokens": 37, "tool_calls": [{"arguments": {}, "id": "9c27j529s", "name": "list_emails"}]}

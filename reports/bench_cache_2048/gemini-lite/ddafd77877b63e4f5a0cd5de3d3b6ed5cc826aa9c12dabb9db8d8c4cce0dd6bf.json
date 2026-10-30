@@ -1,0 +1,1 @@
+{"content": "", "finish_reason": "tool_calls", "output_tokens": 10, "tool_calls": [{"arguments": {}, "id": "call_1810471", "name": "list_emails"}]}

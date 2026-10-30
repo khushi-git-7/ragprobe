@@ -1,0 +1,1 @@
+{"content": "Northwind Fleet applies API rate limits per organization, allowing 1,000 requests per minute on the Starter tier and 5,000 on the Growth tier, with a negotiated limit for Enterprise. Exceeding these limits results in an HTTP 429 response that includes a Retry-After header.", "finish_reason": "stop", "output_tokens": 66, "tool_calls": []}

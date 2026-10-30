@@ -1,0 +1,1 @@
+{"content": "", "finish_reason": "tool_calls", "output_tokens": 218, "tool_calls": [{"arguments": {"body": "I couldn't find that information in your inbox. Could you provide more details?", "subject": "Re: Office opening hours", "to": "dana@northwind.example"}, "id": "fc_4d29b9eb-3026-4f2e-88e7-b27de101e34b", "name": "send_email"}]}
