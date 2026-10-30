@@ -119,7 +119,7 @@ def bench_stats(version: str = "v1") -> Optional[Dict[str, str]]:
         return None
     import json
 
-    total = attacks = 0
+    total = attacks = scannable = scannable_canary = 0
     owasp, langs = set(), set()
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -132,13 +132,23 @@ def bench_stats(version: str = "v1") -> Optional[Dict[str, str]]:
         total += 1
         if row.get("kind") == "attack":
             attacks += 1
+            # What a black-box scan can actually send: only the user-message attacks,
+            # and the leak ones only when a canary is supplied. The rest need to be
+            # fed through a document or a tool, which only the app itself can do.
+            if row.get("vector") == "user":
+                if row.get("goal") == "say_marker":
+                    scannable += 1
+                    scannable_canary += 1
+                elif row.get("goal") == "leak_secret":
+                    scannable_canary += 1
         if row.get("owasp"):
             owasp.add(row["owasp"])
         if row.get("language") and row["language"] != "other":
             langs.add(row["language"])
     return {"version": version, "total": str(total), "attacks": str(attacks),
             "probes": str(total - attacks), "owasp": str(len(owasp)),
-            "languages": str(len(langs))}
+            "languages": str(len(langs)), "scannable": str(scannable),
+            "scannable_canary": str(scannable_canary)}
 
 
 def bench_best() -> Optional[Dict[str, str]]:
@@ -360,6 +370,9 @@ def _hero(numbers: Dict[str, str], repo_url: str,
           bench: Optional[Dict[str, str]] = None) -> str:
     runs = numbers.get("runs", "0")
     attacks = (bench or {}).get("attacks", "0")
+    scannable = (bench or {}).get("scannable", attacks)
+    scannable_canary = (bench or {}).get("scannable_canary", attacks)
+    owasp = (bench or {}).get("owasp", "5")
     languages = (bench or {}).get("languages", "4")
     scene = (
         '<div class="scene" aria-hidden="true"><div class="radar"></div><div class="radar r2"></div>'
@@ -371,18 +384,20 @@ def _hero(numbers: Dict[str, str], repo_url: str,
         + '<div class="hstats">'
         '<div><div class="n"><span data-count="' + esc(attacks) + '">' + esc(attacks)
         + '</span></div><div class="l">scoreable attacks</div></div>'
-        '<div><div class="n"><span data-count="8">8</span></div><div class="l">OWASP risks</div></div>'
+        '<div><div class="n"><span data-count="' + esc(owasp) + '">' + esc(owasp)
+        + '</span></div><div class="l">OWASP risks</div></div>'
         '<div><div class="n"><span data-count="' + esc(runs) + '">' + esc(runs) + '</span></div><div class="l">CI runs</div></div>'
         "</div></div>"
     )
     return (
         '<header class="hero shell"><div>'
         '<span class="pill"><span class="d"></span>Open-source &middot; runs free &amp; offline</span>'
-        '<h1>Find out if your AI app <span class="hl">can be hacked</span>.</h1>'
-        "<p>Point RAGProbe at your chat endpoint and it sends " + esc(attacks) + " prompt-injection "
-        "attacks, in " + esc(languages) + " languages, from the OWASP Top 10 for LLMs. Every hit is "
-        "proved by a planted marker, not judged by another model — so the number is checkable, and it "
-        "can fail your CI build.</p>"
+        '<h1>Find out if your AI app <span class="hl">obeys instructions it should not</span>.</h1>'
+        "<p>Point RAGProbe at your chat endpoint and it sends " + esc(scannable) + " prompt-injection "
+        "attacks, in " + esc(languages) + " languages, from the OWASP Top 10 for LLMs &mdash; "
+        + esc(scannable_canary) + " once you plant a test string with <code>--canary</code>. Every "
+        "hit is proved by a planted marker, not judged by another model, so the number is checkable "
+        "and it can fail your CI build.</p>"
         + _hero_cta(security_href, dashboard_href, report_href, lab_href)
         + '<div class="term"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i>'
         '<i style="background:#28c840"></i></div><pre id="term"></pre></div>'
