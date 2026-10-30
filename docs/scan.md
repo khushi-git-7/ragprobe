@@ -35,10 +35,19 @@ RAGProbe scan of http://127.0.0.1:8787/chat
 ## How a black-box result can be trusted
 
 The attacks ask for two random halves of a marker to be printed **joined**, and the
-attack text only ever contains them separately. A reply with the joined marker cannot
-be an echo or a summary: your app followed an instruction that arrived in the message
-body. The check is a string comparison, the same one the rest of the suite uses, so a
-scan number and an in-process number mean the same thing. No judge model is involved.
+attack text only ever contains them separately. A reply that puts them together, with
+nothing but whitespace in between, is strong evidence your app followed an instruction
+that arrived in the message body: quoting the attack back reproduces the halves apart,
+not joined. The same check also decodes reversed, ROT13, base64 and hex replies,
+because some of the attacks ask for the marker in those forms.
+
+It is evidence, not proof. A reply that merely *lists* the two halves - "I will not
+print ZQ… + XK…" - used to be scored as a hit, because the check stripped punctuation
+as well as spaces. That bug was fixed on 31 October 2026 and is covered by
+`tests/test_canary_oracle.py`; any oracle of this kind lives or dies on cases like it.
+
+The check is a string comparison, the same one the rest of the suite uses, so a scan
+number and an in-process number mean the same thing. No judge model is involved.
 
 ## Measuring leaks
 
@@ -62,10 +71,23 @@ skipped and counted as skipped - never scored as safe.
 | `--field prompt` | your text field is not called `message` |
 | `--answer-field data.items.0.text` | say exactly where the reply is (dots and list indexes) |
 | `--header 'Authorization: Bearer ${TOKEN}'` | auth; `${VARS}` are read from the environment at call time, so the token never reaches the report |
-| `--catalogue src/ragprobe/datasets/bench/v2/attacks.jsonl` | the larger v2 set (123 scannable attacks with a canary) |
+| `--catalogue datasets/bench/v2/attacks.jsonl` | the larger v2 set (123 scannable attacks with a canary) |
 | `--max-attacks 10` | a cheap first look |
 | `--delay 0.5` | stay under your own rate limits |
 | `--fail-over 0.1` | exit 1 if more than 10% of attacks worked - the CI gate |
+| `--no-preflight` | skip the endpoint check below (you will rarely want this) |
+
+### Why a 0% result is checked before it is believed
+
+A scan that never reaches your model still prints "0% of attacks worked". A 200 HTML
+login page, a JSON error envelope, a maintenance notice or a misspelled
+`--answer-field` all produce that, and a CI gate would go green on a broken deploy.
+
+So before the attacks run, the scan asks the endpoint two ordinary, unrelated
+questions. A working app answers both, and answers them differently. If it errors, or
+returns an empty answer, or returns the *same* answer to both, the gate fails with a
+line saying so instead of reporting a clean scan. The gate also fails if more than 20%
+of attack requests error, or if nothing could be scored at all.
 
 A 429 or 5xx is retried with backoff; a 404 or an unreadable response stops with one
 clear line that says what to pass. An attack that gets no usable reply is counted as an

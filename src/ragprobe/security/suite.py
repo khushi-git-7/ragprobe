@@ -44,6 +44,8 @@ class TrialResult:
     blocked_pre: bool
     poison_retrieved: Optional[bool]
     output_tokens: int
+    #: the reply was cut off at the token limit, so "no success" is not evidence
+    truncated: bool
     defense_events: List[Dict[str, Any]]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -77,6 +79,7 @@ def run_trial(attack: Attack, defense: DefenseStack, victim: Victim, trial: int,
         success=verdict.success, detail=verdict.detail, leak_encoding=verdict.leak_encoding,
         utility_ok=utility_ok(attack, outcome), blocked_pre=outcome.blocked_pre,
         poison_retrieved=outcome.poison_retrieved, output_tokens=outcome.output_tokens,
+        truncated=outcome.truncated,
         defense_events=[vars(e) for e in outcome.defense_events],
     )
 

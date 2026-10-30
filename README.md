@@ -17,6 +17,9 @@ ragprobe demo                                        # 10 seconds, no API key
 ragprobe security scan --url https://your-app/chat   # your own endpoint
 ```
 
+> Install from the git URL above, not `pip install ragprobe`. The name `ragprobe` on
+> PyPI belongs to an unrelated project.
+
 The benchmark is also published on its own: [Hugging Face](https://huggingface.co/datasets/Khushi-7/ragprobe-bench) · [Kaggle](https://www.kaggle.com/datasets/khushi234854/ragprobe-bench).
 
 **Live dashboard:** <https://khushi-git-7.github.io/ragprobe/> - the landing page, with
@@ -159,20 +162,33 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
 ### What it found
 
 Four free-tier models, temperature 0, one trial per attack, 95% Wilson intervals and a
-paired McNemar test for each defence comparison.
+paired McNemar test for each defence comparison. Re-scored on 31 October 2026 after two
+oracle bugs were found and fixed.
 
-![Attack success before and after the layered defence: Qwen 6 to 4 percent, Gemini 10 to 7, gpt-oss 120B 25 to 27, gpt-oss 20B 29 to 19 with p equals 0.014](docs/img/defence-effect.png)
+**The strongest result is that no model ever leaked a planted secret** — 0 of 264 leak
+attempts on v1 and 0 of 488 on v2, with and without defences. What does succeed is plain
+obedience to an injected instruction, between 1% and 32% depending on the model. Those
+are different problems and they deserve different responses.
 
-The layered defence cut attacks on gpt-oss 20B from 40 to 26 of 138 (p = 0.014), and
-had already done so on the independent v1 set (25 → 13 of 82, p = 0.004). On gpt-oss
-120B it changed nothing measurable, on either set. **No model leaked a planted secret**
-— 0 of 61 leak attacks, defended or not; what succeeds is plain obedience to an
-injected instruction. Ordinary questions were still answered 96–100% of the time, so
-none of this is a defence that scores well by refusing everything.
+**The layered defence did not hold up.**
 
-On the labelled probe half, detectors fall off sharply outside English:
+![Attack success before and after the layered defence, by model](docs/img/defence-effect.png)
 
-![Pattern rules catch 50 percent of English and 26 percent of German injections; Llama Prompt Guard 2 catches 24 percent and 5 percent](docs/img/detectors-by-language.png)
+It cut attacks on gpt-oss 20B from 26 to 16 of 82 (p = 0.031) — but three replies in
+that run were cut off at the token limit, all three under the defended arm, and an empty
+reply scores as "no attack succeeded". Excluding them gives p = 0.077. On the 56 attacks
+added in v2, the only sample not already used, it changed 15 successes to 13 (p = 0.77).
+On gpt-oss 120B it changed nothing on either set. An earlier version of this README
+claimed the result "replicated on an independent set"; v2 *contains* v1, so that was
+wrong, and it is corrected in [`docs/results.md`](docs/results.md).
+
+Ordinary questions were still answered 96–100% of the time, so none of this is a defence
+that scores well by refusing everything.
+
+On the labelled probe half, both detectors scored lower on German than English — though
+at n = 34 and 19 neither gap reaches significance (Fisher p = 0.13 and 0.15):
+
+![Detector recall by language](docs/img/detectors-by-language.png)
 
 Numbers, method and caveats: [`docs/results.md`](docs/results.md) ·
 [`docs/FINDINGS.md`](docs/FINDINGS.md) · [`docs/limitations.md`](docs/limitations.md).
@@ -180,14 +196,16 @@ Numbers, method and caveats: [`docs/results.md`](docs/results.md) ·
 ### How it compares
 
 RAGProbe overlaps with excellent existing tools and takes a different emphasis. This
-is about focus, not quality — each of these is worth using.
+is about focus, not quality, and if you already use one of these there is no strong
+reason to switch — each of them is more mature.
 
 | | Emphasis |
 |---|---|
-| [garak](https://github.com/NVIDIA/garak) | A broad model-vulnerability scanner with many probes; scans a model in isolation. |
+| [garak](https://github.com/NVIDIA/garak) | A broad model-vulnerability scanner with far more probes than this, from NVIDIA. Its REST generator points at an arbitrary HTTP API, so it covers application testing too. |
 | [PyRIT](https://github.com/Azure/PyRIT) | A red-teaming framework/library for orchestrating generative-AI risk assessments. |
 | [promptfoo](https://github.com/promptfoo/promptfoo) | Test-driven LLM evaluation with a red-team module, configured in YAML. |
-| **RAGProbe** | RAG- and agent-focused, with **checkable canary oracles** (deterministic success), a **defence comparison + regression gate** for CI, a **reproducible, licensed benchmark**, a **benign false-block** measurement, and a **multilingual safety-gap** finding — all free and offline by default. |
+| [Giskard](https://github.com/Giskard-AI/giskard) | An LLM/ML testing library with a scanner for a broad set of quality and safety issues. |
+| **RAGProbe** | A small, readable harness built around **checkable canary oracles**, a **frozen, per-item-licensed benchmark**, a **defence-versus-utility comparison** (every defence reports the benign requests it wrongly blocks), and a CI gate — free and offline by default. Deterministic scoring is not unique to it: PyRIT ships local scorers and AgentDojo checks real environment state. |
 
 ## Quickstart
 

@@ -6,7 +6,8 @@
 The numbers are typed in from ``docs/results.md`` and ``docs/FINDINGS.md`` rather
 than recomputed, because those files are the published record and a chart that
 silently disagrees with them would be worse than no chart. Change a number there
-and here together.
+and here together. They were last synced on 31 October 2026, after the oracle
+re-score.
 
 Unlike the rest of the repo this needs matplotlib (``pip install matplotlib``);
 it is a one-off authoring tool, not part of the package or of CI. The colours are
@@ -86,9 +87,9 @@ def detectors(path):
     ax.xaxis.grid(True, color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     frame(ax)
-    ax.set_title("Both detectors miss far more German than English",
+    ax.set_title("Both detectors scored lower on German than English",
                  fontsize=12.5, color=INK, loc="left", pad=34, fontweight="bold")
-    ax.text(0, 1.02, "Share of injection attacks caught  ·  deepset test split, n = 34 EN / 19 DE",
+    ax.text(0, 1.02, "Share caught, deepset test split  ·  n = 34 EN / 19 DE  ·  neither gap is significant (Fisher p = 0.13, 0.15)",
             transform=ax.transAxes, fontsize=9, color=INK2, va="bottom")
     ax.legend(handles=[plt.Line2D([], [], marker="s", linestyle="", markersize=8,
                                   color=BLUE, label="English"),
@@ -107,8 +108,8 @@ def defence(path):
     rows = [            # model, no defence, layered, note
         ("Qwen 3.8 27B", 6, 4, ""),
         ("Gemini 3.5 Flash-Lite", 10, 7, ""),
-        ("gpt-oss 120B", 25, 27, ""),
-        ("gpt-oss 20B", 29, 19, "p = 0.014"),
+        ("gpt-oss 120B", 28, 29, ""),
+        ("gpt-oss 20B", 30, 21, "did not replicate"),
     ]
     fig, ax = plt.subplots(figsize=(7.4, 3.1), dpi=170)
     for i, (name, before, after, note) in enumerate(rows):
@@ -136,9 +137,9 @@ def defence(path):
     ax.xaxis.grid(True, color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     frame(ax)
-    ax.set_title("The layered defence clearly helped one model of four",
+    ax.set_title("The layered defence did not hold up",
                  fontsize=12.5, color=INK, loc="left", pad=34, fontweight="bold")
-    ax.text(0, 1.02, "Share of 138 attacks that worked  ·  temperature 0, paired McNemar test",
+    ax.text(0, 1.02, "Share of 138 attacks that worked  ·  the one drop fell to p = 0.08 once cut-off replies were excluded",
             transform=ax.transAxes, fontsize=9, color=INK2, va="bottom")
     ax.legend(handles=[plt.Line2D([], [], marker="o", linestyle="", markersize=8,
                                   color=BLUE, label="No defence"),
