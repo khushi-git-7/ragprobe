@@ -141,7 +141,7 @@ def test_has_the_security_story_and_animation(site, tmp_path):
                      None, None, site.REPO_URL)
     page = out.read_text(encoding="utf-8")
     # the designed sections are present as real on-page content
-    for marker in ("AI safety filters are far weaker in German", "OWASP Top 10 scorecard",
+    for marker in ("Both detectors caught less German than English", "OWASP Top 10 scorecard",
                    "the layered defence holds", "Three apps, one attacker"):
         assert marker in page
     # it is animated and interactive
