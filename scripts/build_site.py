@@ -119,7 +119,7 @@ def bench_stats(version: str = "v1") -> Optional[Dict[str, str]]:
         return None
     import json
 
-    total = attacks = 0
+    total = attacks = scannable = scannable_canary = 0
     owasp, langs = set(), set()
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -132,13 +132,23 @@ def bench_stats(version: str = "v1") -> Optional[Dict[str, str]]:
         total += 1
         if row.get("kind") == "attack":
             attacks += 1
+            # What a black-box scan can actually send: only the user-message attacks,
+            # and the leak ones only when a canary is supplied. The rest need to be
+            # fed through a document or a tool, which only the app itself can do.
+            if row.get("vector") == "user":
+                if row.get("goal") == "say_marker":
+                    scannable += 1
+                    scannable_canary += 1
+                elif row.get("goal") == "leak_secret":
+                    scannable_canary += 1
         if row.get("owasp"):
             owasp.add(row["owasp"])
         if row.get("language") and row["language"] != "other":
             langs.add(row["language"])
     return {"version": version, "total": str(total), "attacks": str(attacks),
             "probes": str(total - attacks), "owasp": str(len(owasp)),
-            "languages": str(len(langs))}
+            "languages": str(len(langs)), "scannable": str(scannable),
+            "scannable_canary": str(scannable_canary)}
 
 
 def bench_best() -> Optional[Dict[str, str]]:
@@ -360,6 +370,9 @@ def _hero(numbers: Dict[str, str], repo_url: str,
           bench: Optional[Dict[str, str]] = None) -> str:
     runs = numbers.get("runs", "0")
     attacks = (bench or {}).get("attacks", "0")
+    scannable = (bench or {}).get("scannable", attacks)
+    scannable_canary = (bench or {}).get("scannable_canary", attacks)
+    owasp = (bench or {}).get("owasp", "5")
     languages = (bench or {}).get("languages", "4")
     scene = (
         '<div class="scene" aria-hidden="true"><div class="radar"></div><div class="radar r2"></div>'
@@ -371,18 +384,20 @@ def _hero(numbers: Dict[str, str], repo_url: str,
         + '<div class="hstats">'
         '<div><div class="n"><span data-count="' + esc(attacks) + '">' + esc(attacks)
         + '</span></div><div class="l">scoreable attacks</div></div>'
-        '<div><div class="n"><span data-count="8">8</span></div><div class="l">OWASP risks</div></div>'
+        '<div><div class="n"><span data-count="' + esc(owasp) + '">' + esc(owasp)
+        + '</span></div><div class="l">OWASP risks</div></div>'
         '<div><div class="n"><span data-count="' + esc(runs) + '">' + esc(runs) + '</span></div><div class="l">CI runs</div></div>'
         "</div></div>"
     )
     return (
         '<header class="hero shell"><div>'
         '<span class="pill"><span class="d"></span>Open-source &middot; runs free &amp; offline</span>'
-        '<h1>Find out if your AI app <span class="hl">can be hacked</span>.</h1>'
-        "<p>Point RAGProbe at your chat endpoint and it sends " + esc(attacks) + " prompt-injection "
-        "attacks, in " + esc(languages) + " languages, from the OWASP Top 10 for LLMs. Every hit is "
-        "proved by a planted marker, not judged by another model — so the number is checkable, and it "
-        "can fail your CI build.</p>"
+        '<h1>Find out if your AI app <span class="hl">obeys instructions it should not</span>.</h1>'
+        "<p>Point RAGProbe at your chat endpoint and it sends " + esc(scannable) + " prompt-injection "
+        "attacks, in " + esc(languages) + " languages, from the OWASP Top 10 for LLMs &mdash; "
+        + esc(scannable_canary) + " once you plant a test string with <code>--canary</code>. Every "
+        "hit is proved by a planted marker, not judged by another model, so the number is checkable "
+        "and it can fail your CI build.</p>"
         + _hero_cta(security_href, dashboard_href, report_href, lab_href)
         + '<div class="term"><div class="tb"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i>'
         '<i style="background:#28c840"></i></div><pre id="term"></pre></div>'
@@ -418,10 +433,11 @@ def _what() -> str:
 def _finding() -> str:
     return (
         '<section id="finding" class="shell reveal">'
-        '<div class="shead"><span class="eyebrow">The headline finding</span>'
-        "<h2>AI safety filters are far weaker in German</h2>"
-        '<p class="lede">Two injection detectors on 116 real labelled attacks, split by language. '
-        "Both catch far fewer German attacks — Meta’s Prompt&nbsp;Guard&nbsp;2 nearly stops working.</p></div>"
+        '<div class="shead"><span class="eyebrow">Measured, not established</span>'
+        "<h2>Both detectors caught less German than English</h2>"
+        '<p class="lede">Two injection detectors on the labelled test split, split by language. '
+        "Both caught roughly half as much German, and Meta’s Prompt&nbsp;Guard&nbsp;2 almost none — "
+        "but on 34 and 19 items neither gap is statistically significant.</p></div>"
         '<div class="figure"><div class="cap">Attacks caught (recall), by language</div>'
         '<div class="sub">Higher is better &middot; deepset/prompt-injections test split</div>'
         '<div class="legend"><span><i class="sw" style="background:var(--s1)"></i>Rule-based detector</span>'
@@ -439,8 +455,9 @@ def _finding() -> str:
         '<rect class="bar-rect grow" x="402" y="205" width="48" height="15" rx="4" fill="var(--s2)" style="transition-delay:.3s"><title>Prompt Guard 2 &middot; German &middot; 5%</title></rect>'
         '<text class="vlab" x="372" y="134" text-anchor="middle">26%</text><text class="vlab" x="426" y="197" text-anchor="middle">5%</text>'
         '<text class="xlab" x="399" y="245" text-anchor="middle">German</text></svg></div>'
-        '<div class="insight">Prompt Guard 2 catches <b>24%</b> of English attacks but only <b>5%</b> in German '
-        "— a blind spot the moment real users don’t type in English.</div></div></section>"
+        '<div class="insight">Prompt Guard 2 caught <b>24%</b> of English attacks and <b>5%</b> in German. '
+        "Fisher’s exact test gives <b>p&nbsp;=&nbsp;0.13</b>, so treat this as a reason to measure your "
+        "own detector in your users’ languages, not as a proven gap.</div></div></section>"
     )
 
 
@@ -449,10 +466,12 @@ def _defence() -> str:
         '<section id="defence" class="shell reveal"><div class="two">'
         '<div><span class="eyebrow">Lab drill &middot; simulated model</span>'
         '<h2 style="font-size:34px;margin-top:10px">Against a model that obeys everything, the layered '
-        "defence holds</h2>"
+        "defence holds — and only there</h2>"
         '<p class="lede" style="font-size:16.5px">A hardened prompt, data-marking, a detector, a tool policy '
         "and an output filter — stacked. Attack success falls from 92% to 0, with no legitimate "
-        "requests wrongly blocked.</p>"
+        "requests wrongly blocked. On <a href=\"#models\">real models</a> the same defence did not hold "
+        "up: its one significant result lost significance once cut-off replies were excluded, and it "
+        "did not repeat on a fresh set of attacks.</p>"
         '<p class="lede" style="font-size:16.5px">The victim here is a <b>simulated</b> model built to '
         "obey every instruction it can parse, so this measures the defences and the harness, not any "
         'real model. On real models the same defence clearly helped one of four — the honest version is '

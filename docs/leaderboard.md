@@ -9,7 +9,7 @@ Wilson intervals and a paired McNemar test against the leader. It is the answer 
 
 ```bash
 # offline sanity check (the deterministic simulated victim)
-ragprobe bench leaderboard --models groq-qwen --victim-note "sanity"  # see --help
+ragprobe bench leaderboard --models stub --split test   # see --help
 
 # the real thing, across free models, with a cache so it is resumable
 export GROQ_API_KEY=...        # free tier

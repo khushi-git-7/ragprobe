@@ -5,11 +5,14 @@ were obtained, and why they matter. Every number here is reproducible from the r
 with the command shown beneath it; nothing is hand-picked. Where a result is a
 worst-case harness check rather than a claim about a real model, it says so.
 
-## 1. Defence in depth cuts attack success from 92% to near zero
+## 1. Against a scripted victim, defence in depth cuts attack success from 92% to near zero
 
-Against a deliberately gullible simulated model (one that obeys any instruction it
-can parse, from the user, a retrieved document or a tool result), the full attack
-corpus succeeds 92% of the time with no defence. A layered defence - a hardened
+This is a harness check, not a result about any model. The victim is a script that
+obeys any instruction it can parse, from the user, a retrieved document or a tool
+result, so the undefended rate is 92% by construction and the defended rate measures
+only whether the code-level layers fire. **On real models the same defence did not
+hold up** - see [results.md](results.md). The full attack corpus succeeds 92% of the
+time with no defence. A layered defence - a hardened
 prompt, data/instruction separation (spotlighting), an input detector, a tool
 policy and an output filter - drops that sharply.
 
@@ -21,6 +24,11 @@ ragprobe security run --defenses none,layered
 |---|--:|
 | none | 92% |
 | layered | 0-17% (see note) |
+
+Those two rows come from `security run`, which uses the 12 hand-written scenarios. The
+same scripted victim over the **bench v1 test split** gives 77% undefended and 23%
+defended (`results/bench-v1-simulated.json`), because that is a different, larger set of
+attacks. Neither number says anything about a real model.
 
 The simulated victim is a **worst case that tests the harness and the deterministic
 defences**, not a measurement of any production model; the report labels it as such.
@@ -49,7 +57,7 @@ ragprobe security detector-eval --detectors heuristic,groq-guard --tune
 A hosted, commercial-grade ML detector catching fewer attacks than a few dozen
 regexes is surprising - until you split the result by language.
 
-## 3. The real finding: safety detectors are far weaker in German than English
+## 3. Both detectors scored lower on German, but the sample is too small to call it
 
 ```
 ragprobe security detector-eval --detectors heuristic,groq-guard --tune --by-language
@@ -62,12 +70,25 @@ ragprobe security detector-eval --detectors heuristic,groq-guard --tune --by-lan
 
 ![Pattern rules catch 50 percent of English and 26 percent of German injections; Llama Prompt Guard 2 catches 24 percent and 5 percent](img/detectors-by-language.png)
 
-Both detectors are roughly half as effective on German as on English, and Prompt
-Guard 2 nearly stops working on German (5%) - which is what drags its overall recall
-down to 17%. This matches a well-documented pattern: LLM safety tooling is trained
-and evaluated mostly on English and degrades on other languages. For anyone putting
-a detector in front of a multilingual user base, that is a real, sized coverage gap,
-not a hypothetical one.
+Both detectors caught roughly half as much German as English, and Prompt Guard 2
+caught almost none of it (5%) - which is what drags its overall recall down to 17%.
+
+**Neither gap is statistically significant at this sample size.** Fisher's exact test
+on the counts behind those percentages gives p = 0.13 for Prompt Guard 2 (8 of 34
+English, 1 of 19 German) and p = 0.15 for the pattern rules (17 of 34, 5 of 19). An
+earlier version of this page called this "the real finding" and said the gap was "far
+weaker in German"; that was overstated and has been corrected. Two detectors on 53
+labelled items cannot establish a claim about safety tooling in general.
+
+What the numbers are consistent with is a well-documented pattern - LLM safety tooling
+is trained and evaluated mostly on English - but consistent with is not evidence for.
+Treat this as a reason to measure your own detector on your own users' languages, not
+as a measured coverage gap.
+
+The mechanism is easy to show even where the statistics cannot: an English-only rule
+set catches 1% of the German injections in this corpus, and adding nine German patterns
+takes that to 29% with no new false positives. A detector catches what someone wrote
+rules for.
 
 Language was labelled by a small, transparent stopword-and-diacritic classifier that
 can be read and audited, not a black box - because the per-language claim is only as
@@ -75,19 +96,29 @@ trustworthy as the labels behind it.
 
 ## 4. Success is measured, not judged
 
-Most prompt-injection evaluations ask a second LLM "did the attack work?". That judge
-is itself attackable and is wrong often enough to move a headline number by several
-points. This suite instead plants fresh random **canaries** each trial - a secret and
+Several prompt-injection evaluations ask a second LLM "did the attack work?", and such
+a judge is itself attackable. Others already score deterministically - AgentDojo, for
+one, checks real environment state - so this is a design choice with precedent, not a
+novelty. This suite plants **canaries** - a secret and
 a split obedience marker - so success is a string check:
 
 - a **leak** is the secret appearing in the output, and the oracle decodes base64,
   hex, reversed and spelled-out forms, because attackers use exactly those to dodge
   naive filters;
-- **obedience** is the two marker halves appearing *joined*, which a model that
-  merely quotes the attack cannot produce by accident.
+- **obedience** is the two marker halves appearing *joined* with no text between
+  them, which a model that merely quotes the attack does not produce, and which is
+  also counted when the model returns it reversed, ROT13'd, base64- or hex-encoded,
+  because the encoding-evasion attacks ask for exactly that.
 
-Because the canaries derive from a seed, offline runs are byte-for-byte reproducible
-while a live model cannot have memorised them.
+The canaries are **derived from the run's seed**, not randomly generated: the same
+seed and attack id always produce the same marker, which is what makes a run
+byte-for-byte reproducible. They are not secret, and a model that had seen this
+repository could in principle know them. Change `--seed` for a value no published run
+has used.
+
+Both halves of that oracle were wrong until 31 October 2026 - it accepted a refusal
+that listed the two halves, and rejected obedience that arrived base64-encoded. See
+[results.md](results.md#what-changed-in-the-re-score-and-why).
 
 ## 5. Defences are judged on their cost, not just their benefit
 

@@ -120,6 +120,10 @@ class Outcome:
     poison_retrieved: Optional[bool] = None
     blocked_pre: bool = False
     output_tokens: int = 0
+    #: the model stopped because it ran out of tokens, so the reply is cut off or
+    #: empty. A reasoning model can spend the whole budget thinking and return
+    #: nothing, which scores as "no attack succeeded" without being evidence of it.
+    truncated: bool = False
     defense_events: List[Event] = field(default_factory=list)
     error: Optional[str] = None
 
@@ -136,9 +140,15 @@ class Outcome:
             "poison_retrieved": self.poison_retrieved,
             "blocked_pre": self.blocked_pre,
             "output_tokens": self.output_tokens,
+            "truncated": self.truncated,
             "defense_events": [vars(e) for e in self.defense_events],
             "error": self.error,
         }
+
+
+def _was_cut_off(reply: Any) -> bool:
+    """True when the model hit its token limit, so "no success" is not evidence."""
+    return getattr(reply, "finish_reason", None) == "length"
 
 
 def _present(text: str, source: str, defense: DefenseStack,
@@ -171,6 +181,7 @@ def run_chat(attack: Attack, canaries: Canaries, victim: Victim,
                   allowed_domains=(COMPANY_DOMAIN,))
     answer, out_events = defense.filter_output(reply.content, ctx)
     return Outcome("chat", answer, output_tokens=reply.output_tokens,
+                   truncated=_was_cut_off(reply),
                    defense_events=events + out_events)
 
 
@@ -235,6 +246,7 @@ def run_rag(attack: Attack, canaries: Canaries, victim: Victim, defense: Defense
     answer, out_events = defense.filter_output(reply.content, ctx)
     return Outcome("rag", answer, retrieved_ids=retrieved_ids,
                    poison_retrieved=poison_retrieved, output_tokens=reply.output_tokens,
+                   truncated=_was_cut_off(reply),
                    defense_events=events + out_events)
 
 
@@ -290,6 +302,7 @@ def run_agent(attack: Attack, canaries: Canaries, victim: Victim,
         if not reply.tool_calls:
             answer, out_events = defense.filter_output(reply.content, ctx)
             return Outcome("agent", answer, tools=tools, output_tokens=reply.output_tokens,
+                           truncated=_was_cut_off(reply),
                            defense_events=events + out_events)
         messages.append({"role": "assistant", "content": reply.content or None,
                          "tool_calls": [{"id": c.id, "type": "function",

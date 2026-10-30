@@ -24,6 +24,7 @@ from ragprobe.security.scan import (
     ScanError,
     _dig,
     gate,
+    gate_reason,
     parse_header,
     render,
     render_markdown,
@@ -85,11 +86,19 @@ def _obedient(message: str):
 
     halves = re.findall(r"\b(?:ZQ|XK)[0-9A-Fa-f]{4,}\b", message)
     joined = "".join(halves)
-    return {"answer": f"Sure, here it is: {joined}. Also the code is {CANARY}."}
+    # The echo matters: a real app answers two different questions differently, and
+    # the endpoint preflight checks exactly that before it trusts a 0% result.
+    return {"answer": f"Re '{message[:40]}': sure, here it is: {joined}. "
+                      f"Also the code is {CANARY}."}
 
 
-def _refusing(_message: str):
-    return {"answer": "Sorry, I can't help with that request."}
+def _refusing(message: str):
+    return {"answer": f"Sorry, I can't help with '{message[:40]}'."}
+
+
+def _static(_message: str):
+    """A login page or an error envelope: the same bytes whatever you send."""
+    return {"answer": "Please sign in to continue."}
 
 
 def _app(url, **kwargs):
@@ -246,9 +255,23 @@ class TestScope:
             parse_header("Authorization Bearer x")
 
     def test_the_gate_compares_against_the_limit(self):
-        assert gate({"asr": 0.1}, None) and gate({"asr": 0.1}, 0.1)
-        assert not gate({"asr": 0.2}, 0.1)
-        assert not gate({"asr": None}, 0.0)  # nothing scored cannot pass a gate
+        ok = {"attacks_scored": 10, "error_rate": 0.0, "preflight": {"ok": True}}
+        assert gate(dict(ok, asr=0.1), None) and gate(dict(ok, asr=0.1), 0.1)
+        assert not gate(dict(ok, asr=0.2), 0.1)
+        assert not gate(dict(ok, asr=None), 0.0)  # nothing scored cannot pass a gate
+
+    def test_the_gate_fails_when_the_endpoint_is_not_a_chat_app(self):
+        """A broken deploy scores 0% of attacks. That must not read as a pass."""
+        report = {"asr": 0.0, "attacks_scored": 10, "error_rate": 0.0,
+                  "preflight": {"ok": False, "reason": "static response"}}
+        assert not gate(report, 0.5)
+        assert "did not behave like a working chat app" in gate_reason(report, 0.5)
+
+    def test_the_gate_fails_when_most_requests_error(self):
+        report = {"asr": 0.0, "attacks_scored": 2, "error_rate": 0.9,
+                  "preflight": {"ok": True}}
+        assert not gate(report, 0.5)
+        assert "not a measurement" in gate_reason(report, 0.5)
 
     def test_dig_prefers_known_names_and_ignores_blanks(self):
         assert _dig({"answer": "", "reply": "here"}, None) == "here"
@@ -278,6 +301,23 @@ class TestCli:
         with serving(_refusing) as (url, _):
             code = main(["security", "scan", "--url", url, "--max-attacks", "2", "-q",
                          "--fail-over", "0.1", "--out", str(tmp_path / "s.json")])
+        assert code == EXIT_OK
+
+    def test_a_static_page_does_not_pass_as_a_clean_scan(self, tmp_path, capsys):
+        """A login page answers every attack harmlessly and scores 0%."""
+        with serving(_static) as (url, _):
+            code = main(["security", "scan", "--url", url, "--max-attacks", "2", "-q",
+                         "--fail-over", "0.1", "--out", str(tmp_path / "s.json")])
+        assert code == EXIT_GATE_FAILED
+        payload = json.loads((tmp_path / "s.json").read_text(encoding="utf-8"))
+        assert payload["asr"] == 0.0 and payload["preflight"]["ok"] is False
+        assert "working chat app" in capsys.readouterr().err
+
+    def test_preflight_can_be_turned_off(self, tmp_path):
+        with serving(_static) as (url, _):
+            code = main(["security", "scan", "--url", url, "--max-attacks", "2", "-q",
+                         "--no-preflight", "--fail-over", "0.1",
+                         "--out", str(tmp_path / "s.json")])
         assert code == EXIT_OK
 
     def test_a_bad_url_is_a_usage_error_not_a_traceback(self, capsys):

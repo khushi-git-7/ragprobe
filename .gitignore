@@ -12,7 +12,15 @@ venv/
 
 # RAGProbe outputs. Baselines ARE committed (they are the regression contract);
 # per-run reports are not.
-reports/
+reports/*
+# ...except the reply caches and run files behind the published numbers. Without
+# them "every number here reproduces" is only true on the machine that ran it.
+# They hold model replies, not prompts and not keys.
+!reports/bench_cache_2048/
+!reports/bench_cache_4096/
+!reports/final_v1_*.json
+!reports/final_v2_*.json
+!reports/final_analysis.json
 # Cached neural embeddings (pure function of model + corpus; rebuilt on demand)
 .ragprobe/
 

@@ -41,7 +41,7 @@ from ragprobe.providers import get_provider
 from ragprobe.regression.diff import DEFAULT_EPSILON, DiffReport, diff_runs
 from ragprobe.reporting.html import write_report
 from ragprobe.reporting.terminal import render_diff_summary, render_gate, render_run_summary
-from ragprobe.resources import resolve_under
+from ragprobe.resources import resolve_data, resolve_under
 from ragprobe.targets import parse_target_spec
 
 EXIT_OK = 0
@@ -719,6 +719,9 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown report")
     sec_scan.add_argument("--fail-over", type=float, metavar="RATE",
                           help="exit 1 if more than this share of attacks worked (for CI)")
+    sec_scan.add_argument("--no-preflight", action="store_true",
+                          help="skip the check that the URL answers a plain question first; "
+                               "without it a broken endpoint scores 0% and passes the gate")
     sec_scan.add_argument("-q", "--quiet", action="store_true", help="no per-attack progress")
     sec_scan.set_defaults(func=cmd_security_scan)
 
@@ -940,7 +943,9 @@ def cmd_security_detector_eval(args: argparse.Namespace) -> int:
     from ragprobe.security.detector_eval import render_markdown, run_detector_eval
 
     detectors = [d.strip() for d in args.detectors.split(",") if d.strip()]
-    data_dir = Path(args.data)
+    # Your own copy if you have one, else the split that ships with the package -
+    # without this the documented command only works inside a git checkout.
+    data_dir = resolve_data(args.data)
     if not (data_dir / "test.jsonl").is_file():
         raise InputError(
             f"no test.jsonl in {data_dir}. Run: ragprobe security import-deepset --out {data_dir}"
@@ -1160,7 +1165,7 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
         EndpointSpec,
         HttpApp,
         ScanError,
-        gate,
+        gate_reason,
         parse_header,
         render,
         render_markdown,
@@ -1183,7 +1188,8 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
 
     try:
         report = scan(HttpApp(spec), Path(args.catalogue), canary=args.canary, seed=args.seed,
-                      limit=args.max_attacks, progress=None if args.quiet else progress)
+                      limit=args.max_attacks, progress=None if args.quiet else progress,
+                      check_endpoint=not args.no_preflight)
     except (ScanError, ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from None
 
@@ -1200,9 +1206,9 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
         Path(args.md).parent.mkdir(parents=True, exist_ok=True)
         Path(args.md).write_text(render_markdown(report), encoding="utf-8")
         print(f"  wrote {args.md}")
-    if not gate(report, args.fail_over):
-        print(f"  GATE FAILED: {report['asr'] * 100:.0f}% of attacks worked, limit "
-              f"{args.fail_over * 100:.0f}%", file=sys.stderr)
+    reason = gate_reason(report, args.fail_over)
+    if reason:
+        print(f"  GATE FAILED: {reason}", file=sys.stderr)
         return EXIT_GATE_FAILED
     return EXIT_OK
 

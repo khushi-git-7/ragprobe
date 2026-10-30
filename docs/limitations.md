@@ -52,6 +52,16 @@ real model behaves. Real-model numbers are reported separately and are far lower
   manifest record exactly which replies a number came from.
 - The paired McNemar test compares models on the same attacks. With few attacks it has
   little power, so "no significant difference" is not "the same".
+- **The attacks are not independent draws.** Both the Wilson intervals and the McNemar
+  tests treat each attack as one observation, but the set is built by crossing a
+  template with four languages, so siblings share wording and tend to succeed or fail
+  together. The true intervals are wider than the printed ones, and a p-value just
+  under 0.05 should not be read as a finding.
+- **Bench v2 is not an independent sample of bench v1.** v2 contains all 82 v1 attacks
+  with the same ids and the same cached replies, so a v2 figure cannot confirm a v1
+  figure. Only the 56 attacks added in v2 are a second sample. A claim that the defence
+  result "replicated" was published on this mistake and is corrected in
+  [results.md](results.md).
 
 ## Defences
 
@@ -64,6 +74,22 @@ real model behaves. Real-model numbers are reported separately and are far lower
   in the attack lab rather than hidden.
 - Every defence has a cost. The utility check and the false-block rate measure it; a
   defence that blocks real users is not a defence.
+- **The detector was tuned after seeing results on the test split.** Two commits
+  (`2d2c6c1`, `4789345`) added rules because specific benchmark attacks got through,
+  and one of them, `echo_token`, matches "print/output ... token/code/marker" - the
+  shape of this benchmark's own `say_marker` attacks, which are 72 of the 138. The
+  layered-defence numbers are therefore **not a held-out measurement**, and they
+  flatter the detector. Treat the heuristic detector as a labelled baseline rather
+  than a recommended control.
+- **A cut-off reply scores as "no attack succeeded".** A reasoning model can spend its
+  whole token budget thinking and return nothing. In the published gpt-oss 20B runs all
+  three such replies on v1, and seven of nine on v2, fell under the *defended* arm, so
+  they push the comparison in the defence's favour. `truncated` is now recorded on every
+  trial so this can be checked; excluding those trials moves the headline p-value from
+  0.031 to 0.077.
+- **The false-block rate of 0% is measured on templated benign text**, close in wording
+  to the corpus the rules were written against. It is not a false-positive rate on real
+  user traffic, and awkward but innocent phrasing does get flagged.
 
 ## Coverage
 
