@@ -74,13 +74,21 @@ real model behaves. Real-model numbers are reported separately and are far lower
   in the attack lab rather than hidden.
 - Every defence has a cost. The utility check and the false-block rate measure it; a
   defence that blocks real users is not a defence.
+- **Five of eleven document attacks used to be scored without reaching the model.**
+  tf-idf ranked the planted document out of the top 4, so it was dropped from the
+  context and the attack counted as a failure. The planted document is now always
+  shown to the model, and `poison_retrieved` records separately whether it would have
+  won a slot on its own. Indirect-injection numbers published before 1 November 2026
+  are understated.
 - **The detector was tuned after seeing results on the test split.** Two commits
   (`2d2c6c1`, `4789345`) added rules because specific benchmark attacks got through,
   and one of them, `echo_token`, matches "print/output ... token/code/marker" - the
   shape of this benchmark's own `say_marker` attacks, which are 72 of the 138. The
-  layered-defence numbers are therefore **not a held-out measurement**, and they
-  flatter the detector. Treat the heuristic detector as a labelled baseline rather
-  than a recommended control.
+  layered-defence numbers are therefore **not a held-out measurement** on their own.
+  The `layered-preregistered` preset drops those three rules so the comparison can be
+  made honestly; on gpt-oss 20B the effect survives it (v1 p = 0.011, v2 p = 0.018).
+  Treat the full heuristic detector as a labelled baseline rather than a recommended
+  control.
 - **A cut-off reply scores as "no attack succeeded".** A reasoning model can spend its
   whole token budget thinking and return nothing. In the published gpt-oss 20B runs all
   three such replies on v1, and seven of nine on v2, fell under the *defended* arm, so

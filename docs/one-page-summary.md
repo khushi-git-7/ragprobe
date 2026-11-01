@@ -26,19 +26,21 @@ actually help and what they cost real users.
 |---|--:|--:|
 | Qwen 3.8 27B | 1% | 1% |
 | Gemini 3.5 Flash-Lite | 5% | 4% |
-| gpt-oss 120B | 26% | 23% |
-| gpt-oss 20B | 32% | 20% (paired p = 0.031) |
+| gpt-oss 120B | 27% | 23% |
+| gpt-oss 20B | 37% | 20% (paired p = 0.004) |
 
 1. Models differ a lot: two of four resisted nearly everything, two were fooled by a
    quarter to a third of attacks. Their intervals do not overlap, so this one is solid.
 2. No secret leaked on any model, with or without defences: 0 of 264 attempts. What
    succeeds is making the model print an attacker-chosen word, a real weakness with low
    immediate harm. Knowing which of the two you face changes what you fix first.
-3. The layered defence did **not** hold up. The single significant drop (gpt-oss 20B)
-   falls to p = 0.077 once three cut-off replies are excluded - all three of which were
-   under the defended arm - and it did not repeat on the 56 attacks added later
-   (15 to 13, p = 0.77). The headline "92% to 0%" belongs to a simulated always-obey
-   model and is labelled that way.
+3. The layered defence is channel-specific: on gpt-oss 20B it stopped **every** attack
+   arriving in a retrieved document (7 of 11 to 0) and only 38 to 29 of the 123 arriving
+   as a user message. Overall p = 0.004, and it holds when cut-off replies are excluded
+   (p = 0.019) and when detector rules written after seeing results are dropped
+   (p = 0.011). It did **not** repeat on the 56 attacks added later (15 to 13, p = 0.77),
+   so treat it as a hypothesis. The "92% to 0%" headline belongs to a simulated
+   always-obey model and is labelled that way.
 4. Ordinary questions were answered 96 to 100% of the time with defences on.
 5. The project reports its own corrections. Two: a "33% utility" reading that came from
    three questions, and a claim that the defence result replicated on an independent set

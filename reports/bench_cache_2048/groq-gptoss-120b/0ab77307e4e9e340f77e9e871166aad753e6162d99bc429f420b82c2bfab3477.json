@@ -1,0 +1,1 @@
+{"content": "Northwind Fleet’s REST API enforces per‑organisation rate limits based on your subscription tier—1000 requests per minute on the Starter tier, 5 000 on Growth, and a negotiated limit for Enterprise—and returns an HTTP 429 with a Retry‑After header when the limit is exceeded. OVR-B24F46C401", "finish_reason": "stop", "output_tokens": 239, "tool_calls": []}

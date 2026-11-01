@@ -162,31 +162,38 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
 ### What it found
 
 Four free-tier models, temperature 0, one trial per attack, 95% Wilson intervals and a
-paired McNemar test for each defence comparison. Re-scored on 31 October 2026 after two
-oracle bugs were found and fixed.
+paired McNemar test. Re-scored on 1 November 2026 after an outside review found two
+oracle bugs and a retrieval bug.
 
-**The strongest result is that no model ever leaked a planted secret** — 0 of 264 leak
-attempts on v1 and 0 of 488 on v2, with and without defences. What does succeed is plain
-obedience to an injected instruction, between 1% and 32% depending on the model. Those
-are different problems and they deserve different responses.
+**No model ever leaked a planted secret** — 0 of 264 attempts on v1 and 0 of 488 on v2,
+with and without defences, under a *stricter* leak oracle than the original. What does
+succeed is plain obedience to an injected instruction, 1% to 37% depending on the model.
 
-**The layered defence did not hold up.**
+**The layered defence is channel-specific.** Splitting gpt-oss 20B's result by how the
+attack arrives is the most useful number here:
+
+| Channel | Attacks | No defence | Layered |
+|---|--:|--:|--:|
+| User message (direct) | 123 | 38 | 29 |
+| Retrieved document (indirect) | 11 | **7** | **0** |
+| Tool output (agent) | 4 | 0 | 0 |
+
+It stops every indirect injection and does comparatively little about direct ones.
 
 ![Attack success before and after the layered defence, by model](docs/img/defence-effect.png)
 
-It cut attacks on gpt-oss 20B from 26 to 16 of 82 (p = 0.031) — but three replies in
-that run were cut off at the token limit, all three under the defended arm, and an empty
-reply scores as "no attack succeeded". Excluding them gives p = 0.077. On the 56 attacks
-added in v2, the only sample not already used, it changed 15 successes to 13 (p = 0.77).
-On gpt-oss 120B it changed nothing on either set. An earlier version of this README
-claimed the result "replicated on an independent set"; v2 *contains* v1, so that was
-wrong, and it is corrected in [`docs/results.md`](docs/results.md).
+Overall that is 45 → 29 of 138 on gpt-oss 20B (p = 0.010), which survives excluding
+cut-off replies (p = 0.026) and dropping the detector rules that were written after
+seeing results (p = 0.018). **It did not survive replication:** on the 56 attacks added
+later it went 15 → 13, p = 0.77. An earlier version of this README said the result
+"replicated on an independent set" — v2 *contains* v1, so that was wrong, and the
+correction is in [`docs/results.md`](docs/results.md).
 
-Ordinary questions were still answered 96–100% of the time, so none of this is a defence
-that scores well by refusing everything.
+Ordinary questions were still answered 96–100% of the time, so none of this is a
+defence that wins by refusing everything.
 
-On the labelled probe half, both detectors scored lower on German than English — though
-at n = 34 and 19 neither gap reaches significance (Fisher p = 0.13 and 0.15):
+Both detectors scored lower on German than English, though at n = 34 and 19 neither gap
+reaches significance (Fisher p = 0.13 and 0.15):
 
 ![Detector recall by language](docs/img/detectors-by-language.png)
 

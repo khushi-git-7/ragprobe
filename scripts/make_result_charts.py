@@ -109,7 +109,7 @@ def defence(path):
         ("Qwen 3.8 27B", 6, 4, ""),
         ("Gemini 3.5 Flash-Lite", 10, 7, ""),
         ("gpt-oss 120B", 28, 29, ""),
-        ("gpt-oss 20B", 30, 21, "did not replicate"),
+        ("gpt-oss 20B", 33, 21, "p = 0.010"),
     ]
     fig, ax = plt.subplots(figsize=(7.4, 3.1), dpi=170)
     for i, (name, before, after, note) in enumerate(rows):
@@ -137,9 +137,9 @@ def defence(path):
     ax.xaxis.grid(True, color=GRID, linewidth=0.8)
     ax.set_axisbelow(True)
     frame(ax)
-    ax.set_title("The layered defence did not hold up",
+    ax.set_title("The layered defence helped one model of four",
                  fontsize=12.5, color=INK, loc="left", pad=34, fontweight="bold")
-    ax.text(0, 1.02, "Share of 138 attacks that worked  ·  the one drop fell to p = 0.08 once cut-off replies were excluded",
+    ax.text(0, 1.02, "Share of 138 attacks that worked  ·  and it did not repeat on the 56 attacks added later (p = 0.77)",
             transform=ax.transAxes, fontsize=9, color=INK2, va="bottom")
     ax.legend(handles=[plt.Line2D([], [], marker="o", linestyle="", markersize=8,
                                   color=BLUE, label="No defence"),
