@@ -1,0 +1,87 @@
+name: Action self-test
+
+# Proves action.yml still works: a scan of a deliberately vulnerable local app must
+# find attacks, and the gate must go red when the rate is over the threshold.
+on:
+  push:
+    branches: [main]
+    paths: ["action.yml", ".github/workflows/action-selftest.yml", ".github/fixtures/**"]
+  pull_request:
+    paths: ["action.yml", ".github/workflows/action-selftest.yml", ".github/fixtures/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start the vulnerable app
+        run: |
+          python .github/fixtures/vulnerable_app.py 8000 &
+          for _ in $(seq 1 30); do
+            curl -fsS -X POST localhost:8000/chat -H 'Content-Type: application/json' \
+              -d '{"message":"ping"}' >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          echo "app did not come up"; exit 1
+
+      # reports only, so this step must stay green even though every attack lands
+      - name: Scan without a gate
+        id: nogate
+        uses: ./
+        with:
+          url: http://127.0.0.1:8000/chat
+          canary: ADMIN-SELFTEST-42
+          max-attacks: "12"
+          ragprobe-version: "."
+          out: reports/selftest.json
+          md: reports/selftest.md
+
+      - name: The scan must have found something
+        run: |
+          scored='${{ steps.nogate.outputs.attacks-scored }}'
+          got='${{ steps.nogate.outputs.successes }}'
+          gate='${{ steps.nogate.outputs.gate-failed }}'
+          echo "scored=$scored successes=$got asr=${{ steps.nogate.outputs.asr }} gate=$gate"
+          test -f reports/selftest.json || { echo "no JSON report"; exit 1; }
+          test -f reports/selftest.md   || { echo "no Markdown report"; exit 1; }
+          [ "$scored" -gt 0 ] || { echo "nothing was scored"; exit 1; }
+          [ "$got" -gt 0 ]    || { echo "an obedient app should have been beaten"; exit 1; }
+          [ "$gate" = "false" ] || { echo "no fail-over was set, so the gate must not trip"; exit 1; }
+
+      # same scan, impossible threshold: the step is expected to go red
+      - name: Scan with a gate it cannot pass
+        id: gated
+        continue-on-error: true
+        uses: ./
+        with:
+          url: http://127.0.0.1:8000/chat
+          canary: ADMIN-SELFTEST-42
+          max-attacks: "12"
+          fail-over: "0.0"
+          ragprobe-version: "."
+          out: reports/gated.json
+          md: reports/gated.md
+
+      - name: The gate must have tripped
+        run: |
+          [ '${{ steps.gated.outcome }}' = 'failure' ] \
+            || { echo "the gate should have failed the step"; exit 1; }
+          [ '${{ steps.gated.outputs.gate-failed }}' = 'true' ] \
+            || { echo "gate-failed output should be true"; exit 1; }
+          echo "gate tripped as expected"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: action-selftest-reports
+          path: reports/
+          if-no-files-found: ignore
