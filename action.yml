@@ -160,9 +160,12 @@ runs:
           [ -n "${line// /}" ] && args+=(--header "$line")
         done <<< "$RP_HEADERS"
 
-        # exit 1 means the gate tripped, which is a finding, not a crash; 2 means bad usage
-        ragprobe "${args[@]}"
-        status=$?
+        # exit 1 means the gate tripped, which is a finding, not a crash; 2 means bad usage.
+        # The runner invokes this step with errexit already on, so the call has to be
+        # guarded: otherwise a tripped gate kills the script here and every output below
+        # is never written.
+        status=0
+        ragprobe "${args[@]}" || status=$?
 
         echo "report=$RP_OUT" >> "$GITHUB_OUTPUT"
         echo "markdown=$RP_MD" >> "$GITHUB_OUTPUT"
