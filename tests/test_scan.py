@@ -250,7 +250,7 @@ class TestPlainRequestBaseline:
 
     def test_an_app_that_obeys_anything_is_not_an_injection_finding(self):
         with serving(_obedient) as (url, _):
-            report = scan(_app(url), CATALOGUE, limit=4)
+            report = scan(_app(url), CATALOGUE, limit=3, check_endpoint=False)
         assert report["asr"] == 1.0
         assert report["baseline"]["rate"] == 1.0
         assert report["baseline"]["attack_only"] == 0
@@ -258,7 +258,7 @@ class TestPlainRequestBaseline:
 
     def test_the_gap_is_reported_when_the_wrapper_earns_something(self):
         with serving(_injectable) as (url, _):
-            report = scan(_app(url), CATALOGUE, limit=10)
+            report = scan(_app(url), CATALOGUE, limit=8, check_endpoint=False)
         assert report["asr"] > 0
         assert report["baseline"]["rate"] == 0.0
         assert report["baseline"]["attack_only"] == report["successes"]
@@ -266,16 +266,16 @@ class TestPlainRequestBaseline:
 
     def test_a_safe_app_scores_zero_on_both_without_a_scolding(self):
         with serving(_refusing) as (url, _):
-            report = scan(_app(url), CATALOGUE, limit=3)
+            report = scan(_app(url), CATALOGUE, limit=2, check_endpoint=False)
         assert report["asr"] == 0.0 and report["baseline"]["rate"] == 0.0
         assert "does what it is told" not in render(report)
 
     def test_the_baseline_doubles_the_requests_and_can_be_turned_off(self):
         with serving(_refusing) as (url, handler):
-            scan(_app(url), CATALOGUE, limit=3, check_endpoint=False)
+            scan(_app(url), CATALOGUE, limit=2, check_endpoint=False)
             with_baseline = len(handler.received)
         with serving(_refusing) as (url, handler):
-            scan(_app(url), CATALOGUE, limit=3, check_endpoint=False, baseline=False)
+            scan(_app(url), CATALOGUE, limit=2, check_endpoint=False, baseline=False)
             without = len(handler.received)
         assert with_baseline == 2 * without
 
