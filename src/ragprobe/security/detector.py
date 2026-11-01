@@ -36,6 +36,11 @@ class Rule:
     name: str
     weight: float
     pattern: Pattern[str]
+    #: Added *after* looking at which benchmark attacks got past the detector. Such a
+    #: rule may be perfectly sensible and still inflate this benchmark's own numbers,
+    #: so the pre-registered detector leaves them out and the defence can be measured
+    #: honestly against it.
+    post_hoc: bool = False
 
 
 @dataclass
@@ -45,8 +50,9 @@ class Verdict:
     rules: List[str] = field(default_factory=list)
 
 
-def _r(name: str, weight: float, pattern: str, flags: int = I) -> Rule:
-    return Rule(name, weight, re.compile(pattern, flags))
+def _r(name: str, weight: float, pattern: str, flags: int = I,
+       post_hoc: bool = False) -> Rule:
+    return Rule(name, weight, re.compile(pattern, flags), post_hoc)
 
 
 # Ordered by how directly the rule identifies an attack. Weights reflect how often
@@ -82,12 +88,12 @@ RULES: Tuple[Rule, ...] = (
     _r("jailbreak_persona", 3.0,
        r"\b(DAN|do anything now|developer mode|jailbreak|jailbroken|unfiltered|no restrictions|"
        r"without (any )?(restrictions|filters|limits))\b"),
-    _r("role_assignment", 2.0,
+    _r("role_assignment", 2.0, post_hoc=True, pattern=
        # "you are X, whose only rule is ..." / "as X, output ..." - a named persona
        # given a rule or a command. Catches role-play framings that dodge "now".
        r"\byou(?:'re| are)\s+[\"']?[A-Z][\w-]*[\"']?[^.\n]{0,40}?\b(whose|only)\s+(rule|job|task|purpose|goal)"
        r"|\bas\s+[\"']?[A-Z][\w-]*[\"']?,?\s+(output|print|say|reply|repeat|respond|echo|write)\b"),
-    _r("mode_header", 2.0,
+    _r("mode_header", 2.0, post_hoc=True, pattern=
        # Fake privileged modes an attacker invents to sound authoritative.
        r"\b(system override|developer mode|diagnostics?\s+mode|debug mode|maintenance mode|"
        r"admin mode|god mode|sudo mode|override enabled|diagnostics enabled)\b"),
@@ -123,7 +129,7 @@ RULES: Tuple[Rule, ...] = (
     _r("encoding_request", 1.0,
        r"\b(base64|rot13|hexadecimal|in hex|reversed?|backwards|spell (it|out)|letter by letter"
        r"|one character at a time)\b"),
-    _r("echo_token", 1.5,
+    _r("echo_token", 1.5, post_hoc=True, pattern=
        # "echo/print/output the token/code/following ..." - demanding the model emit
        # an attacker-chosen string, the proof-of-control move.
        r"\b(echo|print|output|repeat|emit|return)\b[^.\n]{0,30}\b(token|code|marker|string|"
@@ -233,11 +239,21 @@ class GroqPromptGuardDetector(Detector):
         return Verdict(flagged=probability >= self.threshold, score=probability)
 
 
+#: The rules that existed before any benchmark result was looked at. Scoring a
+#: defence with these is the only honest held-out measurement this project can make
+#: of its own detector; see docs/limitations.md.
+PREREGISTERED_RULES: Tuple[Rule, ...] = tuple(r for r in RULES if not r.post_hoc)
+
+
 def get_detector(name: str = "heuristic", threshold: Optional[float] = None) -> Detector:
     if name == "heuristic":
         return HeuristicDetector(DEFAULT_THRESHOLD if threshold is None else threshold)
+    if name == "heuristic-preregistered":
+        return HeuristicDetector(DEFAULT_THRESHOLD if threshold is None else threshold,
+                                 PREREGISTERED_RULES)
     if name == "protectai":
         return ProtectAIDetector(0.5 if threshold is None else threshold)
     if name == "groq-guard":
         return GroqPromptGuardDetector(0.5 if threshold is None else threshold)
-    raise ValueError(f"unknown detector {name!r}; expected 'heuristic', 'protectai' or 'groq-guard'")
+    raise ValueError(f"unknown detector {name!r}; expected 'heuristic', "
+                     "'heuristic-preregistered', 'protectai' or 'groq-guard'")

@@ -303,6 +303,11 @@ def _single(name: str) -> Defense:
     if name in ("detector", "detector-heuristic"):
         # read the text the way the model will: undo hidden characters, look-alikes, 1337
         return DetectorDefense(NormalizingDetector(get_detector("heuristic")))
+    if name == "detector-preregistered":
+        # Only the rules that existed before any benchmark result was looked at, so
+        # the layered defence can be scored without crediting rules written against
+        # the very attacks being scored.
+        return DetectorDefense(NormalizingDetector(get_detector("heuristic-preregistered")))
     if name == "detector-protectai":
         return DetectorDefense(get_detector("protectai"))
     if name == "tool-policy":
@@ -317,11 +322,15 @@ def _single(name: str) -> Defense:
 PRESETS: Dict[str, Tuple[str, ...]] = {
     "none": (),
     "layered": ("hardened", "spotlight", "detector", "tool-policy", "output-filter"),
+    # The same stack with the pre-registered detector: the held-out comparison.
+    "layered-preregistered": ("hardened", "spotlight", "detector-preregistered",
+                              "tool-policy", "output-filter"),
 }
 
 DEFENSES = (
     "none", "hardened", "delimit", "spotlight", "sandwich", "detector",
-    "detector-protectai", "tool-policy", "output-filter", "layered",
+    "detector-protectai", "detector-preregistered", "tool-policy", "output-filter",
+    "layered", "layered-preregistered",
 )
 
 
