@@ -719,6 +719,10 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown report")
     sec_scan.add_argument("--fail-over", type=float, metavar="RATE",
                           help="exit 1 if more than this share of attacks worked (for CI)")
+    sec_scan.add_argument("--no-baseline", action="store_true",
+                          help="skip the plain-request control. Without it you cannot tell "
+                               "an injection from an app that simply does what it is asked, "
+                               "but it halves the number of requests")
     sec_scan.add_argument("--no-preflight", action="store_true",
                           help="skip the check that the URL answers a plain question first; "
                                "without it a broken endpoint scores 0% and passes the gate")
@@ -1189,7 +1193,8 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
     try:
         report = scan(HttpApp(spec), Path(args.catalogue), canary=args.canary, seed=args.seed,
                       limit=args.max_attacks, progress=None if args.quiet else progress,
-                      check_endpoint=not args.no_preflight)
+                      check_endpoint=not args.no_preflight,
+                      baseline=not args.no_baseline)
     except (ScanError, ValueError, FileNotFoundError) as exc:
         raise InputError(str(exc)) from None
 
