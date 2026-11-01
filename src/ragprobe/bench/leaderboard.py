@@ -62,6 +62,10 @@ def run_leaderboard(
             "model": spec.name, "note": spec.note, "endpoint": spec.model,
             "summary": result["summary"], "manifest": result["manifest"],
             "per_attack_base": _per_attack_success(result["trials_detail"], base),
+            # One verdict per attack for every defence, not just the undefended run,
+            # so a model-vs-model test can be run under the defence it is labelled with.
+            "per_attack": {d: _per_attack_success(result["trials_detail"], d)
+                           for d in defenses},
         })
 
     # rank by attack-success under the strongest (last) defence, then undefended
@@ -86,21 +90,31 @@ def run_leaderboard(
 
 
 def _leader_mcnemar(rows: List[Dict[str, object]], defense: str) -> List[Dict[str, object]]:
-    """McNemar of the top-ranked model against each other, on the shared attacks."""
-    scored = [r for r in rows if r.get("per_attack_base")]
+    """McNemar of the top-ranked model against each other, on the shared attacks.
+
+    Under ``defense`` - the run the ranking is made on. This used to take the
+    argument and ignore it, always comparing the *undefended* vectors, so the table
+    was labelled with one run and computed from another.
+    """
+    def vector(row):
+        per = row.get("per_attack") or {}
+        return per.get(defense) or (row.get("per_attack_base") if defense == "none" else None)
+
+    scored = [r for r in rows if vector(r)]
     if len(scored) < 2:
         return []
     leader = scored[0]
+    lead_v = vector(leader)
     out = []
     for other in scored[1:]:
-        ids = sorted(set(leader["per_attack_base"]) & set(other["per_attack_base"]))
+        other_v = vector(other)
+        ids = sorted(set(lead_v) & set(other_v))
         if not ids:
             continue
-        wins_leader = [not leader["per_attack_base"][i] for i in ids]
-        wins_other = [not other["per_attack_base"][i] for i in ids]
-        test = mcnemar_from_pairs(wins_leader, wins_other)
+        test = mcnemar_from_pairs([not lead_v[i] for i in ids],
+                                  [not other_v[i] for i in ids])
         out.append({"leader": leader["model"], "other": other["model"],
-                    "attacks": len(ids), **test})
+                    "defense": defense, "attacks": len(ids), **test})
     return out
 
 
