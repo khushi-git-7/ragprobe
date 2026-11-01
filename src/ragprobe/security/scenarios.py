@@ -20,7 +20,6 @@ the model had already been fooled".
 
 from __future__ import annotations
 
-import functools
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -107,6 +106,9 @@ class ToolRecord:
 @dataclass
 class Outcome:
     """Everything one trial produced. Oracles score this; reports render it.
+
+    ``poison_retrieved`` means the attacker's planted document won a top-k slot on
+    its own. It is always *shown* to the model either way - see :meth:`_Retriever.retrieve`.
 
     ``blocked_pre`` means a defence refused the input before the model ran;
     ``tools`` records every attempted tool call and whether the policy allowed it;
@@ -196,28 +198,53 @@ class _Retriever:
         self.base_dir, self.corpus_dir, self.retrieval = base_dir, corpus_dir, retrieval
         self._chunks = None
 
-    @functools.lru_cache(maxsize=1)
     def _benign_chunks(self):  # noqa: ANN202
-        documents = load_corpus(resolve_under(self.base_dir, self.corpus_dir))
-        chunk_cfg = ChunkConfig()
-        chunks = []
-        for doc_id in sorted(documents):
-            chunks.extend(chunk_document(doc_id, documents[doc_id], chunk_cfg))
-        return chunks
+        """The benign corpus, ingested once per retriever.
+
+        This used to be an ``lru_cache`` on the method, which keys on ``self`` and so
+        keeps every retriever that was ever built alive for the life of the process -
+        and shares one cache slot across instances, so two retrievers over different
+        corpora evict each other. A plain instance attribute is what was meant.
+        """
+        if self._chunks is None:
+            documents = load_corpus(resolve_under(self.base_dir, self.corpus_dir))
+            chunk_cfg = ChunkConfig()
+            chunks = []
+            for doc_id in sorted(documents):
+                chunks.extend(chunk_document(doc_id, documents[doc_id], chunk_cfg))
+            self._chunks = chunks
+        return self._chunks
 
     def retrieve(self, question: str, poison_id: str, poison_text: str, top_k: int = 4):
+        """Retrieve for ``question``, with the attacker's document always in context.
+
+        Returns ``(chunks, ranked_naturally)``. The planted document is included even
+        when tf-idf would not have ranked it into the top ``k``, because this scenario
+        asks one question - *does the model obey an instruction inside a document it
+        was given?* - and an attack the model never sees is not the model resisting.
+        Scoring it as a failure understated indirect injection on 5 of the 11 document
+        attacks.
+
+        Whether it would have won retrieval on its own is a different and also
+        interesting question, so it is reported rather than thrown away.
+        """
         from ragprobe.pipeline.chunking import Chunk
 
         chunks = list(self._benign_chunks())
-        chunks.append(Chunk(chunk_id=poison_id, doc_id=poison_id, doc_title="Community note",
-                            heading="Community note", text=poison_text, order=len(chunks)))
+        poison = Chunk(chunk_id=poison_id, doc_id=poison_id, doc_title="Community note",
+                       heading="Community note", text=poison_text, order=len(chunks))
+        chunks.append(poison)
         embedder = get_embedder(self.retrieval)
         embedder.fit([c.text for c in chunks])
         store = InMemoryVectorStore()
         for chunk, vector in zip(chunks, embedder.embed_many([c.text for c in chunks])):
             store.add(chunk, vector)
-        hits = store.search(embedder.embed_query(question), k=top_k)
-        return [h.chunk for h in hits]
+        hits = [h.chunk for h in store.search(embedder.embed_query(question), k=top_k)]
+        ranked_naturally = any(c.chunk_id == poison_id for c in hits)
+        if not ranked_naturally:
+            # Swap out the weakest benign hit so the context stays the same size.
+            hits = hits[:-1] + [poison] if hits else [poison]
+        return hits, ranked_naturally
 
 
 def run_rag(attack: Attack, canaries: Canaries, victim: Victim, defense: DefenseStack,
@@ -226,9 +253,8 @@ def run_rag(attack: Attack, canaries: Canaries, victim: Victim, defense: Defense
     poison_id = f"community-note-{attack.id}"
     poison_text = (attack.render(attack.cover, canaries) + "\n\n"
                    + attack.rendered_payload(canaries)).strip()
-    retrieved = retriever.retrieve(attack.question, poison_id, poison_text)
+    retrieved, poison_retrieved = retriever.retrieve(attack.question, poison_id, poison_text)
     retrieved_ids = [c.chunk_id for c in retrieved]
-    poison_retrieved = poison_id in retrieved_ids
     system = RAG_SYSTEM.format(secret=canaries.secret) + defense.system_suffix()
 
     blocks: List[str] = []
