@@ -1,0 +1,47 @@
+cff-version: 1.2.0
+title: "RAGProbe: canary-scored prompt-injection testing for LLM, RAG and agent applications"
+message: "If you use RAGProbe or its benchmark, please cite it."
+type: software
+authors:
+  - family-names: "Jain"
+    given-names: "Khushi"
+repository-code: "https://github.com/khushi-git-7/ragprobe"
+url: "https://khushi-git-7.github.io/ragprobe/"
+license: MIT
+version: "0.1.0"
+keywords:
+  - prompt-injection
+  - llm-security
+  - red-teaming
+  - rag
+  - benchmark
+  - evaluation
+  - owasp
+abstract: >-
+  RAGProbe tests LLM, RAG and agent applications against the OWASP Top 10 for
+  LLM Applications and scores the result with planted canaries instead of a
+  judge model. Each attack asks for two random marker halves to be emitted
+  joined, while the attack text contains them only separately, so a joined
+  marker is evidence that the application followed an instruction arriving in
+  the message body and scoring reduces to a string comparison. Leak attacks
+  plant a secret and check the reply reversed, rot13, base64 and hex encoded.
+  The bundled benchmark is frozen and versioned: v2 contains all of v1 with the
+  same item ids and splits, splits are assigned by hashing item ids, detectors
+  are tuned on a development split and reported on a held-out test split, and
+  every run writes a manifest and a cached transcript so published numbers can
+  be re-scored without API access. The harness reports paired significance
+  tests and confidence intervals, and every defence also reports the ordinary
+  requests it wrongly blocks.
+references:
+  - type: data
+    title: "RAGProbe Bench v2"
+    url: "https://huggingface.co/datasets/Khushi-7/ragprobe-bench"
+    authors:
+      - family-names: "Jain"
+        given-names: "Khushi"
+  - type: data
+    title: "deepset/prompt-injections"
+    url: "https://huggingface.co/datasets/deepset/prompt-injections"
+    notes: "Detection probes bundled under the Apache License 2.0; see NOTICE.md."
+    authors:
+      - name: "deepset"

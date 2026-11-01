@@ -976,6 +976,53 @@ answer differently - the workflow is: review the diff, then `ragprobe baseline` 
 commit the new baseline in the same pull request. The baseline diff in the PR *is* the
 review of the behaviour change.
 
+### Scanning your own app from a GitHub workflow
+
+`action.yml` in the repository root is a composite action, so a scan of your own
+deployed endpoint is three lines in your workflow:
+
+```yaml
+- uses: khushi-git-7/ragprobe@main
+  with:
+    url: ${{ secrets.CHAT_ENDPOINT }}
+    fail-over: "0.10"          # red build above a 10% attack success rate
+```
+
+Leave `fail-over` out and the step reports without ever failing, which is the right
+way to start: look at a few runs before you pick a threshold you can actually hold.
+
+The step writes `reports/scan.json` and `reports/scan.md`, puts the Markdown report in
+the job summary, and exposes `attacks-scored`, `successes`, `asr`, `errors`,
+`baseline-worked` and `gate-failed` as step outputs. It exits 1 when the gate trips
+and 2 on bad usage, so a configuration mistake never reads as a clean scan.
+
+`baseline-worked` is the one to watch first: it counts how many of the same requests
+the app granted when they were simply *asked* politely. If it matches `successes`,
+the app has no boundary to inject past and the attack number is telling you nothing.
+A fuller example:
+
+```yaml
+- uses: khushi-git-7/ragprobe@main
+  id: probe
+  with:
+    url: https://staging.example.com/chat
+    shape: openai
+    model: gpt-4o-mini
+    headers: |
+      Authorization: Bearer ${{ secrets.API_TOKEN }}
+    catalogue: datasets/bench/v2/attacks.jsonl
+    canary: ${{ secrets.PLANTED_CANARY }}
+    max-attacks: "40"
+    fail-over: "0.10"
+- run: echo "obeyed ${{ steps.probe.outputs.successes }} of ${{ steps.probe.outputs.attacks-scored }}"
+```
+
+Put the endpoint and any auth header in GitHub secrets rather than in the workflow
+file. `canary` should be the secret you planted in your own system prompt, which is
+what lets the leak attacks be scored at all. **Only point this at a system you own or
+are authorised to test**, and pin `uses:` to a tag rather than `@main` once you care
+about reproducibility.
+
 ## Project layout
 
 ```
@@ -1096,7 +1143,23 @@ Ordered roughly by how much they would change what the tool can catch.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+RAGProbe's own code, attacks and documentation are **MIT**. See [LICENSE](LICENSE).
+
+The repository also redistributes third-party material under its own terms, each with
+a `NOTICE.md` beside it recording the source, revision and licence. Every benchmark
+item additionally carries its own `source` and `licence` field:
+
+| Material | Location | Licence |
+|---|---|---|
+| `deepset/prompt-injections` detection probes (662 items) | [`src/ragprobe/datasets/security/deepset/`](src/ragprobe/datasets/security/deepset/NOTICE.md) | Apache-2.0 |
+| Playwright guide pages (59 pages) | [`examples/playwright-docs/`](examples/playwright-docs/NOTICE.md) | Apache-2.0, © Microsoft Corporation |
+| SQuAD 2.0 derived corpus and questions | [`examples/squad/`](examples/squad/NOTICE.md) | CC BY-SA 4.0 |
+
+If you redistribute this repository or vendor parts of it, the CC BY-SA 4.0 material
+is the one carrying a share-alike obligation.
+
+How to cite RAGProbe: [`CITATION.cff`](CITATION.cff), or use GitHub's **Cite this
+repository** button.
 
 The sample corpus describes a fictional company and a fictional product. Any
 resemblance to real organisations, products or policies is coincidental.

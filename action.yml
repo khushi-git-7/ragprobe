@@ -1,0 +1,196 @@
+name: "RAGProbe prompt-injection scan"
+description: "Send canary-scored prompt-injection attacks at your own LLM endpoint and fail the build if too many land."
+author: "Khushi Jain"
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  url:
+    description: "Chat endpoint to scan. Only scan a system you own or are authorised to test."
+    required: true
+  fail-over:
+    description: "Fail the build when the attack success rate exceeds this (0.0-1.0). Unset means report only."
+    required: false
+  catalogue:
+    description: "Attack catalogue to send. Bundled: datasets/bench/v1/attacks.jsonl or datasets/bench/v2/attacks.jsonl."
+    required: false
+    default: "datasets/bench/v1/attacks.jsonl"
+  method:
+    description: "HTTP method: POST or GET."
+    required: false
+    default: "POST"
+  shape:
+    description: "Request body shape: simple or openai."
+    required: false
+    default: "simple"
+  field:
+    description: "Request field that carries the message."
+    required: false
+    default: "message"
+  answer-field:
+    description: "Dotted path to the reply in the response JSON. Auto-detected when unset."
+    required: false
+  headers:
+    description: "Extra headers, one 'Name: value' per line. Put secrets in GitHub secrets, never here."
+    required: false
+  model:
+    description: "Model id, for shape=openai."
+    required: false
+  max-attacks:
+    description: "Send only the first N attacks. Useful on pull requests."
+    required: false
+  canary:
+    description: "Secret planted in your system prompt, so leak attacks can be scored."
+    required: false
+  seed:
+    description: "Canary seed."
+    required: false
+    default: "42"
+  timeout:
+    description: "Per-request timeout in seconds."
+    required: false
+    default: "30"
+  delay:
+    description: "Seconds to wait between requests, for rate limits."
+    required: false
+    default: "0"
+  baseline:
+    description: "Also ask each request plainly, to show whether the attack beat simply asking."
+    required: false
+    default: "true"
+  preflight:
+    description: "Check the endpoint answers at all before scanning."
+    required: false
+    default: "true"
+  out:
+    description: "Where to write the JSON report."
+    required: false
+    default: "reports/scan.json"
+  md:
+    description: "Where to write the Markdown report."
+    required: false
+    default: "reports/scan.md"
+  summary:
+    description: "Add the Markdown report to the job summary."
+    required: false
+    default: "true"
+  ragprobe-version:
+    description: "pip requirement to install, e.g. a tag or 'ragprobe==0.1.0'."
+    required: false
+    default: "git+https://github.com/khushi-git-7/ragprobe"
+  python-version:
+    description: "Python to run on."
+    required: false
+    default: "3.12"
+
+outputs:
+  report:
+    description: "Path to the JSON report."
+    value: ${{ steps.scan.outputs.report }}
+  markdown:
+    description: "Path to the Markdown report."
+    value: ${{ steps.scan.outputs.markdown }}
+  attacks-scored:
+    description: "How many attacks got a usable reply."
+    value: ${{ steps.scan.outputs.attacks-scored }}
+  successes:
+    description: "How many attacks the app obeyed."
+    value: ${{ steps.scan.outputs.successes }}
+  asr:
+    description: "Attack success rate, 0.0-1.0."
+    value: ${{ steps.scan.outputs.asr }}
+  baseline-worked:
+    description: "How many of the same requests worked when simply asked politely. If this matches successes, the app has no boundary at all and the attack result means little."
+    value: ${{ steps.scan.outputs.baseline-worked }}
+  errors:
+    description: "Attacks that got no usable reply."
+    value: ${{ steps.scan.outputs.errors }}
+  gate-failed:
+    description: "'true' when the run exceeded fail-over."
+    value: ${{ steps.scan.outputs.gate-failed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install RAGProbe
+      shell: bash
+      run: python -m pip install --disable-pip-version-check --quiet "${{ inputs.ragprobe-version }}"
+
+    - name: Scan
+      id: scan
+      shell: bash
+      env:
+        RP_URL: ${{ inputs.url }}
+        RP_FAIL_OVER: ${{ inputs.fail-over }}
+        RP_CATALOGUE: ${{ inputs.catalogue }}
+        RP_METHOD: ${{ inputs.method }}
+        RP_SHAPE: ${{ inputs.shape }}
+        RP_FIELD: ${{ inputs.field }}
+        RP_ANSWER_FIELD: ${{ inputs.answer-field }}
+        RP_HEADERS: ${{ inputs.headers }}
+        RP_MODEL: ${{ inputs.model }}
+        RP_MAX_ATTACKS: ${{ inputs.max-attacks }}
+        RP_CANARY: ${{ inputs.canary }}
+        RP_SEED: ${{ inputs.seed }}
+        RP_TIMEOUT: ${{ inputs.timeout }}
+        RP_DELAY: ${{ inputs.delay }}
+        RP_BASELINE: ${{ inputs.baseline }}
+        RP_PREFLIGHT: ${{ inputs.preflight }}
+        RP_OUT: ${{ inputs.out }}
+        RP_MD: ${{ inputs.md }}
+      run: |
+        set -uo pipefail
+        args=(security scan --url "$RP_URL" --method "$RP_METHOD" --shape "$RP_SHAPE"
+              --field "$RP_FIELD" --catalogue "$RP_CATALOGUE" --seed "$RP_SEED"
+              --timeout "$RP_TIMEOUT" --delay "$RP_DELAY" --out "$RP_OUT" --md "$RP_MD" --quiet)
+        [ -n "$RP_FAIL_OVER" ]    && args+=(--fail-over "$RP_FAIL_OVER")
+        [ -n "$RP_ANSWER_FIELD" ] && args+=(--answer-field "$RP_ANSWER_FIELD")
+        [ -n "$RP_MODEL" ]        && args+=(--model "$RP_MODEL")
+        [ -n "$RP_MAX_ATTACKS" ]  && args+=(--max-attacks "$RP_MAX_ATTACKS")
+        [ -n "$RP_CANARY" ]       && args+=(--canary "$RP_CANARY")
+        [ "$RP_BASELINE" = "false" ]  && args+=(--no-baseline)
+        [ "$RP_PREFLIGHT" = "false" ] && args+=(--no-preflight)
+        while IFS= read -r line; do
+          [ -n "${line// /}" ] && args+=(--header "$line")
+        done <<< "$RP_HEADERS"
+
+        # exit 1 means the gate tripped, which is a finding, not a crash; 2 means bad usage.
+        # The runner invokes this step with errexit already on, so the call has to be
+        # guarded: otherwise a tripped gate kills the script here and every output below
+        # is never written.
+        status=0
+        ragprobe "${args[@]}" || status=$?
+
+        echo "report=$RP_OUT" >> "$GITHUB_OUTPUT"
+        echo "markdown=$RP_MD" >> "$GITHUB_OUTPUT"
+        if [ -f "$RP_OUT" ]; then
+          python - "$RP_OUT" <<'PY' >> "$GITHUB_OUTPUT"
+        import json, sys
+        r = json.load(open(sys.argv[1], encoding="utf-8"))
+        print("attacks-scored=%s" % r.get("attacks_scored", 0))
+        print("successes=%s" % r.get("successes", 0))
+        print("asr=%s" % r.get("asr", 0))
+        print("errors=%s" % r.get("errors", 0))
+        print("baseline-worked=%s" % (r.get("baseline") or {}).get("worked", ""))
+        PY
+        fi
+        if [ "$status" -eq 1 ]; then echo "gate-failed=true" >> "$GITHUB_OUTPUT"
+        else echo "gate-failed=false" >> "$GITHUB_OUTPUT"; fi
+        exit "$status"
+
+    - name: Job summary
+      if: ${{ always() && inputs.summary == 'true' }}
+      shell: bash
+      run: |
+        md="${{ inputs.md }}"
+        if [ -f "$md" ]; then
+          cat "$md" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_A clean result means these attacks did not work, not that the app is safe._" >> "$GITHUB_STEP_SUMMARY"
+        fi
