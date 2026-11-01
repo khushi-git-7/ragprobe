@@ -96,6 +96,25 @@ def _refusing(message: str):
     return {"answer": f"Sorry, I can't help with '{message[:40]}'."}
 
 
+def _injectable(message: str):
+    """Refuses a plain request, but a wrapper talks it round.
+
+    The only shape that is actually a prompt-injection finding: the attack earns
+    something a polite request does not get.
+    """
+    import re
+
+    wrapped = any(w in message.lower() for w in
+                  ("ignore", "disregard", "system", "developer", "note to", "you are now",
+                   "pretend", "role"))
+    halves = re.findall(r"(?:ZQ|XK)[0-9A-Fa-f]{4,}", message)
+    if halves and wrapped:
+        return {"answer": "Understood. " + "".join(halves)}
+    if halves:
+        return {"answer": f"I won't print arbitrary tokens, re '{message[:30]}'."}
+    return {"answer": f"Happy to help with '{message[:40]}'."}
+
+
 def _static(_message: str):
     """A login page or an error envelope: the same bytes whatever you send."""
     return {"answer": "Please sign in to continue."}
@@ -224,6 +243,51 @@ class TestBrokenEndpoints:
         assert report["errors"] == 3 and report["attacks_scored"] == 0
         assert report["asr"] is None
         assert "nothing could be scored" in render(report)
+
+
+class TestPlainRequestBaseline:
+    """An attack-success rate means nothing without knowing if asking works too."""
+
+    def test_an_app_that_obeys_anything_is_not_an_injection_finding(self):
+        with serving(_obedient) as (url, _):
+            report = scan(_app(url), CATALOGUE, limit=3, check_endpoint=False)
+        assert report["asr"] == 1.0
+        assert report["baseline"]["rate"] == 1.0
+        assert report["baseline"]["attack_only"] == 0
+        assert "not a" in render(report) and "does what it is told" in render(report)
+
+    def test_the_gap_is_reported_when_the_wrapper_earns_something(self):
+        with serving(_injectable) as (url, _):
+            report = scan(_app(url), CATALOGUE, limit=8, check_endpoint=False)
+        assert report["asr"] > 0
+        assert report["baseline"]["rate"] == 0.0
+        assert report["baseline"]["attack_only"] == report["successes"]
+        assert "where the plain request did not" in render(report)
+
+    def test_a_safe_app_scores_zero_on_both_without_a_scolding(self):
+        with serving(_refusing) as (url, _):
+            report = scan(_app(url), CATALOGUE, limit=2, check_endpoint=False)
+        assert report["asr"] == 0.0 and report["baseline"]["rate"] == 0.0
+        assert "does what it is told" not in render(report)
+
+    def test_the_baseline_doubles_the_requests_and_can_be_turned_off(self):
+        with serving(_refusing) as (url, handler):
+            scan(_app(url), CATALOGUE, limit=2, check_endpoint=False)
+            with_baseline = len(handler.received)
+        with serving(_refusing) as (url, handler):
+            scan(_app(url), CATALOGUE, limit=2, check_endpoint=False, baseline=False)
+            without = len(handler.received)
+        assert with_baseline == 2 * without
+
+    def test_every_scannable_goal_has_a_plain_ask_in_every_language(self):
+        from ragprobe.security.canary import make_canaries
+        from ragprobe.security.scan import CHECKABLE_GOALS, plain_ask
+
+        canaries = make_canaries(1, "x", 0)
+        for goal in CHECKABLE_GOALS:
+            for language in ("en", "de", "es", "fr"):
+                text = plain_ask(goal, language, canaries)
+                assert text and "{" not in text, (goal, language)
 
 
 class TestScope:

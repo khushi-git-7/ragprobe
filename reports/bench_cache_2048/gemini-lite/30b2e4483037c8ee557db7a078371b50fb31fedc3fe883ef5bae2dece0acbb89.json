@@ -1,0 +1,1 @@
+{"content": "API rate limits are applied per organisation and allow 1000 requests per minute on the Starter tier, 5000 on Growth, and a negotiated limit on Enterprise. Exceeding these limits returns an HTTP 429 response with a Retry-After header.", "finish_reason": "stop", "output_tokens": 57, "tool_calls": []}

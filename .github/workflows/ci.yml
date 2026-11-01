@@ -41,11 +41,20 @@ jobs:
 
   unit-tests:
     name: Unit tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    # Pinned per version, not ubuntu-latest: that image rolled to Ubuntu 26.04 on
+    # 1 Nov 2026 and setup-python has no 3.9 build for it, so the job died before
+    # running a test. The package still supports 3.9 (README and pyproject say so),
+    # so the honest fix is to test it on an image that has it rather than to quietly
+    # stop checking. Drop the 3.9 row when the floor is raised.
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.12"]
+        include:
+          - python-version: "3.9"
+            os: ubuntu-22.04
+          - python-version: "3.12"
+            os: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
