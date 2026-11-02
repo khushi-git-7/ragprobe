@@ -1,7 +1,8 @@
 # Results on live models
 
-Real models, measured on 26 October 2026 and **re-scored on 1 November 2026** after an
-outside review found three bugs: two in the oracle and one in retrieval. Read
+Real models, measured on 26 October 2026 and **re-scored on 1 November 2026** after a
+review found three bugs: two in the oracle and one in retrieval. The review was done by a fresh
+AI-assistant session given no prior context; each finding was confirmed by re-scoring the cached replies. Read
 [limitations](limitations.md) first: these are small samples on free-tier APIs and say
 nothing about a model's overall safety.
 

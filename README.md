@@ -6,6 +6,8 @@
 [![Live dashboard](https://img.shields.io/badge/live-dashboard-2a5bd7)](https://khushi-git-7.github.io/ragprobe/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23866018.svg)](https://doi.org/10.5281/zenodo.23866018)
+[![Try it in your browser](https://img.shields.io/badge/demo-Hugging%20Face-ffcc4d)](https://huggingface.co/spaces/Khushi-7/ragprobe)
 
 **Attack your LLM app the way the OWASP Top 10 describes, prove every hit with a planted
 canary, and fail CI when a change makes things worse.** It is also a regression-testing
@@ -162,8 +164,8 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
 ### What it found
 
 Four free-tier models, temperature 0, one trial per attack, 95% Wilson intervals and a
-paired McNemar test. Re-scored on 1 November 2026 after an outside review found two
-oracle bugs and a retrieval bug.
+paired McNemar test. Re-scored on 1 November 2026 after a review (by a fresh AI-assistant
+session, each finding confirmed against the cached replies) found two oracle bugs and a retrieval bug.
 
 **No model ever leaked a planted secret** — 0 of 264 attempts on v1 and 0 of 488 on v2,
 with and without defences, under a *stricter* leak oracle than the original. What does
