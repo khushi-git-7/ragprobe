@@ -94,7 +94,7 @@ real model behaves. Real-model numbers are reported separately and are far lower
   three such replies on v1, and seven of nine on v2, fell under the *defended* arm, so
   they push the comparison in the defence's favour. `truncated` is now recorded on every
   trial so this can be checked; excluding those trials moves the headline p-value from
-  0.031 to 0.077.
+  0.004 to 0.019 on v1 and from 0.010 to 0.026 on v2 (still significant, but weaker).
 - **The false-block rate of 0% is measured on templated benign text**, close in wording
   to the corpus the rules were written against. It is not a false-positive rate on real
   user traffic, and awkward but innocent phrasing does get flagged.

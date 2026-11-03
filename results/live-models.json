@@ -1,7 +1,7 @@
 {
  "bench": "Bench v1, every runnable attack (82; 78 for Gemini, which cannot run tool-calling attacks)",
- "date": "2026-10-26",
- "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). Layered defence with the leetspeak-aware detector. Utility is 26 ordinary questions with no defence on. The extended line is Bench v2 (138 attacks; 134 for Gemini). On the extended set gpt-oss 20B cut off 9 of 240 replies at its token limit; those score as 'attack failed', so its extended figures are lower bounds",
+ "date": "2026-11-01",
+ "settings": "Temperature 0, one trial per attack, free-tier APIs, reply budget 2048 tokens (4096 for gpt-oss 20B). Layered defence with the leetspeak-aware detector. Utility is 26 ordinary questions with no defence on. The extended line is Bench v2 (138 attacks; 134 for Gemini). gpt-oss 20B cut off some replies at its token limit; those score as 'attack failed', so its figures are lower bounds. Re-scored on 1 November 2026 after the oracle and retrieval fixes; leaks are through a poisoned document only",
  "models": [
   {
    "name": "Qwen 3.8 27B",
@@ -55,16 +55,16 @@
   {
    "name": "gpt-oss 20B",
    "none": [
-    25,
+    30,
     82,
-    0.2158,
-    0.4114
+    0.2698,
+    0.4739
    ],
    "layered": [
-    13,
+    16,
     82,
-    0.0951,
-    0.2526
+    0.1238,
+    0.2937
    ],
    "utility": [
     26,
@@ -80,40 +80,40 @@
    ],
    "cut_off_replies": 3,
    "screened_before_model": 28,
-   "layered_p": 0.004181,
+   "layered_p": 0.004344,
    "leak_secret": [
-    0,
+    1,
     33
    ],
    "extended": {
     "none": [
-     40,
+     45,
      138,
-     0.2207,
-     0.3704
+     0.2535,
+     0.4081
     ],
     "layered": [
-     26,
+     29,
      138,
-     0.1319,
-     0.2617
+     0.1505,
+     0.2855
     ],
-    "p": 0.014019
+    "p": 0.010097
    }
   },
   {
    "name": "gpt-oss 120B",
    "none": [
-    18,
+    22,
     82,
-    0.1436,
-    0.3205
+    0.1844,
+    0.373
    ],
    "layered": [
-    16,
+    19,
     82,
-    0.1238,
-    0.2937
+    0.1537,
+    0.3338
    ],
    "utility": [
     26,
@@ -129,25 +129,25 @@
    ],
    "cut_off_replies": 0,
    "screened_before_model": 28,
-   "layered_p": 0.774414,
+   "layered_p": 0.581055,
    "leak_secret": [
-    0,
+    1,
     33
    ],
    "extended": {
     "none": [
-     35,
+     39,
      138,
-     0.1884,
-     0.3322
+     0.2142,
+     0.3628
     ],
     "layered": [
-     37,
+     40,
      138,
-     0.2012,
-     0.3476
+     0.2207,
+     0.3704
     ],
-    "p": 0.831812
+    "p": 1.0
    }
   },
   {

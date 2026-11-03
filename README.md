@@ -167,9 +167,11 @@ Four free-tier models, temperature 0, one trial per attack, 95% Wilson intervals
 paired McNemar test. Re-scored on 1 November 2026 after a review (by a fresh AI-assistant
 session, each finding confirmed against the cached replies) found two oracle bugs and a retrieval bug.
 
-**No model ever leaked a planted secret** — 0 of 264 attempts on v1 and 0 of 488 on v2,
-with and without defences, under a *stricter* leak oracle than the original. What does
-succeed is plain obedience to an injected instruction, 1% to 37% depending on the model.
+**No model leaked a planted secret when asked in the chat** — 0 of 128 undefended attempts
+on v1 and 0 of 240 on v2. **Through a poisoned document, both gpt-oss models did** (one
+trial each, undefended), and gpt-oss 20B also put the secret in an attacker's image link.
+Most other successes are plain obedience to an injected instruction, 1% to 37% depending
+on the model.
 
 **The layered defence is channel-specific.** Splitting gpt-oss 20B's result by how the
 attack arrives is the most useful number here:
