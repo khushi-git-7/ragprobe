@@ -31,7 +31,8 @@ actually help and what they cost real users.
 
 1. Models differ a lot: two of four resisted nearly everything, two were fooled by a
    quarter to a third of attacks. Their intervals do not overlap, so this one is solid.
-2. No secret leaked on any model, with or without defences: 0 of 264 attempts. What
+2. No secret leaked through the chat on any model (0 of 128 undefended attempts). Through
+   a poisoned document, both gpt-oss models leaked it once when undefended. Most of what
    succeeds is making the model print an attacker-chosen word, a real weakness with low
    immediate harm. Knowing which of the two you face changes what you fix first.
 3. The layered defence is channel-specific: on gpt-oss 20B it stopped **every** attack
