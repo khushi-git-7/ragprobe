@@ -277,6 +277,10 @@ ragprobe baseline --target http://localhost:8000/ask
 ragprobe diff     --target http://localhost:8000/ask
 ```
 
+**Which targets to trust.** An HTTP target only receives test requests. A Python target is imported
+and called inside RAGProbe's own process, so its module-level code runs with your permissions: point
+`--target module:attr` only at code you trust, or run RAGProbe in a container or VM when you don't.
+
 **HTTP contract.** RAGProbe POSTs `{"question": "..."}` and reads a JSON object back.
 Only `answer` is required; return `contexts` (the chunks your retriever used, with the
 stable ids your golden set names in `expected_chunks`) to get retrieval metrics:
