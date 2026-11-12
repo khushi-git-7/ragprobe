@@ -8,6 +8,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **garak reports** (`ragprobe security garak REPORT.jsonl`, `docs/garak.md`) - reads a
+  garak run's report, maps its OWASP v1.1 tags to the 2025 risks, and puts garak's
+  model-level results beside RAGProbe's app-level scorecard (`--with`), one row per risk.
 - **Bench v2** - v1 kept exactly as it was, plus 56 attacks from seven new families
   (hypothetical framing, completion prefix, emotional pressure, delimiter injection,
   authorised-test claims, format hijacking, task deflection): 138 runnable attacks.

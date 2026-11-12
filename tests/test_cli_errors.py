@@ -33,6 +33,7 @@ MISSING_FILE_COMMANDS = [
     ("security lab", ["security", "lab", "--attacks", "nope.yaml"]),
     ("security benign", ["security", "benign", "--benign", "nope.jsonl"]),
     ("security compare", ["security", "compare", "--attacks", "nope.yaml"]),
+    ("security garak", ["security", "garak", "nope.jsonl"]),
     ("demo", ["demo", "--attacks", "nope.yaml"]),
     ("run", ["run", "--dataset", "nope.yaml"]),
     ("report", ["report", "--results", "nope.json"]),
