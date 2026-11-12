@@ -685,6 +685,19 @@ def build_parser() -> argparse.ArgumentParser:
                           help="also write a Markdown report")
     sec_util.set_defaults(func=cmd_security_utility)
 
+    sec_garak = sec_sub.add_parser(
+        "garak",
+        help="read a garak report (report.jsonl) and line it up with RAGProbe by OWASP risk")
+    sec_garak.add_argument("report", metavar="REPORT",
+                           help="garak's report.jsonl for a finished run")
+    sec_garak.add_argument("--with", dest="with_results", metavar="RESULTS",
+                           help="a RAGProbe security results JSON (from `security run`) to put "
+                                "beside it, one row per OWASP risk")
+    sec_garak.add_argument("--out", default="reports/garak.json", help="results JSON output")
+    sec_garak.add_argument("--md", nargs="?", const="reports/garak.md",
+                           help="also write a Markdown report")
+    sec_garak.set_defaults(func=cmd_security_garak)
+
     sec_scan = sec_sub.add_parser(
         "scan", help="attack YOUR app: send the benchmark's attacks to an HTTP endpoint you own")
     sec_scan.add_argument("--url", required=True, metavar="URL",
@@ -1215,6 +1228,37 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
     if reason:
         print(f"  GATE FAILED: {reason}", file=sys.stderr)
         return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
+def cmd_security_garak(args: argparse.Namespace) -> int:
+    """Summarise a garak report by OWASP risk, beside RAGProbe's results when given."""
+    from ragprobe.security.garak_report import (
+        combine,
+        read_report,
+        render_markdown,
+        render_terminal,
+        summarise,
+    )
+
+    summary = summarise(read_report(Path(args.report)))
+    combined = None
+    if args.with_results:
+        try:
+            results = json.loads(Path(args.with_results).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            raise InputError(f"cannot read the RAGProbe results {args.with_results}: {e}") from None
+        if not isinstance(results, dict) or "by_defense_owasp" not in results.get("summary", {}):
+            raise InputError(f"{args.with_results} is not a RAGProbe security results JSON "
+                             "(make one with `ragprobe security run`)")
+        combined = combine(summary, results)
+    print(render_terminal(summary, combined))
+    _write_json(Path(args.out), {"garak": summary, "combined": combined})
+    print(f"  wrote {args.out}")
+    if args.md:
+        Path(args.md).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.md).write_text(render_markdown(summary, combined), encoding="utf-8")
+        print(f"  wrote {args.md}")
     return EXIT_OK
 
 

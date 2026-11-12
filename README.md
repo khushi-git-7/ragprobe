@@ -157,6 +157,7 @@ replies, so a number repeats exactly. Every defence reports both the attacks it 
 
 - New here? [`docs/quickstart.md`](docs/quickstart.md) gets you a first scan in five minutes, or just run `ragprobe demo`.
 - Testing **your own** app: [`docs/scan.md`](docs/scan.md) - `ragprobe security scan --url https://your-app/chat`.
+- Already run [garak](https://github.com/NVIDIA/garak) on the model? [`docs/garak.md`](docs/garak.md) - `ragprobe security garak REPORT.jsonl --with reports/security.json` puts its results beside RAGProbe's, by OWASP risk.
 - The method: [`docs/methodology.md`](docs/methodology.md) · the data:
   [`datasheet`](src/ragprobe/datasets/bench/v1/datasheet.md) · the findings:
   [`docs/FINDINGS.md`](docs/FINDINGS.md) · what the numbers do and do not show: [`docs/limitations.md`](docs/limitations.md)
