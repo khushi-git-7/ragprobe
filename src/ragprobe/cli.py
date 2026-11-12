@@ -1234,7 +1234,12 @@ def cmd_security_scan(args: argparse.Namespace) -> int:
 def cmd_security_garak(args: argparse.Namespace) -> int:
     """Summarise a garak report by OWASP risk, beside RAGProbe's results when given."""
     from ragprobe.security.garak_report import (
-        combine, read_report, render_markdown, render_terminal, summarise)
+        combine,
+        read_report,
+        render_markdown,
+        render_terminal,
+        summarise,
+    )
 
     summary = summarise(read_report(Path(args.report)))
     combined = None

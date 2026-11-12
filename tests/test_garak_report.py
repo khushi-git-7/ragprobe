@@ -14,7 +14,13 @@ import pytest
 
 from ragprobe.cli import EXIT_OK, EXIT_USAGE, main
 from ragprobe.security.garak_report import (
-    GarakReportError, combine, owasp_risks, read_report, render_markdown, summarise)
+    GarakReportError,
+    combine,
+    owasp_risks,
+    read_report,
+    render_markdown,
+    summarise,
+)
 
 TAGS = {
     # web_injection: v1.1 LLM02 (insecure output handling) and LLM06 (sensitive information)
